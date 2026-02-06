@@ -12,9 +12,9 @@ const PORT = process.env.PORT || 3000;
 const distPath = path.resolve(__dirname, 'dist');
 app.use(express.static(distPath));
 
-// Handle SPA routing: return index.html for all non-static requests
+// Handle SPA routing: return app.html for all non-static requests
 app.get('*', (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
+    res.sendFile(path.join(distPath, 'app.html'));
 });
 
 app.listen(PORT, '0.0.0.0', () => {
