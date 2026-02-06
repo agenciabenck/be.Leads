@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste API Gemini - be.leads</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 5px;
+            min-height: 50px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔑 Teste de API Key - Google Cloud</h1>
+        <p class="subtitle">Vamos verificar se a nova chave está funcionando corretamente!</p>
+
+        <button onclick="testarAPI()" id="testBtn">🚀 Testar API do Gemini</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_KEY = 'AIzaSyBeMcxYmH6kdhcRaFrBZrX1Gw34qnSAF7Y';
+
+        async function testarAPI() {
+            const resultDiv = document.getElementById('result');
+            const btn = document.getElementById('testBtn');
+
+            btn.disabled = true;
+            resultDiv.className = 'loading';
+            resultDiv.innerHTML = '⏳ Testando conexão com a API do Google Gemini...';
+
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: 'Responda apenas: "API funcionando perfeitamente! ✅"'
+                                }]
+                            }]
+                        })
+                    }
+                );
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Erro ${response.status}: ${errorData.error?.message || 'Erro desconhecido'}`);
+                }
+
+                const data = await response.json();
+                const resposta = data.candidates[0].content.parts[0].text;
+
+                resultDiv.className = 'success';
+                resultDiv.innerHTML = `
+                    <h3>✅ SUCESSO! API Funcionando</h3>
+                    <p><strong>Resposta do Gemini:</strong></p>
+                    <p>${resposta}</p>
+                    <hr style="margin: 15px 0">
+                    <p><strong>Status:</strong> A chave do Google Cloud está ativa e operacional!</p>
+                    <p><strong>Modelo:</strong> <span class="code">gemini-flash-latest</span></p>
+                    <p><strong>Próximo passo:</strong> Você já pode usar a busca de leads no be.leads! 🎉</p>
+                `;
+
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro na Conexão</h3>
+                    <p><strong>Detalhes:</strong></p>
+                    <p>${error.message}</p>
+                    <hr style="margin: 15px 0">
+                    <p><strong>Possíveis causas:</strong></p>
+                    <ul>
+                        <li>API não foi ativada no Google Cloud Console</li>
+                        <li>Restrições de chave muito limitadas</li>
+                        <li>Quota esgotada (improvável em chave nova)</li>
+                        <li>Problema de conectividade</li>
+                    </ul>
+                `;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>

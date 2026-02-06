@@ -1,0 +1,7 @@
+{
+  "name": "be.leads",
+  "description": "be.leads - Ferramenta B2B para extração de dados de empresas usando Inteligência Artificial e Google Maps.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
