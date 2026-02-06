@@ -2,19 +2,37 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-This contains everything you need to run your app locally.
+# be.leads - Gerador de Leads & CRM Inteligente
 
-View your app in AI Studio: https://ai.studio/apps/drive/1XlkKGJHC3rgANPzlB35-G8X7vnKlvmtX
+Plataforma completa para extração de leads comerciais via IA (Google Maps + Gemini) e gestão de pipeline de vendas.
 
-## Run Locally
+## 🏗️ Estrutura Modular
 
-**Prerequisites:**  Node.js
+O projeto segue uma arquitetura moderna organizada no diretório `src/`:
 
+- **components/**: Componentes de UI reutilizáveis (Tabelas, Modais, Sidebar, Autenticação).
+- **pages/**: Lógica modular de cada tela (Home/Dashboard, LeadExtractor, CRM Kanban, Subscription).
+- **services/**: Camada de integração (Supabase DB/Auth, API Gemini, Stripe Payments).
+- **types/** & **constants/**: Centralização de tipagem e configurações globais.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🚀 Desenvolvimento e Produção
+
+### Rodar Localmente
+1. Instale as dependências: `npm install`
+2. Configure seu `.env` com as chaves do Supabase e Gemini.
+3. Inicie o servidor: `npm run dev`
+
+### Build & Deploy (Hostinger)
+1. Para gerar a versão de produção: `npm run build`
+2. O conteúdo da pasta `dist/` deve ser enviado para o servidor.
+3. O arquivo `.htaccess` incluído na raiz garante que o roteamento Single Page Application (SPA) funcione corretamente em servidores Apache.
+
+## 🛠️ Tecnologias
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS, Lucide React.
+- **Backend/BaaS**: Supabase (Auth, Postgres, Edge Functions).
+- **IA**: Google Gemini Pro (Busca inteligente e filtragem).
+- **Pagamentos**: Stripe Integration.

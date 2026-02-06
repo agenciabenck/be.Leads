@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { Lead, SearchFilters } from "../types";
+import { Lead, SearchFilters } from "@/types/types";
 
 export const searchLeads = async (
   query: string,

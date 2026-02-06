@@ -9,13 +9,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Serve static files from the 'dist' directory
-app.use(express.static(path.join(__dirname, 'dist')));
+const distPath = path.resolve(__dirname, 'dist');
+app.use(express.static(distPath));
 
 // Handle SPA routing: return index.html for all non-static requests
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    res.sendFile(path.join(distPath, 'index.html'));
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
 });
