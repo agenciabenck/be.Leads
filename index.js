@@ -1,29 +1,33 @@
-const express = require('express');
-const path = require('path');
+const http = require('http');
 
-const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Heartbeat route to check if Node.js is alive
-app.get('/status-check', (req, res) => {
-    res.json({ status: 'alive', time: new Date().toISOString() });
+const server = http.createServer((req, res) => {
+    console.log(`Request received: ${req.method} ${req.url}`);
+
+    if (req.url === '/diagnostic') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            status: 'diagnostic-alive',
+            node_version: process.version,
+            port: PORT,
+            env: process.env.NODE_ENV || 'not set'
+        }));
+        return;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(`
+    <h1>Diagnóstico be.leads</h1>
+    <p>O Node.js está funcionando corretamente neste servidor!</p>
+    <p>Versão do Node: ${process.version}</p>
+    <p>Porta: ${PORT}</p>
+    <hr>
+    <p>Se você vê esta mensagem, o problema anterior era provavelmente nas dependências (Express) ou no build.</p>
+    <p>Tente acessar <a href="/diagnostic">/diagnostic</a> para dados JSON.</p>
+  `);
 });
 
-// Serve static files from the 'dist' directory
-const distPath = path.resolve(__dirname, 'dist');
-app.use(express.static(distPath));
-
-// Handle SPA routing: return entry.html for all non-static requests
-app.get('*', (req, res) => {
-    const entryPath = path.join(distPath, 'entry.html');
-    res.sendFile(entryPath, (err) => {
-        if (err) {
-            console.error('Error sending entry.html:', err);
-            res.status(500).send('Erro no servidor: Arquivo entry.html não encontrado na pasta dist. Por favor, verifique se o build foi concluído.');
-        }
-    });
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is running on port ${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Diagnostic server running on port ${PORT}`);
 });
