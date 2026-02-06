@@ -13,7 +13,7 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, 'dev.html.vite'),
+        main: path.resolve(__dirname, 'vite-dev-entry.html'),
       },
       output: {
         entryFileNames: `assets/[name]-[hash].js`,
