@@ -1,33 +1,39 @@
-const http = require('http');
+const express = require('express');
+const path = require('path');
 
+const app = express();
 const PORT = process.env.PORT || 3000;
 
-const server = http.createServer((req, res) => {
-    console.log(`Request received: ${req.method} ${req.url}`);
-
-    if (req.url === '/diagnostic') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            status: 'diagnostic-alive',
-            node_version: process.version,
-            port: PORT,
-            env: process.env.NODE_ENV || 'not set'
-        }));
-        return;
-    }
-
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(`
-    <h1>Diagnóstico be.leads</h1>
-    <p>O Node.js está funcionando corretamente neste servidor!</p>
-    <p>Versão do Node: ${process.version}</p>
-    <p>Porta: ${PORT}</p>
-    <hr>
-    <p>Se você vê esta mensagem, o problema anterior era provavelmente nas dependências (Express) ou no build.</p>
-    <p>Tente acessar <a href="/diagnostic">/diagnostic</a> para dados JSON.</p>
-  `);
+// Middleware for basic logging
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Diagnostic server running on port ${PORT}`);
+// Heartbeat route to confirm the server is running
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'online',
+        message: 'BeLeads Server is running',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Serve static files from the 'dist' directory
+const distPath = path.resolve(__dirname, 'dist');
+app.use(express.static(distPath));
+
+// Handle SPA routing: return entry.html for all non-static requests
+app.get('*', (req, res) => {
+    const entryFile = path.join(distPath, 'entry.html');
+    res.sendFile(entryFile, (err) => {
+        if (err) {
+            console.error('Error sending entry.html:', err);
+            res.status(500).send('Erro no Servidor: Arquivo de entrada não encontrado na pasta dist. Certifique-se de que o build foi concluído com sucesso.');
+        }
+    });
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`BeLeads Production Server running on port ${PORT}`);
 });
