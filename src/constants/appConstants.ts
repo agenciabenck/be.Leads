@@ -6,7 +6,27 @@ export const COMMON_NICHES = [
     "Dentistas",
     "Escritórios de Advocacia",
     "Imobiliárias",
-    "Pet Shops"
+    "Pet Shops",
+    "Autoescolas",
+    "Oficinas Mecânicas",
+    "Lojas de Móveis",
+    "Contabilidades",
+    "Escolas e Cursos",
+    "Hotéis e Pousadas",
+    "Agências de Viagens",
+    "Buffets e Eventos",
+    "Gráficas",
+    "Lavanderias",
+    "Farmácias",
+    "Supermercados",
+    "Lojas de Roupas",
+    "Joalherias",
+    "Casas de Câmbio",
+    "Empresas de TI",
+    "Agências de Marketing",
+    "Construtoras",
+    "Indústrias Metalúrgicas",
+    "Distribuidoras"
 ];
 
 export const BRAZIL_STATES = [

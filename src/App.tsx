@@ -251,12 +251,21 @@ const App: React.FC = () => {
 
         let finalQuery = query;
         if (searchMode === 'guided') {
-            if (!selectedNiche || !selectedState || !selectedCity) {
-                showNotification('Preencha nicho, estado e cidade!', 'error');
+            if (!selectedNiche || !selectedState) {
+                showNotification('Preencha pelo menos o nicho e o estado!', 'error');
                 return;
             }
-            finalQuery = `${selectedNiche} em ${selectedCity}, ${selectedState}`;
-            if (selectedNeighborhood) finalQuery += `, bairro ${selectedNeighborhood}`;
+
+            let queryParts = [`${selectedNiche}`];
+            if (selectedCity) {
+                queryParts.push(`em ${selectedCity}, ${selectedState}`);
+            } else {
+                queryParts.push(`no estado de ${selectedState}`);
+            }
+
+            finalQuery = queryParts.join(' ');
+
+            if (selectedNeighborhood && selectedCity) finalQuery += `, bairro ${selectedNeighborhood}`;
             if (excludedCity) finalQuery += ` -${excludedCity}`;
         }
 
