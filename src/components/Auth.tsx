@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '@/services/supabase';
-import { LogIn, UserPlus, Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, User } from 'lucide-react';
+import { LogIn, UserPlus, Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, User, X } from 'lucide-react';
 
 interface AuthProps {
     onAuthSuccess: () => void;
@@ -157,225 +157,304 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
         }
     };
 
-    return (
-        <div className="min-h-screen w-full bg-slate-950 flex items-center justify-center p-4 overflow-hidden relative">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary-900/20 via-transparent to-transparent opacity-50"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent opacity-30"></div>
+    const [showTerms, setShowTerms] = useState(false);
+    const [showPrivacy, setShowPrivacy] = useState(false);
 
-            <div className="relative z-10 w-full max-w-md">
-                {/* Logo */}
+    return (
+        <div className="min-h-screen w-full bg-[#030712] flex flex-col items-center justify-start p-4 relative py-12">
+            {/* Mesh Gradients Background */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary-600/20 blur-[120px] rounded-full opacity-60"></div>
+                <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[120px] rounded-full opacity-60"></div>
+                <div className="absolute top-[20%] left-[10%] w-[30%] h-[30%] bg-indigo-600/10 blur-[100px] rounded-full opacity-60"></div>
+            </div>
+
+            <div className="relative z-10 w-full max-w-[440px]">
+                {/* Logo Section */}
                 <div className="text-center mb-8 animate-fade-in-up">
-                    <img
-                        src="https://i.postimg.cc/0jF5PGV8/logo-beleads-h1-1.png"
-                        alt="be.leads"
-                        className="h-10 w-auto mx-auto mb-4"
-                    />
-                    <h1 className="text-2xl font-bold text-white mb-2">
-                        {mode === 'login' ? 'Bem-vindo de volta!' : mode === 'signup' ? 'Criar sua conta' : 'Recuperar senha'}
-                    </h1>
-                    <p className="text-slate-400 text-sm">
-                        {mode === 'login'
-                            ? 'Entre na sua conta para continuar'
-                            : mode === 'signup'
-                                ? 'Comece a extrair leads inteligentes hoje'
-                                : 'Informe o seu email para receber o link'}
-                    </p>
+                    <div className="inline-flex items-center justify-center p-2 mb-4">
+                        <img
+                            src="https://i.postimg.cc/0jF5PGV8/logo-beleads-h1-1.png"
+                            alt="be.leads"
+                            className="h-8 w-auto drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                        />
+                    </div>
                 </div>
 
-                {/* Auth Card */}
-                <div className="bg-white border border-slate-200 rounded-2xl shadow-xl p-8 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-                    {/* Toggle Tabs */}
-                    {mode !== 'forgot-password' && (
-                        <div className="flex gap-2 mb-6 p-1 bg-slate-100 rounded-lg">
-                            <button
-                                onClick={() => {
-                                    setMode('login');
-                                    setError('');
-                                    setMessage('');
-                                    setName('');
-                                }}
-                                className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all ${mode === 'login'
-                                    ? 'bg-primary-600 text-white shadow-sm'
-                                    : 'text-slate-500 hover:text-slate-700'
-                                    }`}
-                            >
-                                <LogIn className="w-4 h-4 inline mr-2" />
-                                Entrar na conta
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setMode('signup');
-                                    setError('');
-                                    setMessage('');
-                                }}
-                                className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all ${mode === 'signup'
-                                    ? 'bg-primary-600 text-white shadow-sm'
-                                    : 'text-slate-500 hover:text-slate-700'
-                                    }`}
-                            >
-                                <UserPlus className="w-4 h-4 inline mr-2" />
-                                Cadastro
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Form */}
-                    <form onSubmit={mode === 'forgot-password' ? handleForgotPassword : handleSubmit} className="space-y-4">
-                        {/* Name (SignUp only) */}
-                        {mode === 'signup' && (
-                            <div className="animate-in fade-in slide-in-from-top-2">
-                                <label className="block text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-widest">
-                                    Como você se chama?
-                                </label>
-                                <div className="relative">
-                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        type="text"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        placeholder="Seu nome"
-                                        className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all"
-                                        disabled={loading}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Email */}
-                        <div>
-                            <label className="block text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-widest">
-                                Email
-                            </label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="seu@email.com"
-                                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all"
-                                    disabled={loading}
-                                />
-                            </div>
+                {/* Light Theme Auth Card */}
+                <div className="bg-white border border-white/20 rounded-[32px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] w-full animate-fade-in-up overflow-hidden" style={{ animationDelay: '100ms' }}>
+                    <div className="p-5 pb-7">
+                        <div className="text-center mb-6">
+                            <h1 className="text-2xl font-black text-zinc-900 tracking-tight mb-1">
+                                {mode === 'login' ? 'Bem-vindo de volta!' : mode === 'signup' ? 'Crie sua conta' : 'Recuperar senha'}
+                            </h1>
+                            <p className="text-zinc-500 text-sm font-medium">
+                                {mode === 'login'
+                                    ? 'Acesse sua conta para continuar'
+                                    : mode === 'signup'
+                                        ? 'Comece a extrair leads inteligentes agora'
+                                        : 'Informe seu e-mail para receber o link'}
+                            </p>
                         </div>
 
-                        {/* Password */}
+                        {/* Pill Switcher */}
                         {mode !== 'forgot-password' && (
-                            <div>
-                                <label className="block text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-widest">
-                                    Senha
-                                </label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        placeholder="••••••••"
-                                        className="w-full pl-10 pr-12 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all"
-                                        disabled={loading}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                                    >
-                                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                    </button>
+                            <div className="flex p-1 bg-zinc-100 rounded-2xl mb-6 border border-zinc-200/50">
+                                <button
+                                    onClick={() => {
+                                        setMode('login');
+                                        setError('');
+                                        setMessage('');
+                                        setName('');
+                                    }}
+                                    className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all duration-300 ${mode === 'login'
+                                        ? 'bg-white text-blue-600 shadow-sm'
+                                        : 'text-zinc-500 hover:text-zinc-700'
+                                        }`}
+                                >
+                                    Fazer login
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setMode('signup');
+                                        setError('');
+                                        setMessage('');
+                                    }}
+                                    className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all duration-300 ${mode === 'signup'
+                                        ? 'bg-white text-blue-600 shadow-sm'
+                                        : 'text-zinc-500 hover:text-zinc-700'
+                                        }`}
+                                >
+                                    Criar conta
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Form Container */}
+                        <div>
+                            <form onSubmit={mode === 'forgot-password' ? handleForgotPassword : handleSubmit} className="space-y-3.5">
+                                {/* Name (SignUp only) */}
+                                {mode === 'signup' && (
+                                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">
+                                            Seu Nome
+                                        </label>
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                <User className="h-4 w-4 text-zinc-400 group-focus-within:text-blue-500 transition-colors" />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                placeholder="Ex: João Silva"
+                                                className="block w-full pl-11 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600/10 focus:border-blue-500 transition-all duration-300"
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Email */}
+                                <div className="space-y-1.5">
+                                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">
+                                        E-mail profissional
+                                    </label>
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <Mail className="h-4 w-4 text-zinc-400 group-focus-within:text-blue-500 transition-colors" />
+                                        </div>
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="seu@exemplo.com"
+                                            className="block w-full pl-11 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600/10 focus:border-blue-500 transition-all duration-300"
+                                            disabled={loading}
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                        )}
 
-                        {/* Confirm Password (SignUp only) */}
-                        {mode === 'signup' && (
-                            <div>
-                                <label className="block text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-widest">
-                                    Confirmar Senha
-                                </label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        placeholder="••••••••"
-                                        className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all"
-                                        disabled={loading}
-                                    />
-                                </div>
-                            </div>
-                        )}
+                                {/* Password */}
+                                {mode !== 'forgot-password' && (
+                                    <div className="space-y-1.5">
+                                        <div className="flex justify-between items-center ml-1">
+                                            <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                                                Sua Senha
+                                            </label>
+                                            {mode === 'login' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setMode('forgot-password')}
+                                                    className="text-[10px] font-bold text-blue-500 hover:text-blue-600 transition-colors"
+                                                >
+                                                    Esqueceu?
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                <Lock className="h-4 w-4 text-zinc-400 group-focus-within:text-blue-500 transition-colors" />
+                                            </div>
+                                            <input
+                                                type={showPassword ? 'text' : 'password'}
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                placeholder="••••••••"
+                                                className="block w-full pl-11 pr-12 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600/10 focus:border-blue-500 transition-all duration-300"
+                                                disabled={loading}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-zinc-400 hover:text-zinc-600 transition-colors"
+                                            >
+                                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
-                        {/* Error Message */}
-                        {error && (
-                            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm animate-in fade-in slide-in-from-top-2">
-                                {error}
-                            </div>
-                        )}
+                                {/* Confirm Password (SignUp only) */}
+                                {mode === 'signup' && (
+                                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">
+                                            Repita a Senha
+                                        </label>
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                <Lock className="h-4 w-4 text-zinc-400 group-focus-within:text-blue-500 transition-colors" />
+                                            </div>
+                                            <input
+                                                type={showPassword ? 'text' : 'password'}
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                placeholder="••••••••"
+                                                className="block w-full pl-11 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600/10 focus:border-blue-500 transition-all duration-300"
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
-                        {/* Success Message */}
-                        {message && (
-                            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm animate-in fade-in slide-in-from-top-2">
-                                {message}
-                            </div>
-                        )}
+                                {/* Error/Success Messages omitted for brevity, keeping same logic */}
+                                {error && <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs font-medium">{error}</div>}
+                                {message && <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-xl text-xs font-medium">{message}</div>}
 
-                        {/* Submit Button */}
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-md shadow-primary-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    Processando...
-                                </>
-                            ) : (
-                                <>
-                                    {mode === 'login' ? 'Entrar na conta' : mode === 'signup' ? 'Criar Conta' : 'Enviar Link'}
-                                    <ArrowRight className="w-5 h-5" />
-                                </>
-                            )}
-                        </button>
-                    </form>
+                                {/* Submit Button */}
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="group relative w-full overflow-hidden rounded-2xl p-px bg-blue-600 shadow-xl shadow-blue-500/20 hover:shadow-blue-500/30 transition-all duration-300 active:scale-[0.98] disabled:opacity-50"
+                                >
+                                    <div className="relative h-full w-full py-3.5 px-6 flex items-center justify-center gap-2 text-white">
+                                        {loading ? (
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                        ) : (
+                                            <>
+                                                <span className="font-extrabold text-sm tracking-widest">
+                                                    {mode === 'login' ? 'ENTRAR AGORA' : mode === 'signup' ? 'CRIAR MINHA CONTA' : 'ENVIAR LINK'}
+                                                </span>
+                                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                            </>
+                                        )}
+                                    </div>
+                                </button>
+                            </form>
+                        </div>
 
-                    {/* Footer Actions */}
-                    <div className="mt-6 text-center space-y-3">
-                        {mode === 'login' && (
-                            <button
-                                onClick={() => {
-                                    setMode('forgot-password');
-                                    setError('');
-                                    setMessage('');
-                                }}
-                                className="text-sm text-slate-500 hover:text-primary-600 transition-colors font-medium border-b border-transparent hover:border-primary-600"
-                            >
-                                Esqueci minha senha
-                            </button>
-                        )}
                         {mode === 'forgot-password' && (
-                            <button
-                                onClick={() => {
-                                    setMode('login');
-                                    setError('');
-                                    setMessage('');
-                                }}
-                                className="text-sm text-primary-600 hover:text-primary-700 transition-colors font-bold flex items-center justify-center gap-1 mx-auto"
-                            >
-                                Voltar para Entrar
-                            </button>
+                            <div className="mt-6 text-center">
+                                <button
+                                    onClick={() => setMode('login')}
+                                    className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                                >
+                                    Voltar para o Login
+                                </button>
+                            </div>
                         )}
                     </div>
                 </div>
 
-                {/* Footer Text */}
-                <p className="text-center text-slate-500 text-xs mt-8">
-                    Ao continuar, você concorda com nossos <br />
-                    <span className="font-semibold text-slate-400 cursor-pointer">Termos de Uso</span> e <span className="font-semibold text-slate-500 cursor-pointer">Política de Privacidade</span>
-                </p>
+                {/* Updated Footer */}
+                <div className="mt-8 text-center space-y-4">
+                    <p className="text-[11px] font-bold text-zinc-500 leading-relaxed uppercase tracking-wider">
+                        2026 © Todos os direitos reservados.
+                    </p>
+                    <p className="text-[11px] font-medium text-zinc-600">
+                        Feito com 🧡 por <span className="font-bold">Agência Benck.</span>
+                    </p>
+                    <div className="flex items-center justify-center gap-4 pt-2">
+                        <button onClick={() => setShowTerms(true)} className="text-[10px] font-bold text-zinc-500 hover:text-white transition-colors">TERMOS</button>
+                        <div className="w-1 h-1 rounded-full bg-zinc-800"></div>
+                        <button onClick={() => setShowPrivacy(true)} className="text-[10px] font-bold text-zinc-500 hover:text-white transition-colors">PRIVACIDADE</button>
+                    </div>
+                </div>
             </div>
+
+            {/* Legal Modals */}
+            {(showTerms || showPrivacy) && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[32px] w-full max-w-xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-300">
+                        <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50">
+                            <h2 className="text-xl font-black text-zinc-900">
+                                {showTerms ? 'Termos de Uso' : 'Políticas de Privacidade'}
+                            </h2>
+                            <button onClick={() => { setShowTerms(false); setShowPrivacy(false); }} className="p-2 hover:bg-zinc-200 rounded-full transition-colors">
+                                <X className="w-5 h-5 text-zinc-500" />
+                            </button>
+                        </div>
+                        <div className="p-8 overflow-y-auto custom-scrollbar prose prose-sm prose-zinc">
+                            {showTerms ? (
+                                <div className="space-y-4 text-zinc-600">
+                                    <p>Ao utilizar os serviços da be.Leads, você concorda com os seguintes termos:</p>
+                                    <h3 className="text-zinc-900 font-bold">1. Uso do Serviço</h3>
+                                    <p>Nossa plataforma é destinada à extração de leads públicos para fins comerciais legítimos. O uso indevido para spam ou atividades ilegais resultará em banimento imediato.</p>
+                                    <h3 className="text-zinc-900 font-bold">2. Responsabilidade pelos Dados</h3>
+                                    <p>A be.Leads facilita o acesso a informações públicas. A responsabilidade pelo tratamento desses dados após a extração é inteiramente do usuário.</p>
+                                    <h3 className="text-zinc-900 font-bold">3. Assinaturas e Reembolsos</h3>
+                                    <p>Todos os planos são recorrentes. O cancelamento pode ser feito a qualquer momento através do painel de configurações.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4 text-zinc-600">
+                                    <p>Sua privacidade é nossa prioridade. Entenda como tratamos seus dados:</p>
+                                    <h3 className="text-zinc-900 font-bold">1. Coleta de Informações</h3>
+                                    <p>Coletamos apenas o necessário para seu login e funcionamento das buscas (e-mail, nome e histórico de pesquisas).</p>
+                                    <h3 className="text-zinc-900 font-bold">2. Segurança</h3>
+                                    <p>Utilizamos infraestrutura Supabase para garantir que suas credenciais e dados de pagamento (via Stripe) estejam sempre criptografados.</p>
+                                    <h3 className="text-zinc-900 font-bold">3. Compartilhamento</h3>
+                                    <p>Não vendemos ou compartilhamos seus dados pessoais com terceiros. Seus leads extraídos são privados e pertencem apenas à sua conta.</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-6 bg-zinc-50 border-t border-zinc-100 flex justify-end">
+                            <button
+                                onClick={() => { setShowTerms(false); setShowPrivacy(false); }}
+                                className="px-8 py-3 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20"
+                            >
+                                Entendido
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #e4e4e7; border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #d4d4d8; }
+
+                /* Ocultar barra de rolagem global na página de autenticação */
+                html {
+                    scrollbar-width: none;
+                    -ms-overflow-style: none;
+                }
+                html::-webkit-scrollbar {
+                    display: none;
+                }
+            `}} />
         </div>
     );
 };

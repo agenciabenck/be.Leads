@@ -155,6 +155,15 @@ const App: React.FC = () => {
     useEffect(() => localStorage.setItem('beleads_calendar', JSON.stringify(calendarEvents)), [calendarEvents]);
     useEffect(() => localStorage.setItem('beleads_history', JSON.stringify(globalHistory)), [globalHistory]);
 
+    // Dynamic Title
+    useEffect(() => {
+        if (!user) {
+            document.title = 'be.Leads';
+        } else {
+            document.title = `Olá, ${userSettings.name} - be.Leads`;
+        }
+    }, [user, userSettings.name]);
+
     // IBGE City Loader
     useEffect(() => {
         if (!selectedState) {

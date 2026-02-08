@@ -362,10 +362,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
                                         draggable={!readOnly}
                                         onDragStart={(e) => handleDragStart(e, lead.id)}
                                         onClick={() => !readOnly && setEditingLead(lead)}
-                                        className={`group relative bg-app-cardLight dark:bg-app-cardDark p-4 rounded-xl shadow-sm border ${getPriorityCardBorder(lead.priority)} transition-all duration-200 
-                        ${readOnly ? 'cursor-default opacity-80' : 'cursor-grab hover:shadow-lg hover:-translate-y-1'} 
-                        ${draggedLeadId === lead.id ? 'opacity-40 border-dashed ring-2 ring-primary-400 rotate-2 scale-95' : ''}
-                    `}
+                                        className={`group bg-white dark:bg-zinc-800 p-3 rounded-xl shadow-sm border-t-2 ${lead.priority === 'high' ? 'border-t-red-500' : lead.priority === 'medium' ? 'border-t-amber-500' : 'border-t-blue-500'} border-x border-b border-zinc-200 dark:border-zinc-700 relative transition-all duration-300 ${!readOnly ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''} ${draggedLeadId === lead.id ? 'opacity-40 border-dashed ring-2 ring-primary-400 rotate-2 scale-95' : ''}`}
                                     >
                                         {!readOnly && (
                                             <div className="absolute top-2 right-2 flex gap-1 z-20">
@@ -402,7 +399,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
                                             </div>
                                         )}
 
-                                        <div className="flex justify-between items-start mb-3 pr-24">
+                                        <div className="flex justify-between items-start mb-2 pr-20">
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={(e) => cyclePriority(e, lead)}
@@ -419,32 +416,32 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
                                             </div>
                                         </div>
 
-                                        <h4 className="text-sm font-bold text-zinc-800 dark:text-zinc-100 leading-snug line-clamp-2 mb-2">{lead.name}</h4>
+                                        <h4 className="text-[13px] font-bold text-zinc-800 dark:text-zinc-100 leading-snug line-clamp-2 mb-1.5">{lead.name}</h4>
 
-                                        <div className="mb-3 relative z-10" onClick={(e) => e.stopPropagation()}>
+                                        <div className="mb-2 relative z-10" onClick={(e) => e.stopPropagation()}>
                                             {quickEditingId === lead.id ? (
-                                                <div className="flex items-center gap-2 animate-in fade-in zoom-in-95 duration-100 bg-zinc-50 dark:bg-zinc-900 p-1.5 rounded-lg border border-primary-200 dark:border-primary-800 shadow-sm">
-                                                    <span className="text-xs font-bold text-zinc-400 pl-1">R$</span>
+                                                <div className="flex items-center gap-2 animate-in fade-in zoom-in-95 duration-100 bg-zinc-50 dark:bg-zinc-900 p-1 rounded-lg border border-primary-200 dark:border-primary-800 shadow-sm">
+                                                    <span className="text-[10px] font-bold text-zinc-400 pl-1">R$</span>
                                                     <input
                                                         autoFocus
                                                         type="text"
                                                         value={quickEditValue}
                                                         onChange={handleQuickEditChange}
                                                         onKeyDown={handleQuickEditKeyDown}
-                                                        className="w-full text-sm font-bold text-zinc-900 dark:text-white bg-transparent outline-none min-w-0"
+                                                        className="w-full text-xs font-bold text-zinc-900 dark:text-white bg-transparent outline-none min-w-0"
                                                     />
                                                     <div className="flex gap-1">
-                                                        <button onMouseDown={(e) => { e.preventDefault(); saveQuickEdit(); }} className="p-1 bg-green-500 hover:bg-green-600 text-white rounded transition-colors"><Check className="w-3.5 h-3.5" /></button>
-                                                        <button onMouseDown={cancelQuickEdit} className="p-1 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-500 dark:text-zinc-300 rounded transition-colors"><X className="w-3.5 h-3.5" /></button>
+                                                        <button onMouseDown={(e) => { e.preventDefault(); saveQuickEdit(); }} className="p-0.5 bg-green-500 hover:bg-green-600 text-white rounded transition-colors"><Check className="w-3 h-3" /></button>
+                                                        <button onMouseDown={cancelQuickEdit} className="p-0.5 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-500 dark:text-zinc-300 rounded transition-colors"><X className="w-3 h-3" /></button>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div onClick={(e) => startQuickEdit(e, lead)} className={`inline-flex items-center gap-1.5 py-1 px-2 -ml-2 rounded-lg transition-all ${!readOnly ? 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50 group/value border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700' : ''}`}>
+                                                <div onClick={(e) => startQuickEdit(e, lead)} className={`inline-flex items-center gap-1.5 py-0.5 px-1.5 -ml-1.5 rounded-lg transition-all ${!readOnly ? 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50 group/value border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700' : ''}`}>
                                                     <div className="flex items-baseline gap-1">
-                                                        <span className="text-zinc-400 font-medium text-xs">R$</span>
-                                                        <span className="font-bold text-zinc-700 dark:text-zinc-200 text-base tracking-tight">{lead.potentialValue ? lead.potentialValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}</span>
+                                                        <span className="text-zinc-400 font-medium text-[10px]">R$</span>
+                                                        <span className="font-bold text-zinc-700 dark:text-zinc-200 text-sm tracking-tight">{lead.potentialValue ? lead.potentialValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}</span>
                                                     </div>
-                                                    {!readOnly && <Edit3 className="w-3 h-3 text-zinc-300 opacity-0 group-hover/value:opacity-100 transition-opacity" />}
+                                                    {!readOnly && <Edit3 className="w-2.5 h-2.5 text-zinc-300 opacity-0 group-hover/value:opacity-100 transition-opacity" />}
                                                 </div>
                                             )}
                                         </div>
@@ -458,28 +455,26 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
                                             </div>
                                         )}
 
-                                        <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-700/50">
-                                            <div className="flex items-center gap-2">
+                                        <div className="flex items-center justify-between pt-1.5 border-t border-zinc-100 dark:border-zinc-700/50">
+                                            <div className="flex items-center gap-1.5">
                                                 {lead.tags && lead.tags.length > 0 && (
-                                                    <div className="flex -space-x-1">
+                                                    <div className="flex -space-x-1 grayscale opacity-60">
                                                         {lead.tags.slice(0, 2).map((tag, i) => (
-                                                            <div key={i} className="w-2 h-2 rounded-full bg-primary-400 ring-1 ring-white dark:ring-zinc-800" title={tag}></div>
+                                                            <div key={i} className="w-1.5 h-1.5 rounded-full bg-primary-400 ring-1 ring-white dark:ring-zinc-800" title={tag}></div>
                                                         ))}
-                                                        {lead.tags.length > 2 && <div className="w-2 h-2 rounded-full bg-zinc-300 ring-1 ring-white"></div>}
                                                     </div>
                                                 )}
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className={`w-1.5 h-1.5 rounded-full ${lead.priority === 'high' ? 'bg-danger-500' : lead.priority === 'medium' ? 'bg-amber-500' : 'bg-blue-500'}`}></div>
-                                                    <span className="text-[10px] text-zinc-400 font-medium">{getRelativeTime(lead.updatedAt)}</span>
-                                                </div>
+                                                <span className="text-[9px] text-zinc-400 font-medium lowercase">
+                                                    {getRelativeTime(lead.updatedAt)}
+                                                </span>
                                             </div>
 
                                             <div className="flex gap-1">
                                                 {lead.phone && lead.phone !== 'N/A' && (
-                                                    <button onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${lead.phone.replace(/\D/g, '')}`, '_blank'); }} className="p-1.5 hover:bg-green-100 dark:hover:bg-green-900/30 text-zinc-400 hover:text-green-600 rounded-md transition-colors relative z-10"><MessageCircle className="w-3.5 h-3.5" /></button>
+                                                    <button onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${lead.phone.replace(/\D/g, '')}`, '_blank'); }} className="p-1 hover:bg-green-100 dark:hover:bg-green-900/30 text-zinc-400 hover:text-green-600 rounded-md transition-colors relative z-10"><MessageCircle className="w-3 h-3" /></button>
                                                 )}
                                                 {lead.email && (
-                                                    <button onClick={(e) => { e.stopPropagation(); window.open(`mailto:${lead.email}`, '_blank'); }} className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-zinc-400 hover:text-blue-600 rounded-md transition-colors relative z-10"><Mail className="w-3.5 h-3.5" /></button>
+                                                    <button onClick={(e) => { e.stopPropagation(); window.open(`mailto:${lead.email}`, '_blank'); }} className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-zinc-400 hover:text-blue-600 rounded-md transition-colors relative z-10"><Mail className="w-3 h-3" /></button>
                                                 )}
                                             </div>
                                         </div>
@@ -498,18 +493,20 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
             </div>
 
             {/* --- EDIT LEAD MODAL --- */}
-            {editingLead && !readOnly && (
-                <EditLeadModal
-                    lead={editingLead}
-                    onClose={() => setEditingLead(null)}
-                    onSave={(id, updates) => {
-                        onUpdateLead(id, updates);
-                        setEditingLead(null);
-                    }}
-                    onDelete={onDelete}
-                />
-            )}
-        </div>
+            {
+                editingLead && !readOnly && (
+                    <EditLeadModal
+                        lead={editingLead}
+                        onClose={() => setEditingLead(null)}
+                        onSave={(id, updates) => {
+                            onUpdateLead(id, updates);
+                            setEditingLead(null);
+                        }}
+                        onDelete={onDelete}
+                    />
+                )
+            }
+        </div >
     );
 };
 
