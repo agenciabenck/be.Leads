@@ -20,6 +20,7 @@ import Subscription from '@/pages/Subscription';
 import Settings from '@/pages/Settings';
 
 // Types & Constants
+import { googleMapsService } from '@/services/googleMapsService';
 import { Lead, CRMLead, CRMStatus, CalendarEvent, SearchState, SearchFilters, SortField, SortOrder, UserSettings, UserPlan, AppTab } from '@/types/types';
 import {
     COMMON_NICHES, BRAZIL_STATES, TIME_OPTIONS, AVATAR_EMOJIS,
@@ -36,8 +37,8 @@ const formatCurrency = (val: string) => {
 const formatPhone = (val: string) => {
     let clean = val.replace(/\D/g, '');
     if (clean.length > 11) clean = clean.slice(0, 11);
-    if (clean.length > 10) return `(${clean.slice(0, 2)}) ${clean.slice(2, 7)}-${clean.slice(7)}`;
-    if (clean.length > 6) return `(${clean.slice(0, 2)}) ${clean.slice(2, 6)}-${clean.slice(6)}`;
+    if (clean.length === 11) return `(${clean.slice(0, 2)}) ${clean.slice(2, 7)}-${clean.slice(7)}`;
+    if (clean.length === 10) return `(${clean.slice(0, 2)}) ${clean.slice(2, 6)}-${clean.slice(6)}`;
     if (clean.length > 2) return `(${clean.slice(0, 2)}) ${clean.slice(2)}`;
     return clean;
 };
@@ -97,6 +98,9 @@ const App: React.FC = () => {
     const [showNewLeadModal, setShowNewLeadModal] = useState(false);
     const [newLeadValue, setNewLeadValue] = useState('');
     const [newLeadPhone, setNewLeadPhone] = useState('');
+    const [newLeadNiche, setNewLeadNiche] = useState('');
+    const [newLeadCity, setNewLeadCity] = useState('');
+    const [newLeadUF, setNewLeadUF] = useState('');
 
     // Calendar & Events
     const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(() => {
@@ -273,7 +277,32 @@ const App: React.FC = () => {
 
         setState({ isSearching: true, error: null, hasSearched: true });
         try {
-            const results = await searchLeads(finalQuery, filters, undefined, globalHistory);
+            let results: Lead[] = [];
+
+            // Tenta usar Google Maps Service para "dados reais" se houver API Key
+            // Caso contrário, ou se falhar, usa a busca via IA (Gemini)
+            const gmapsApiKey = import.meta.env.VITE_API_KEY; // Usando a chave disponível
+            if (gmapsApiKey && gmapsApiKey !== 'PLACEHOLDER_API_KEY') {
+                try {
+                    const gResults = await googleMapsService.searchBusiness(finalQuery);
+                    results = gResults.map(r => ({
+                        id: r.id,
+                        name: r.name,
+                        category: selectedNiche || 'Lead',
+                        address: r.address,
+                        rating: r.rating || 0,
+                        reviews: r.userRatingCount || 0,
+                        phone: 'Clique para ver', // Detalhes sob demanda
+                        website: 'N/A'
+                    }));
+                } catch (apiError) {
+                    console.warn("Google Maps API failed, falling back to Gemini:", apiError);
+                    results = await searchLeads(finalQuery, filters, undefined, globalHistory);
+                }
+            } else {
+                results = await searchLeads(finalQuery, filters, undefined, globalHistory);
+            }
+
             const newLeads = results.filter(r => !globalHistory.includes(r.id));
             setLeads(newLeads);
             if (newLeads.length === 0) showNotification('Nenhum lead novo encontrado.', 'info');
@@ -343,8 +372,8 @@ const App: React.FC = () => {
         const newLead: CRMLead = {
             id: `manual-${Date.now()}`,
             name,
-            category: 'Manual',
-            address: formData.get('city') ? `${formData.get('city')}, ${formData.get('uf')}` : 'Manual',
+            category: newLeadNiche || 'Manual',
+            address: newLeadCity ? `${newLeadCity}, ${newLeadUF || 'BR'}` : 'Manual',
             phone: newLeadPhone,
             website: '',
             rating: 0,
@@ -362,6 +391,9 @@ const App: React.FC = () => {
         setShowNewLeadModal(false);
         setNewLeadValue('');
         setNewLeadPhone('');
+        setNewLeadNiche('');
+        setNewLeadCity('');
+        setNewLeadUF('');
         showNotification('Novo negócio adicionado!');
     };
 
@@ -754,23 +786,125 @@ const App: React.FC = () => {
 
             {/* Modal de Novo Lead Manual */}
             {showNewLeadModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-fade-in-up flex flex-col max-h-[90vh]">
-                        <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
-                            <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Novo Negócio</h3>
-                            <button onClick={() => setShowNewLeadModal(false)} className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-full"><X className="w-5 h-5 text-zinc-500" /></button>
-                        </div>
-                        <form id="manual-lead-form" onSubmit={handleManualAddLead} className="p-6 space-y-5 overflow-y-auto">
-                            <input name="name" required className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white" placeholder="Nome da Empresa" />
-                            <div className="grid grid-cols-2 gap-4">
-                                <input value={newLeadValue} onChange={(e) => setNewLeadValue(formatCurrency(e.target.value))} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white" placeholder="Valor Potencial (R$)" />
-                                <input value={newLeadPhone} maxLength={15} onChange={(e) => setNewLeadPhone(formatPhone(e.target.value))} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white" placeholder="Telefone" />
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm animate-in fade-in duration-300 overflow-hidden">
+                    <div className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-[32px] shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+                        <div className="p-8 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-start">
+                            <div className="flex gap-4">
+                                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0">
+                                    <Plus className="w-6 h-6 text-primary" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Novo Negócio</h3>
+                                    <p className="text-sm text-zinc-500 mt-0.5">Adicione um lead manualmente ao seu CRM.</p>
+                                </div>
                             </div>
-                            <textarea name="notes" rows={4} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white" placeholder="Notas"></textarea>
+                            <button
+                                onClick={() => setShowNewLeadModal(false)}
+                                className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-400"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <form id="manual-lead-form" onSubmit={handleManualAddLead} className="p-8 space-y-6 overflow-y-auto">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">NOME DA EMPRESA *</label>
+                                <input
+                                    name="name"
+                                    required
+                                    autoFocus
+                                    className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium"
+                                    placeholder="Ex: Padaria do João"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">NICHO / CATEGORIA</label>
+                                <select
+                                    value={newLeadNiche}
+                                    onChange={e => setNewLeadNiche(e.target.value)}
+                                    className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium appearance-none"
+                                >
+                                    <option value="">Selecione um nicho...</option>
+                                    {COMMON_NICHES.map(niche => (
+                                        <option key={niche} value={niche}>{niche}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">VALOR POTENCIAL</label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-sm">R$</span>
+                                        <input
+                                            value={newLeadValue}
+                                            onChange={(e) => setNewLeadValue(formatCurrency(e.target.value))}
+                                            className="w-full p-4 pl-11 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium"
+                                            placeholder="0,00"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">TELEFONE</label>
+                                    <input
+                                        value={newLeadPhone}
+                                        maxLength={15}
+                                        onChange={(e) => setNewLeadPhone(formatPhone(e.target.value))}
+                                        className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium"
+                                        placeholder="(00) 00000-0000"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-4 gap-4">
+                                <div className="col-span-3 space-y-2">
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">CIDADE</label>
+                                    <input
+                                        value={newLeadCity}
+                                        onChange={e => setNewLeadCity(e.target.value)}
+                                        className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium"
+                                        placeholder="Ex: São Paulo"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">UF</label>
+                                    <input
+                                        value={newLeadUF}
+                                        onChange={e => setNewLeadUF(e.target.value.toUpperCase())}
+                                        maxLength={2}
+                                        className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium text-center"
+                                        placeholder="SP"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">NOTAS INICIAIS</label>
+                                <textarea
+                                    name="notes"
+                                    rows={4}
+                                    className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium resize-none"
+                                    placeholder="Detalhes do negócio..."
+                                ></textarea>
+                            </div>
                         </form>
-                        <div className="p-6 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
-                            <button type="button" onClick={() => setShowNewLeadModal(false)} className="px-6 py-2.5 text-zinc-600 dark:text-zinc-300 font-bold hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-xl">Cancelar</button>
-                            <button type="submit" form="manual-lead-form" className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-lg">Adicionar</button>
+
+                        <div className="p-8 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900 rounded-b-[32px]">
+                            <button
+                                type="button"
+                                onClick={() => setShowNewLeadModal(false)}
+                                className="px-8 py-3 text-zinc-500 dark:text-zinc-400 font-bold hover:text-zinc-900 dark:hover:text-white transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                form="manual-lead-form"
+                                className="px-10 py-4 bg-primary hover:opacity-90 text-white font-bold rounded-2xl shadow-xl shadow-primary/30 transition-all active:scale-95 flex items-center gap-2"
+                            >
+                                <Plus className="w-5 h-5" /> Adicionar
+                            </button>
                         </div>
                     </div>
                 </div>

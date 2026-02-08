@@ -25,7 +25,9 @@ interface HomeProps {
     getDaysInMonth: (date: Date) => number;
     openAddEventModal: (date: Date) => void;
     calendarEvents: CalendarEvent[];
+    selectedDateEvents: Date | null;
     todayStr: string;
+    upcomingEvents: CalendarEvent[];
     tomorrowStr: string;
     setCalendarEvents: React.Dispatch<React.SetStateAction<CalendarEvent[]>>;
     theme: 'light' | 'dark';

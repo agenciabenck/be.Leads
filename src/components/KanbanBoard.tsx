@@ -183,10 +183,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
     const getRelativeTime = (dateString: string) => {
         const date = new Date(dateString);
         const now = new Date();
-        const days = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-        if (days === 0) return 'Hoje';
-        if (days === 1) return 'Ontem';
-        return `${days}d atrás`;
+        const diffTime = now.getTime() - date.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) return 'Adicionado hoje';
+        if (diffDays === 1) return 'Adicionado ontem';
+
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        return `Adicionado dia ${day}/${month}`;
     };
 
     const getPriorityColor = (priority: CRMPriority) => {
@@ -202,6 +207,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
             case 'high': return <Flame className="w-3 h-3" />;
             case 'medium': return <AlertCircle className="w-3 h-3" />;
             default: return <Clock className="w-3 h-3" />;
+        }
+    };
+
+    const getPriorityCardBorder = (priority: CRMPriority) => {
+        switch (priority) {
+            case 'high': return 'border-danger-400/50 dark:border-danger-700/50';
+            case 'medium': return 'border-amber-400/50 dark:border-amber-700/50';
+            default: return 'border-blue-400/50 dark:border-blue-700/50';
         }
     };
 
@@ -349,19 +362,29 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
                                         draggable={!readOnly}
                                         onDragStart={(e) => handleDragStart(e, lead.id)}
                                         onClick={() => !readOnly && setEditingLead(lead)}
-                                        className={`group relative bg-app-cardLight dark:bg-app-cardDark p-4 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 transition-all duration-200 
-                        ${readOnly ? 'cursor-default opacity-80' : 'cursor-grab hover:shadow-lg hover:-translate-y-1 hover:border-primary-300 dark:hover:border-primary-700'} 
+                                        className={`group relative bg-app-cardLight dark:bg-app-cardDark p-4 rounded-xl shadow-sm border ${getPriorityCardBorder(lead.priority)} transition-all duration-200 
+                        ${readOnly ? 'cursor-default opacity-80' : 'cursor-grab hover:shadow-lg hover:-translate-y-1'} 
                         ${draggedLeadId === lead.id ? 'opacity-40 border-dashed ring-2 ring-primary-400 rotate-2 scale-95' : ''}
                     `}
                                     >
                                         {!readOnly && (
-                                            <>
+                                            <div className="absolute top-2 right-2 flex gap-1 z-20">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditingLead(lead);
+                                                    }}
+                                                    className="p-1.5 rounded-lg bg-white dark:bg-zinc-700 text-zinc-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/30 opacity-0 group-hover:opacity-100 transition-all shadow-sm cursor-pointer"
+                                                    title="Editar"
+                                                >
+                                                    <Edit3 className="w-3.5 h-3.5" />
+                                                </button>
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         if (onDuplicate) onDuplicate(lead);
                                                     }}
-                                                    className="absolute top-2 right-9 p-1.5 rounded-lg bg-white dark:bg-zinc-700 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 opacity-0 group-hover:opacity-100 transition-all shadow-sm z-20 cursor-pointer"
+                                                    className="p-1.5 rounded-lg bg-white dark:bg-zinc-700 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 opacity-0 group-hover:opacity-100 transition-all shadow-sm cursor-pointer"
                                                     title="Duplicar"
                                                 >
                                                     <Copy className="w-3.5 h-3.5" />
@@ -371,15 +394,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
                                                         e.stopPropagation();
                                                         onDelete(lead.id);
                                                     }}
-                                                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-zinc-700 text-zinc-400 hover:text-danger-500 hover:bg-danger-50 dark:hover:bg-danger-900/30 opacity-0 group-hover:opacity-100 transition-all shadow-sm z-20 cursor-pointer"
+                                                    className="p-1.5 rounded-lg bg-white dark:bg-zinc-700 text-zinc-400 hover:text-danger-500 hover:bg-danger-50 dark:hover:bg-danger-900/30 opacity-0 group-hover:opacity-100 transition-all shadow-sm cursor-pointer"
                                                     title="Excluir"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
-                                            </>
+                                            </div>
                                         )}
 
-                                        <div className="flex justify-between items-start mb-3 pr-14">
+                                        <div className="flex justify-between items-start mb-3 pr-24">
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={(e) => cyclePriority(e, lead)}
@@ -445,7 +468,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
                                                         {lead.tags.length > 2 && <div className="w-2 h-2 rounded-full bg-zinc-300 ring-1 ring-white"></div>}
                                                     </div>
                                                 )}
-                                                <span className="text-[10px] text-zinc-400 font-medium">{getRelativeTime(lead.updatedAt)}</span>
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${lead.priority === 'high' ? 'bg-danger-500' : lead.priority === 'medium' ? 'bg-amber-500' : 'bg-blue-500'}`}></div>
+                                                    <span className="text-[10px] text-zinc-400 font-medium">{getRelativeTime(lead.updatedAt)}</span>
+                                                </div>
                                             </div>
 
                                             <div className="flex gap-1">
@@ -511,6 +537,19 @@ const EditLeadModal = ({ lead, onClose, onSave, onDelete }: { lead: CRMLead, onC
         setFormData(prev => ({ ...prev, potentialValue: number }));
     };
 
+    const formatPhone = (val: string) => {
+        let clean = val.replace(/\D/g, '');
+        if (clean.length > 11) clean = clean.slice(0, 11);
+        if (clean.length === 11) return `(${clean.slice(0, 2)}) ${clean.slice(2, 7)}-${clean.slice(7)}`;
+        if (clean.length === 10) return `(${clean.slice(0, 2)}) ${clean.slice(2, 6)}-${clean.slice(6)}`;
+        if (clean.length > 2) return `(${clean.slice(0, 2)}) ${clean.slice(2)}`;
+        return clean;
+    };
+
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData(prev => ({ ...prev, phone: formatPhone(e.target.value) }));
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSave(lead.id, {
@@ -555,7 +594,7 @@ const EditLeadModal = ({ lead, onClose, onSave, onDelete }: { lead: CRMLead, onC
                             <div><label className="block text-xs font-bold text-zinc-500 uppercase mb-1.5">Tags (separadas por vírgula)</label><div className="relative"><Tag className="absolute left-3 top-3.5 w-4 h-4 text-zinc-400" /><input type="text" value={formData.tags} onChange={e => setFormData({ ...formData, tags: e.target.value })} placeholder="Ex: Quente, Indicação, SP" className="w-full pl-10 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white" /></div></div>
                         </div>
                         <div className="space-y-4">
-                            <div><label className="block text-xs font-bold text-zinc-500 uppercase mb-1.5">Telefone / WhatsApp</label><div className="relative"><Phone className="absolute left-3 top-3.5 w-4 h-4 text-zinc-400" /><input type="text" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full pl-10 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white" /></div></div>
+                            <div><label className="block text-xs font-bold text-zinc-500 uppercase mb-1.5">WhatsApp</label><div className="relative"><MessageCircle className="absolute left-3 top-3.5 w-4 h-4 text-zinc-400" /><input type="text" maxLength={15} value={formData.phone} onChange={handlePhoneChange} className="w-full pl-10 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white" /></div></div>
                             <div><label className="block text-xs font-bold text-zinc-500 uppercase mb-1.5">E-mail</label><div className="relative"><Mail className="absolute left-3 top-3.5 w-4 h-4 text-zinc-400" /><input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="contato@empresa.com" className="w-full pl-10 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white" /></div></div>
                             <div className="flex-1"><label className="block text-xs font-bold text-zinc-500 uppercase mb-1.5">Notas & Observações</label><textarea rows={4} value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white resize-none" placeholder="Detalhes da negociação..."></textarea></div>
                         </div>

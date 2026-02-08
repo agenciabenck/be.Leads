@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "start": "node index.js",
+    "build": "vite build",
+    "start": "node server.js",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -27,5 +27,8 @@
     "tailwindcss": "^3.4.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.8"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }
