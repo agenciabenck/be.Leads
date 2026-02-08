@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-    Shield, Trophy, Lock, User, Calendar as CalendarIcon,
-    ChevronLeft, ChevronRight, Clock, Trash2, Search as SearchIcon,
-    Sparkles, ArrowRight, Target, KanbanSquare
+    Shield, Lock, Calendar as CalendarIcon,
+    ChevronLeft, ChevronRight, Clock, Search as SearchIcon,
+    ArrowRight, ListTodo, TrendingUp, Crown, Share2, Sun, Moon, DollarSign, Users,
+    LayoutList, Trash2, X, Gift, UserPlus, Zap, Edit3
 } from 'lucide-react';
 import { UserSettings, CalendarEvent, CRMLead, AppTab } from '@/types/types';
 
@@ -24,12 +25,22 @@ interface HomeProps {
     getDaysInMonth: (date: Date) => number;
     openAddEventModal: (date: Date) => void;
     calendarEvents: CalendarEvent[];
-    selectedDateEvents: Date | null;
     todayStr: string;
-    upcomingEvents: CalendarEvent[];
     tomorrowStr: string;
     setCalendarEvents: React.Dispatch<React.SetStateAction<CalendarEvent[]>>;
+    theme: 'light' | 'dark';
+    setTheme: React.Dispatch<React.SetStateAction<'light' | 'dark'>>;
 }
+
+const motivationalQuotes = [
+    "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
+    "Acredite que você pode e você já está no meio do caminho.",
+    "A persistência é o caminho do êxito.",
+    "Não espere por oportunidades, crie-as.",
+    "O seu único limite é a sua mente.",
+    "Grandes jornadas começam com um único passo.",
+    "Foque no progresso, não na perfeição."
+];
 
 const Home: React.FC<HomeProps> = ({
     userSettings,
@@ -49,228 +60,424 @@ const Home: React.FC<HomeProps> = ({
     getDaysInMonth,
     openAddEventModal,
     calendarEvents,
-    selectedDateEvents,
     todayStr,
-    upcomingEvents,
     tomorrowStr,
-    setCalendarEvents
+    setCalendarEvents,
+    theme,
+    setTheme
 }) => {
-    return (
-        <div className="animate-fade-in-up space-y-8">
-            {/* Header */}
-            <header className="flex flex-col gap-4">
-                <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        {renderAvatar(userSettings, 'sm')}
-                        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Olá, {userSettings.name.split(' ')[0]}!</h1>
-                    </div>
-                    <div className="text-zinc-500 dark:text-zinc-400 text-sm italic">{dailyQuote}</div>
-                </div>
-            </header>
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Card 1: Plano Atual */}
-                <div className="bg-app-cardLight dark:bg-app-cardDark p-0 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden relative group">
-                    <div className="p-5 relative z-10">
-                        <div className="flex justify-between items-start mb-3">
-                            <div>
-                                <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Plano Atual</p>
-                                <h3 className="text-2xl font-black text-primary-600 dark:text-primary-400 mt-1 uppercase">{PLAN.name}</h3>
+    // Determine daily quote
+    const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+    const quote = motivationalQuotes[dayOfYear % motivationalQuotes.length];
+
+    return (
+        <div className="font-sans relative">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-8 pb-10">
+                {/* Header */}
+                <header className="flex items-start justify-between">
+                    <div>
+                        <h1 className="text-[44px] font-bold text-zinc-900 dark:text-white leading-tight">
+                            Olá, {userSettings.name || 'Usuário'}!
+                        </h1>
+                        <p className="text-[15px] font-medium text-text-secondary mt-1">
+                            {quote}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-6 mt-4">
+                        <button
+                            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                            className="flex items-center gap-3 group"
+                        >
+                            <span className="text-[13px] font-medium text-text-secondary">
+                                {theme === 'light' ? 'Modo light ativo.' : 'Modo dark ativo.'}
+                            </span>
+                            <div className="w-10 h-10 bg-zinc-100 dark:bg-white/5 rounded-xl flex items-center justify-center text-zinc-600 dark:text-zinc-400 group-hover:bg-zinc-200 dark:group-hover:bg-white/10 transition-all border dark:border-white/5">
+                                {theme === 'light' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
                             </div>
-                            <div className="bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 p-2 rounded-lg">
-                                <Shield className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('subscription')}
+                            className="flex items-center gap-3 px-6 py-3.5 bg-primary hover:opacity-90 text-white text-[15px] font-bold rounded-2xl transition-all shadow-lg shadow-primary/20"
+                        >
+                            Fazer upgrade de plano
+                            <Crown className="w-5 h-5" />
+                        </button>
+                    </div>
+                </header>
+
+                {/* KPI Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+                    {/* Card 1: Status do seu plano */}
+                    <div className="bg-white dark:bg-zinc-900 p-7 rounded-[32px] shadow-sm border border-zinc-100 dark:border-zinc-800 flex flex-col h-full">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-11 h-11 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center ring-1 ring-zinc-100/50 dark:ring-white/10">
+                                <Shield className="w-6 h-6 text-zinc-800 dark:text-zinc-200" />
+                            </div>
+                            <h3 className="text-[17px] font-bold text-zinc-800 dark:text-white tracking-tight">Status do seu plano</h3>
+                        </div>
+
+                        <div className="mt-auto">
+                            <div className="flex justify-between items-end mb-3">
+                                <span className="text-[10px] font-bold text-text-secondary dark:text-zinc-500 uppercase tracking-widest">CRÉDITOS</span>
+                                <span className="text-[12px] font-bold text-text-secondary dark:text-zinc-400">{USED_CREDITS} / {MAX_CREDITS}</span>
+                            </div>
+                            <div className="w-full bg-zinc-900 dark:bg-white/10 h-2 rounded-full overflow-hidden">
+                                <div className="bg-primary h-full transition-all duration-700 rounded-full" style={{ width: `${PLAN_PERCENTAGE}%` }}></div>
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-xs font-medium text-zinc-500">
-                                <span>Créditos: {USED_CREDITS}/{MAX_CREDITS}</span>
-                                <span>{PLAN_PERCENTAGE.toFixed(0)}%</span>
+                    </div>
+
+                    {/* Card 2: Leads no CRM */}
+                    <div className="bg-white dark:bg-zinc-900 p-7 rounded-[32px] shadow-sm border border-zinc-100 dark:border-zinc-800">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-11 h-11 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center ring-1 ring-zinc-100/50 dark:ring-white/10">
+                                <Users className="w-6 h-6 text-zinc-300 dark:text-zinc-600" />
                             </div>
-                            <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-2 rounded-full overflow-hidden">
-                                <div className="bg-primary-500 h-full rounded-full transition-all duration-1000" style={{ width: `${PLAN_PERCENTAGE}%` }}></div>
+                            <h3 className="text-[17px] font-bold text-text-secondary dark:text-zinc-500 tracking-tight">Leads no CRM</h3>
+                        </div>
+
+                        <div className="flex items-center justify-between mt-auto">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-10 border border-zinc-200 dark:border-zinc-700 rounded-lg flex items-center justify-center bg-white dark:bg-zinc-800 shadow-sm">
+                                    <Lock className="w-5 h-5 text-zinc-300 dark:text-zinc-600" />
+                                </div>
+                                <p className="text-[10px] font-bold text-text-secondary dark:text-zinc-500 leading-tight max-w-[90px]">Disponível a partir <br />do plano Pro.</p>
                             </div>
-                            {(userSettings.plan === 'free' || userSettings.plan === 'start') && (
-                                <button onClick={() => setActiveTab('subscription')} className="w-full mt-2 text-xs font-bold text-white bg-green-600 hover:bg-green-700 py-2 rounded-lg transition-colors shadow-sm shadow-green-500/20">
-                                    Fazer upgrade
+                            <button onClick={() => setActiveTab('subscription')} className="px-8 py-3.5 bg-primary text-white text-[15px] font-bold rounded-2xl shadow-lg shadow-primary/20 hover:opacity-90">
+                                Liberar acesso
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Card 3: Ganho mensal */}
+                    <div className="bg-white dark:bg-zinc-900 p-7 rounded-[32px] shadow-sm border border-zinc-100 dark:border-zinc-800">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-11 h-11 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center ring-1 ring-zinc-100/50 dark:ring-white/10">
+                                <DollarSign className="w-6 h-6 text-zinc-300 dark:text-zinc-600" />
+                            </div>
+                            <h3 className="text-[17px] font-bold text-text-secondary dark:text-zinc-500 tracking-tight">Ganho mensal</h3>
+                        </div>
+
+                        <div className="flex items-center justify-between mt-auto">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-10 border border-zinc-200 dark:border-zinc-700 rounded-lg flex items-center justify-center bg-white dark:bg-zinc-800 shadow-sm">
+                                    <Lock className="w-5 h-5 text-zinc-300 dark:text-zinc-600" />
+                                </div>
+                                <p className="text-[10px] font-bold text-text-secondary dark:text-zinc-500 leading-tight max-w-[90px]">Disponível a partir <br />do plano Pro.</p>
+                            </div>
+                            <button onClick={() => setActiveTab('subscription')} className="px-8 py-3.5 bg-primary text-white text-[15px] font-bold rounded-2xl shadow-lg shadow-primary/20 hover:opacity-90">
+                                Liberar acesso
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Dynamic Content Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+                    {/* Calendar / Agenda */}
+                    <div className="bg-white dark:bg-zinc-900 rounded-[40px] p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 flex flex-col h-[340px]">
+                        <div className="flex items-center justify-between mb-5">
+                            <div className="flex items-center gap-4">
+                                <div className="w-11 h-11 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center border border-zinc-100 dark:border-zinc-700">
+                                    <CalendarIcon className="w-6 h-6 text-zinc-900 dark:text-zinc-100" />
+                                </div>
+                                <div>
+                                    <h3 className="text-[20px] font-bold text-zinc-900 dark:text-white tracking-tight">Agenda</h3>
+                                    <p className="text-[10px] font-medium text-text-secondary dark:text-zinc-500 -mt-1">(Clique no dia para agendar)</p>
+                                </div>
+                            </div>
+                            <div className="flex bg-zinc-100/80 dark:bg-white/5 p-1.5 rounded-full gap-1 items-center border dark:border-white/5">
+                                <button
+                                    onClick={() => setCurrentCalendarDate(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() - 1))}
+                                    className="p-1.5 bg-white dark:bg-zinc-800 rounded-full shadow-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
                                 </button>
+                                <div className="px-4 text-[13px] font-bold text-zinc-800 dark:text-zinc-200 capitalize min-w-[100px] text-center">
+                                    {currentCalendarDate.toLocaleString('pt-BR', { month: 'long' })}
+                                </div>
+                                <button
+                                    onClick={() => setCurrentCalendarDate(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1))}
+                                    className="p-1.5 bg-white dark:bg-zinc-800 rounded-full shadow-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all"
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1">
+                            <div className="grid grid-cols-7 gap-y-1">
+                                {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
+                                    <div key={`wk-${i}`} className="text-center text-[12px] font-bold text-blue-200/80 dark:text-primary/40 mb-2">{d}</div>
+                                ))}
+
+                                {Array.from({ length: getFirstDayOfMonth(currentCalendarDate) }).map((_, i) => <div key={`empty-${i}`} className="h-8" />)}
+
+                                {Array.from({ length: getDaysInMonth(currentCalendarDate) }).map((_, i) => {
+                                    const day = i + 1;
+                                    const d = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), day);
+                                    const dateStr = d.toISOString().split('T')[0];
+                                    const hasEvents = calendarEvents.some(e => e.date === dateStr);
+                                    const isToday = day === new Date().getDate() &&
+                                        currentCalendarDate.getMonth() === new Date().getMonth() &&
+                                        currentCalendarDate.getFullYear() === new Date().getFullYear();
+
+                                    return (
+                                        <button
+                                            key={day}
+                                            onClick={() => openAddEventModal(d)}
+                                            className={`relative w-9 h-8 mx-auto flex items-center justify-center text-[14px] font-bold rounded-lg transition-all
+                                            ${isToday ? 'bg-primary/15 dark:bg-primary/20 text-zinc-900 dark:text-white' : 'text-zinc-900 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/5'}
+                                        `}
+                                        >
+                                            {day}
+                                            {hasEvents && (
+                                                <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary ring-2 ring-white dark:ring-zinc-900" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tasks */}
+                    <div className="bg-sidebar rounded-[40px] p-6 shadow-lg flex flex-col h-[340px]">
+                        <div className="flex items-center justify-between mb-5">
+                            <div className="flex items-center gap-4">
+                                <div className="w-11 h-11 bg-white/5 rounded-2xl flex items-center justify-center ring-1 ring-white/10">
+                                    <Edit3 className="w-6 h-6 text-white" />
+                                </div>
+                                <h3 className="text-[20px] font-bold text-white tracking-tight">Próximas tarefas</h3>
+                            </div>
+                            {calendarEvents.length > 0 && (
+                                <button
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    className="w-10 h-10 bg-white/5 hover:bg-white/10 rounded-xl transition-all text-white/40 hover:text-white flex items-center justify-center group"
+                                    title="Excluir todos os compromissos"
+                                >
+                                    <Trash2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex-1 flex flex-col px-1 min-h-0">
+                            {calendarEvents.length === 0 ? (
+                                <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in zoom-in duration-700">
+                                    <div className="w-16 h-16 bg-white/5 rounded-[20px] flex items-center justify-center mx-auto mb-4 border border-white/10">
+                                        <LayoutList className="w-8 h-8 text-white/20" />
+                                    </div>
+                                    <h4 className="text-[18px] font-bold text-white">Nada por aqui</h4>
+                                    <p className="text-[13px] text-white/40 font-medium max-w-[180px] leading-relaxed">
+                                        Você não tem compromissos agendados para este período.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="w-full space-y-3 overflow-y-auto scrollbar-none pb-4">
+                                    {calendarEvents
+                                        .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+                                        .map((evt) => {
+                                            const isToday = evt.date === todayStr;
+                                            const isTomorrow = evt.date === tomorrowStr;
+                                            const [y, m, d] = evt.date.split('-');
+
+                                            return (
+                                                <div
+                                                    key={evt.id}
+                                                    className="flex items-center gap-4 p-4 rounded-full transition-all group border border-white/5 bg-white/[0.03] hover:bg-white/[0.08]"
+                                                >
+                                                    <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0 border border-white/10 group-hover:scale-105 transition-transform">
+                                                        <span className="text-white text-[14px] font-bold">{d}</span>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="text-white text-[14px] font-bold truncate group-hover:text-primary transition-colors">{evt.title}</h4>
+                                                        <div className="flex items-center gap-3 mt-0.5">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-3.5 h-3.5 bg-primary/20 rounded-full flex items-center justify-center">
+                                                                    <Clock className="w-2.5 h-2.5 text-primary" />
+                                                                </div>
+                                                                <span className="text-white/40 text-[11px] font-bold tracking-tight uppercase">{evt.time}</span>
+                                                            </div>
+                                                            <div className="w-1 h-1 rounded-full bg-white/20" />
+                                                            <span className={`text-[11px] font-bold uppercase tracking-widest ${isToday ? 'text-primary' : isTomorrow ? 'text-amber-400' : 'text-white/30'}`}>
+                                                                {isToday ? 'Hoje' : isTomorrow ? 'Amanhã' : `${d}/${m}`}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (confirm('Deseja excluir este compromisso?')) {
+                                                                setCalendarEvents(prev => prev.filter(e => e.id !== evt.id));
+                                                            }
+                                                        }}
+                                                        className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-full transition-all text-white/20 hover:text-red-400"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                </div>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* Card 2: Ganho Mensal */}
-                <div className="bg-app-cardLight dark:bg-app-cardDark p-5 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between relative overflow-hidden group">
-                    <div className="flex justify-between items-start mb-4 relative z-20">
-                        <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Ganho mensal</p>
-                        <div className="p-2 bg-green-50 dark:bg-green-700/20 rounded-xl text-green-600 dark:text-green-400">
-                            <Trophy className="w-5 h-5" />
+                {/* Bottom Action Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Lead Search Action */}
+                    <button onClick={() => setActiveTab('search')} className="group flex items-center gap-5 p-6 bg-primary rounded-[32px] text-white transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/20">
+                        <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center shrink-0 border border-white/20">
+                            <SearchIcon className="w-7 h-7" />
                         </div>
-                    </div>
+                        <div className="text-left">
+                            <h4 className="text-[18px] font-bold mb-1">Buscar novos leads</h4>
+                            <p className="text-[11px] text-white/60 font-medium leading-normal">
+                                Encontre clientes ideais em segundos usando nossa IA de busca avançada por nicho e região.
+                            </p>
+                        </div>
+                    </button>
 
-                    <div className={`flex-1 flex flex-col justify-between relative z-10 transition-all ${!hasCRMAccess ? 'blur-sm opacity-50 select-none' : ''}`}>
-                        <p className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
-                            R$ {monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </p>
-                        <div className="mt-4">
-                            <div className="flex justify-between items-center text-xs mb-1.5">
-                                <span className="text-zinc-400">Meta: {userSettings.pipelineGoal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                                <span className="font-bold text-green-600 dark:text-green-400">{Math.round(Math.min((monthlyRevenue / userSettings.pipelineGoal) * 100, 100))}%</span>
-                            </div>
-                            <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                                <div
-                                    className="bg-green-500 h-full rounded-full transition-all duration-1000"
-                                    style={{ width: `${Math.min((monthlyRevenue / userSettings.pipelineGoal) * 100, 100)}%` }}
-                                ></div>
-                            </div>
+                    {/* CRM Action */}
+                    <button onClick={() => setActiveTab('crm')} className="group flex items-center gap-5 p-6 bg-[#079160] rounded-[32px] text-white transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-success/20">
+                        <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center shrink-0 border border-white/20">
+                            <ListTodo className="w-7 h-7" />
                         </div>
-                    </div>
+                        <div className="text-left">
+                            <h4 className="text-[18px] font-bold mb-1">Gerenciar CRM</h4>
+                            <p className="text-[11px] text-white/60 font-medium leading-normal">
+                                Acompanhe todo o seu funil de vendas e organize seus leads sem perder nenhuma oportunidade.
+                            </p>
+                        </div>
+                    </button>
 
-                    {!hasCRMAccess && (
-                        <div className="absolute inset-x-0 bottom-0 top-16 z-30 flex flex-col items-center justify-center">
-                            <div className="flex flex-col items-center gap-2">
-                                <Lock className="w-5 h-5 text-primary-500 mb-1" />
-                                <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300">CRM disponível no Pro</span>
-                                <button onClick={() => setActiveTab('subscription')} className="text-xs bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-md transition-all">
-                                    Liberar acesso
-                                </button>
-                            </div>
+                    {/* Share Action */}
+                    <button
+                        onClick={() => setShowShareModal(true)}
+                        className="group flex items-center gap-5 p-6 bg-white dark:bg-zinc-900 rounded-[32px] text-zinc-900 dark:text-white transition-all hover:scale-[1.02] active:scale-95 shadow-lg border border-zinc-100 dark:border-zinc-800"
+                    >
+                        <div className="w-14 h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center shrink-0 border border-zinc-200 dark:border-zinc-700 group-hover:bg-primary/5 group-hover:border-primary/20 transition-all">
+                            <Share2 className="w-7 h-7 dark:text-zinc-100" />
                         </div>
-                    )}
-                </div>
-
-                {/* Card 3: Leads no CRM */}
-                <div className="bg-app-cardLight dark:bg-app-cardDark p-5 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between relative overflow-hidden group">
-                    <div className="flex justify-between items-start mb-4 relative z-20">
-                        <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Leads no CRM</p>
-                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400">
-                            <User className="w-5 h-5" />
+                        <div className="text-left">
+                            <h4 className="text-[18px] font-bold mb-1 dark:text-white">Compartilhe e ganhe</h4>
+                            <p className="text-[11px] text-text-secondary dark:text-zinc-500 font-medium leading-normal">
+                                Convide amigos para a plataforma e ganhe créditos extras de busca para impulsionar seus resultados.
+                            </p>
                         </div>
-                    </div>
-
-                    <div className={`flex-1 flex flex-col justify-between relative z-10 transition-all ${!hasCRMAccess ? 'blur-sm opacity-50 select-none' : ''}`}>
-                        <p className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">{crmLeads.length}</p>
-                        <div className="mt-4">
-                            <p className="text-xs text-zinc-400">Gerencie seu funil de vendas</p>
-                        </div>
-                    </div>
-
-                    {!hasCRMAccess && (
-                        <div className="absolute inset-x-0 bottom-0 top-16 z-30 flex flex-col items-center justify-center">
-                            <div className="flex flex-col items-center gap-2">
-                                <Lock className="w-5 h-5 text-primary-500 mb-1" />
-                                <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300">Gestão de pipeline</span>
-                                <button onClick={() => setActiveTab('subscription')} className="text-xs bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-md transition-all">
-                                    Liberar acesso
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                    </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 bg-app-cardLight dark:bg-app-cardDark p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                                <CalendarIcon className="w-5 h-5 text-primary-500" /> Agenda
-                            </h3>
-                            <span className="text-xs text-zinc-400 font-normal ml-2 hidden md:inline">(Clique no dia para agendar)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button onClick={() => setCurrentCalendarDate(new Date(currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1)))} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg"><ChevronLeft className="w-5 h-5" /></button>
-                            <span className="text-sm font-bold capitalize w-32 text-center">
-                                {currentCalendarDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-                            </span>
-                            <button onClick={() => setCurrentCalendarDate(new Date(currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1)))} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg"><ChevronRight className="w-5 h-5" /></button>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-7 gap-2 mb-2">
-                        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => <div key={`weekday-${i}`} className="text-center text-xs font-bold text-zinc-400">{d}</div>)}
-                    </div>
-                    <div className="grid grid-cols-7 gap-2">
-                        {Array.from({ length: getFirstDayOfMonth(currentCalendarDate) }).map((_, i) => <div key={`empty-${i}`} />)}
-                        {Array.from({ length: getDaysInMonth(currentCalendarDate) }).map((_, i) => {
-                            const day = i + 1;
-                            const dateStr = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), day).toISOString().split('T')[0];
-                            const hasEvents = calendarEvents.some(e => e.date === dateStr);
-                            const isToday = dateStr === todayStr;
-                            return (
-                                <button
-                                    key={day}
-                                    onClick={() => openAddEventModal(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), day))}
-                                    className={`h-10 rounded-lg text-sm font-medium flex flex-col items-center justify-center relative transition-all border
-                    ${isToday ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800 font-bold' :
-                                            'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-transparent'}
-                  `}
-                                >
-                                    {day}
-                                    {hasEvents && <div className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isToday ? 'bg-primary-600' : 'bg-primary-400'}`}></div>}
-                                </button>
-                            )
-                        })}
-                    </div>
-                </div>
-                <div className="bg-app-cardLight dark:bg-app-cardDark p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col max-h-[450px]">
-                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-4 flex items-center gap-2 flex-shrink-0">
-                        <Clock className="w-5 h-5 text-primary-500" /> Próximos compromissos
-                    </h3>
-                    <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin max-h-[220px]">
-                        {upcomingEvents.length === 0 ? (
-                            <div className="text-center py-8 text-zinc-400">
-                                <CalendarIcon className="w-10 h-10 mx-auto mb-2 opacity-20" />
-                                <p className="text-sm">Agenda livre!</p>
-                                <button onClick={() => openAddEventModal(new Date())} className="mt-2 text-xs text-primary-500 hover:underline">Agendar para hoje</button>
+            {/* Share Modal */}
+            {showShareModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden">
+                    <div
+                        className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm animate-in fade-in duration-300"
+                        onClick={() => setShowShareModal(false)}
+                    />
+                    <div className="relative bg-white dark:bg-zinc-900 rounded-[40px] w-full max-w-lg shadow-2xl p-8 md:p-10 animate-in zoom-in-95 fade-in duration-300 border dark:border-zinc-800">
+                        <button
+                            onClick={() => setShowShareModal(false)}
+                            className="absolute top-6 right-6 p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all text-zinc-400 hover:text-zinc-900"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-20 h-20 bg-primary/10 rounded-[28px] flex items-center justify-center mb-6">
+                                <Gift className="w-10 h-10 text-primary" />
                             </div>
-                        ) : (
-                            upcomingEvents.map(evt => {
-                                const evtDate = new Date(evt.date + 'T00:00:00');
-                                const isToday = evt.date === todayStr;
-                                const isTomorrow = evt.date === tomorrowStr;
-                                return (
-                                    <div key={evt.id} className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border-l-4 border-primary-500 flex items-start gap-3 group">
-                                        <div className="text-center min-w-[3rem]">
-                                            <div className="text-[10px] font-bold uppercase text-zinc-400">{evtDate.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</div>
-                                            <div className="text-lg font-bold text-zinc-800 dark:text-white leading-none">{evtDate.getDate()}</div>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-sm text-zinc-900 dark:text-white truncate" title={evt.title}>{evt.title}</p>
-                                            <p className="text-xs text-zinc-500 flex justify-between mt-1 items-center">
-                                                <span>{evt.time || 'Dia todo'}</span>
-                                                {isToday && <span className="text-green-600 font-bold bg-green-100 dark:bg-green-900/30 px-1.5 rounded text-[10px]">HOJE</span>}
-                                                {isTomorrow && <span className="text-blue-600 font-bold bg-blue-100 dark:bg-blue-900/30 px-1.5 rounded text-[10px]">AMANHÃ</span>}
-                                            </p>
-                                        </div>
-                                        <button onClick={() => setCalendarEvents(prev => prev.filter(e => e.id !== evt.id))} className="text-zinc-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4" /></button>
+                            <h3 className="text-[28px] font-bold text-zinc-900 dark:text-white mb-2">Compartilhe e Ganhe!</h3>
+                            <p className="text-zinc-500 dark:text-zinc-400 font-medium mb-8">
+                                Ao convidar amigos, você e eles ganham benefícios exclusivos na plataforma.
+                            </p>
+
+                            <div className="w-full space-y-4 mb-10">
+                                <div className="flex items-start gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl border border-zinc-100 dark:border-zinc-700 text-left">
+                                    <div className="w-10 h-10 bg-white dark:bg-zinc-800 rounded-xl shadow-sm flex items-center justify-center shrink-0">
+                                        <UserPlus className="w-5 h-5 text-primary" />
                                     </div>
-                                )
-                            })
-                        )}
+                                    <div>
+                                        <h4 className="font-bold text-zinc-900 dark:text-white text-[15px]">Amigo ganha créditos</h4>
+                                        <p className="text-[13px] text-zinc-500 dark:text-zinc-400 font-medium">Seus amigos ganham créditos de busca ao criar uma conta.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl border border-zinc-100 dark:border-zinc-700 text-left">
+                                    <div className="w-10 h-10 bg-white dark:bg-zinc-800 rounded-xl shadow-sm flex items-center justify-center shrink-0">
+                                        <Zap className="w-5 h-5 text-green-500" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-zinc-900 dark:text-white text-[15px]">Você ganha bônus</h4>
+                                        <p className="text-[13px] text-zinc-500 dark:text-zinc-400 font-medium">Você ganha créditos de busca por cada indicação que ativar a conta.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl border border-zinc-100 dark:border-zinc-700 text-left">
+                                    <div className="w-10 h-10 bg-white dark:bg-zinc-800 rounded-xl shadow-sm flex items-center justify-center shrink-0">
+                                        <Crown className="w-5 h-5 text-amber-500" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-zinc-900 dark:text-white text-[15px]">Comissões Pro</h4>
+                                        <p className="text-[13px] text-zinc-500 dark:text-zinc-400 font-medium">Ganhe bônus especial se seu amigo assinar um plano Pro ou Elite.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText('https://beleads.com.br/invite/user123');
+                                    alert('Link de convite copiado!');
+                                }}
+                                className="w-full py-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-[0.98]"
+                            >
+                                Copiar meu link de convite
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <button onClick={() => setActiveTab('search')} className="group relative overflow-hidden bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl p-6 text-left shadow-lg shadow-primary-500/20 hover:shadow-primary-500/40 transition-all hover:-translate-y-1">
-                    <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-500"><SearchIcon className="w-32 h-32 text-white" /></div>
-                    <div className="relative z-10">
-                        <div className="bg-white/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-white/10"><Sparkles className="w-6 h-6 text-white" /></div>
-                        <h3 className="text-2xl font-bold text-white mb-1">Buscar leads</h3>
-                        <p className="text-primary-100 text-sm mb-4">Encontre novas empresas e extraia dados.</p>
-                        <div className="inline-flex items-center gap-2 text-white text-sm font-bold bg-white/20 px-4 py-2 rounded-lg group-hover:bg-white group-hover:text-primary-600 transition-colors">Começar agora <ArrowRight className="w-4 h-4" /></div>
+            {/* Custom Deletion Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 overflow-hidden">
+                    <div
+                        className="absolute inset-0 bg-zinc-950/60 backdrop-blur-md animate-in fade-in duration-300"
+                        onClick={() => setShowDeleteConfirm(false)}
+                    />
+                    <div className="relative bg-white dark:bg-zinc-900 rounded-[40px] w-full max-w-md shadow-2xl p-8 animate-in zoom-in-95 fade-in duration-400 border dark:border-zinc-800">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center mb-6 ring-1 ring-red-100 dark:ring-red-900/30">
+                                <Trash2 className="w-8 h-8 text-red-500" />
+                            </div>
+                            <h3 className="text-[22px] font-bold text-zinc-900 dark:text-white mb-3">Limpar agenda?</h3>
+                            <p className="text-zinc-500 dark:text-zinc-400 font-medium text-[15px] mb-8 leading-relaxed">
+                                Tem certeza? Ao confirmar você vai apagar todos os itens da sua agenda permanentemente.
+                            </p>
+
+                            <div className="flex flex-col w-full gap-3">
+                                <button
+                                    onClick={() => {
+                                        setCalendarEvents([]);
+                                        setShowDeleteConfirm(false);
+                                    }}
+                                    className="w-full py-4 bg-red-500 hover:bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-200 transition-all active:scale-[0.98]"
+                                >
+                                    Sim, apagar tudo
+                                </button>
+                                <button
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                    className="w-full py-4 bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-400 font-bold rounded-2xl transition-all active:scale-[0.98]"
+                                >
+                                    Não, manter itens
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </button>
-                <button onClick={() => setActiveTab('crm')} className="group relative overflow-hidden bg-gradient-to-br from-green-500 to-green-700 rounded-2xl p-6 text-left shadow-lg shadow-green-500/20 hover:shadow-green-500/40 transition-all hover:-translate-y-1">
-                    <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-500"><Target className="w-32 h-32 text-white" /></div>
-                    <div className="relative z-10">
-                        <div className="bg-white/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-white/10"><KanbanSquare className="w-6 h-6 text-white" /></div>
-                        <h3 className="text-2xl font-bold text-white mb-1">Acessar CRM</h3>
-                        <p className="text-green-100 text-sm mb-4">Gerencie seu pipeline de vendas.</p>
-                        <div className="inline-flex items-center gap-2 text-white text-sm font-bold bg-white/20 px-4 py-2 rounded-lg group-hover:bg-white group-hover:text-green-600 transition-colors">Ver pipeline <ArrowRight className="w-4 h-4" /></div>
-                    </div>
-                </button>
-            </div>
+                </div>
+            )}
         </div>
     );
 };

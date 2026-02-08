@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-    RotateCcw, Loader2, CalendarIcon, X, Plus, Copy, ExternalLink
+    RotateCcw, Loader2, CalendarIcon, X, Plus, Copy, ExternalLink, Clock
 } from 'lucide-react';
 import { supabase } from '@/services/supabase';
 import { createCheckoutSession } from '@/services/payment';
@@ -385,16 +385,9 @@ const App: React.FC = () => {
     };
 
     const handleCheckout = async (planId: keyof typeof STRIPE_PRICES, isAnnual: boolean) => {
-        try {
-            const priceId = isAnnual
-                ? STRIPE_PRICES[planId].replace('monthly', 'annual') // Mock simplificado
-                : STRIPE_PRICES[planId];
-
-            showNotification(`Iniciando checkout para ${planId}...`, 'info');
-            await createCheckoutSession(priceId, isAnnual);
-        } catch (error: any) {
-            showNotification(error.message, "error");
-        }
+        // MODO TESTE: Mudança instantânea de plano ignorando Stripe
+        setUserSettings(prev => ({ ...prev, plan: planId as UserPlan }));
+        showNotification(`Plano atualizado para ${planId} (Modo Teste)!`);
     };
 
     const handleExportCSV = () => {
@@ -545,6 +538,8 @@ const App: React.FC = () => {
                         upcomingEvents={upcomingEvents}
                         tomorrowStr={tomorrowStr}
                         setCalendarEvents={setCalendarEvents}
+                        theme={theme}
+                        setTheme={setTheme}
                     />
                 )}
 
@@ -646,32 +641,111 @@ const App: React.FC = () => {
 
             {/* Modals are kept in App.tsx for shared access or can be moved to pages */}
             {/* Modal de Novo Evento */}
-            {showEventModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    {/* ... (Modal content shortened for demo, keep original SVG/Paths if needed) ... */}
-                    <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-fade-in-up overflow-hidden">
-                        <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
-                            <h3 className="font-bold text-zinc-900 dark:text-white flex items-center gap-2"><CalendarIcon className="w-5 h-5 text-primary-500" /> Novo Compromisso</h3>
-                            <button onClick={() => setShowEventModal(false)} className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg transition-colors"><X className="w-5 h-5 text-zinc-500" /></button>
+            {showEventModal && selectedDateEvents && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm animate-in fade-in duration-300 overflow-hidden">
+                    <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[32px] shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-300">
+                        <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
+                            <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-3">
+                                <div className="p-2 bg-primary/10 rounded-xl">
+                                    <CalendarIcon className="w-5 h-5 text-primary" />
+                                </div>
+                                Novo Compromisso
+                            </h3>
+                            <button
+                                onClick={() => setShowEventModal(false)}
+                                className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-400"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
                         </div>
-                        <form onSubmit={handleAddEvent} className="p-6 space-y-4">
-                            <input autoFocus required value={newEventData.title} onChange={e => setNewEventData({ ...newEventData, title: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white" placeholder="Título" />
-                            <div className="relative">
-                                <button type="button" onClick={() => setIsTimePickerOpen(!isTimePickerOpen)} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-left flex justify-between items-center text-zinc-900 dark:text-white">
-                                    <span>{newEventData.time || '09:00'}</span>
+
+                        <form onSubmit={handleAddEvent} className="p-8 space-y-6">
+                            {/* Selected Date Highlight */}
+                            <div className="bg-primary/5 dark:bg-primary/10 rounded-2xl p-4 flex items-center gap-4 border border-primary/10 dark:border-primary/20">
+                                <div className="w-14 h-14 bg-white dark:bg-zinc-800 rounded-xl flex flex-col items-center justify-center shadow-sm border border-zinc-100 dark:border-zinc-700 shrink-0">
+                                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">
+                                        {selectedDateEvents.toLocaleString('pt-BR', { month: 'short' }).replace('.', '')}
+                                    </span>
+                                    <span className="text-[20px] font-bold text-zinc-900 dark:text-white -mt-1">
+                                        {selectedDateEvents.getDate()}
+                                    </span>
+                                </div>
+                                <div className="text-left">
+                                    <h4 className="text-[14px] font-bold text-primary mb-0.5">Data selecionada</h4>
+                                    <p className="text-[13px] text-primary/60 font-medium capitalize">
+                                        {selectedDateEvents.toLocaleString('pt-BR', { weekday: 'long' })}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">TÍTULO DO EVENTO</label>
+                                <input
+                                    autoFocus
+                                    required
+                                    value={newEventData.title}
+                                    onChange={e => setNewEventData({ ...newEventData, title: e.target.value })}
+                                    className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium"
+                                    placeholder="Ex: Reunião com Cliente"
+                                />
+                            </div>
+
+                            <div className="space-y-2 relative">
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">HORÁRIO</label>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsTimePickerOpen(!isTimePickerOpen)}
+                                    className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 text-left flex justify-between items-center text-zinc-900 dark:text-white transition-all hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                >
+                                    <span className="font-medium">{newEventData.time || '09:00'}</span>
+                                    <Clock className="w-5 h-5 text-zinc-400" />
                                 </button>
                                 {isTimePickerOpen && (
-                                    <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-xl max-h-48 overflow-y-auto z-20">
-                                        {TIME_OPTIONS.map(time => (
-                                            <button key={time} type="button" onClick={() => { setNewEventData({ ...newEventData, time }); setIsTimePickerOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-200">{time}</button>
-                                        ))}
+                                    <div className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-zinc-800 rounded-[24px] border border-zinc-100 dark:border-zinc-700 shadow-2xl max-h-48 overflow-y-auto z-[210] p-2 animate-in slide-in-from-bottom-2">
+                                        {TIME_OPTIONS
+                                            .filter(t => {
+                                                const h = parseInt(t.split(':')[0]);
+                                                return h >= 6 && h <= 22;
+                                            })
+                                            .map(time => (
+                                                <button
+                                                    key={time}
+                                                    type="button"
+                                                    onClick={() => { setNewEventData({ ...newEventData, time }); setIsTimePickerOpen(false); }}
+                                                    className={`w-full text-left px-5 py-2.5 rounded-xl text-sm transition-colors ${newEventData.time === time ? 'bg-primary/10 text-primary font-bold' : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700'}`}
+                                                >
+                                                    {time}
+                                                </button>
+                                            ))
+                                        }
                                     </div>
                                 )}
                             </div>
-                            <textarea value={newEventData.description} onChange={e => setNewEventData({ ...newEventData, description: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white h-24" placeholder="Descrição"></textarea>
-                            <div className="flex gap-3">
-                                <button type="button" onClick={() => setShowEventModal(false)} className="flex-1 py-3 text-zinc-600 dark:text-zinc-400 font-bold hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl">Cancelar</button>
-                                <button type="submit" className="flex-1 py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-lg shadow-primary-500/20">Agendar</button>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">DESCRIÇÃO (OPCIONAL)</label>
+                                <textarea
+                                    value={newEventData.description}
+                                    onChange={e => setNewEventData({ ...newEventData, description: e.target.value })}
+                                    className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white h-24 text-[15px] font-medium resize-none"
+                                    placeholder="Detalhes do compromisso..."
+                                ></textarea>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEventModal(false)}
+                                    className="px-6 py-2 text-zinc-500 dark:text-zinc-400 font-bold hover:text-zinc-900 dark:hover:text-white transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-10 py-4 bg-primary hover:opacity-90 text-white font-bold rounded-2xl shadow-xl shadow-primary/30 transition-all active:scale-95"
+                                >
+                                    Agendar
+                                </button>
                             </div>
                         </form>
                     </div>

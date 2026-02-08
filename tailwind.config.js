@@ -9,7 +9,7 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Inter', 'sans-serif'],
+                sans: ['DM Sans', 'sans-serif'],
             },
             colors: {
                 border: "hsl(var(--border))",
@@ -18,7 +18,7 @@ export default {
                 background: "hsl(var(--background))",
                 foreground: "hsl(var(--foreground))",
 
-                // Nova Paleta Sólida e Definida
+                // Reference Design Colors
                 primary: {
                     DEFAULT: '#0068ff',
                     50: '#e5f0ff',
@@ -33,26 +33,33 @@ export default {
                     900: '#001533',
                     950: '#000b1a',
                 },
-                sidebar: '#0e1721', // Escuro Médio (Sidebar)
+                sidebar: {
+                    DEFAULT: '#1d2838',      // Main sidebar background
+                    plan: '#0d1828',         // Plan card background
+                    logout: '#0a0b0c',       // Logout section background
+                },
+                text: {
+                    light: '#faffff',        // Primary light text
+                    secondary: '#959fa3',    // Secondary text/icons
+                },
                 app: {
-                    dark: '#08090a',   // Muito escuro (Fundo Profundo)
-                    cardDark: '#161b22', // Contraste Sutil com o Fundo Dark (Um pouco mais claro que 08090a)
-                    light: '#e8eeef',  // Claro (Fundo Geral)
-                    cardLight: '#ffffff' // Branco Puro (Contraste com o e8eeef)
+                    dark: '#08090a',         // Dark theme background
+                    cardDark: '#161b22',     // Dark theme cards
+                    light: '#e8eeef',        // Light theme background
+                    cardLight: '#ffffff'     // Light theme cards
                 },
                 success: {
-                    DEFAULT: '#00c474',
+                    DEFAULT: '#079160',      // Reference green
                     50: '#e5f9f1',
                     100: '#ccf3e3',
-                    500: '#00c474',
-                    600: '#009d5d',
-                    700: '#007646'
+                    500: '#079160',
+                    600: '#06754d',
+                    700: '#05593a'
                 },
                 danger: {
                     DEFAULT: '#ff4545',
                     50: '#ffefef',
                     100: '#ffdfdf',
-                    500: '#ff4545',
                     600: '#cc3737',
                     700: '#992929'
                 }

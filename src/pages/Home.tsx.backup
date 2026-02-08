@@ -1,0 +1,312 @@
+import React from 'react';
+import {
+    Shield, Trophy, Lock, User, Calendar as CalendarIcon,
+    ChevronLeft, ChevronRight, Clock, Trash2, Search as SearchIcon,
+    Sparkles, ArrowRight, Target, KanbanSquare, TrendingUp, Zap
+} from 'lucide-react';
+import { UserSettings, CalendarEvent, CRMLead, AppTab } from '@/types/types';
+
+interface HomeProps {
+    userSettings: UserSettings;
+    dailyQuote: string;
+    renderAvatar: (settings: UserSettings, size: 'sm' | 'md' | 'lg') => React.ReactNode;
+    PLAN: { name: string };
+    USED_CREDITS: number;
+    MAX_CREDITS: number;
+    PLAN_PERCENTAGE: number;
+    setActiveTab: (tab: AppTab) => void;
+    monthlyRevenue: number;
+    hasCRMAccess: boolean;
+    crmLeads: CRMLead[];
+    currentCalendarDate: Date;
+    setCurrentCalendarDate: React.Dispatch<React.SetStateAction<Date>>;
+    getFirstDayOfMonth: (date: Date) => number;
+    getDaysInMonth: (date: Date) => number;
+    openAddEventModal: (date: Date) => void;
+    calendarEvents: CalendarEvent[];
+    selectedDateEvents: Date | null;
+    todayStr: string;
+    upcomingEvents: CalendarEvent[];
+    tomorrowStr: string;
+    setCalendarEvents: React.Dispatch<React.SetStateAction<CalendarEvent[]>>;
+}
+
+const Home: React.FC<HomeProps> = ({
+    userSettings,
+    dailyQuote,
+    renderAvatar,
+    PLAN,
+    USED_CREDITS,
+    MAX_CREDITS,
+    PLAN_PERCENTAGE,
+    setActiveTab,
+    monthlyRevenue,
+    hasCRMAccess,
+    crmLeads,
+    currentCalendarDate,
+    setCurrentCalendarDate,
+    getFirstDayOfMonth,
+    getDaysInMonth,
+    openAddEventModal,
+    calendarEvents,
+    selectedDateEvents,
+    todayStr,
+    upcomingEvents,
+    tomorrowStr,
+    setCalendarEvents
+}) => {
+    return (
+        <div className="animate-in fade-in slide-in-from-bottom-6 duration-1000 space-y-3 pb-3">
+            {/* Header com Design Premium */}
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-2 pt-2">
+                <div>
+                    <h1 className="text-2xl font-black text-[#1b2c49] dark:text-white tracking-tight leading-[1.1]">
+                        Olá, <span className="text-[#0068ff]">{userSettings.name.split(' ')[0]}!</span>
+                    </h1>
+                    <p className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">
+                        Bons prospectar e fechar novos negócios hoje!
+                    </p>
+                </div>
+
+
+                {/* KPI Cards Redesenhados (Pro Max) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Card 1: Uso de Créditos */}
+                    <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-200 dark:border-zinc-700 flex flex-col justify-between group hover:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] transition-all duration-500 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-125 transition-transform duration-700">
+                            <Zap className="w-32 h-32 text-[#0068ff]" />
+                        </div>
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="p-2.5 bg-[#0068ff]/10 rounded-xl">
+                                    <Shield className="w-4 h-4 text-[#0068ff]" />
+                                </div>
+                                <p className="text-[10px] font-black text-[#1b2c49]/40 dark:text-zinc-500 uppercase tracking-[0.2em]">Sua Assinatura</p>
+                            </div>
+                            <h3 className="text-2xl font-black text-[#1b2c49] dark:text-white capitalize tracking-tight">{PLAN.name}</h3>
+                        </div>
+                        <div className="mt-6 space-y-3 relative z-10">
+                            <div className="flex justify-between items-end">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-1">Quota Disponível</span>
+                                    <span className="text-xl font-black text-[#1b2c49] dark:text-white leading-none">{USED_CREDITS.toLocaleString()} <small className="text-xs font-bold text-zinc-400 lowercase italic">utilizados</small></span>
+                                </div>
+                                <span className="text-sm font-black text-[#0068ff]">{Math.round(PLAN_PERCENTAGE)}%</span>
+                            </div>
+                            <div className="w-full bg-zinc-50 dark:bg-zinc-800 h-3 rounded-full overflow-hidden border border-zinc-100 dark:border-zinc-700 p-0.5">
+                                <div className="bg-gradient-to-r from-[#0068ff] to-[#00b4ff] h-full rounded-full transition-all duration-1000 shadow-[0_0_12px_rgba(0,104,255,0.4)]" style={{ width: `${PLAN_PERCENTAGE}%` }}></div>
+                            </div>
+                            {userSettings.plan === 'free' && (
+                                <button onClick={() => setActiveTab('subscription')} className="w-full mt-4 py-4 bg-[#0068ff] hover:bg-[#0054cc] text-white text-[11px] font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-[#0068ff]/20 active:scale-95">
+                                    Upgrade Premium
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Card 2: Performance Financeira */}
+                    <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-200 dark:border-zinc-700 flex flex-col justify-between relative overflow-hidden group hover:shadow-[0_32px_64px_-16px_rgba(0,196,116,0.08)] transition-all duration-500">
+                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-125 transition-transform duration-700">
+                            <TrendingUp className="w-32 h-32 text-[#00c474]" />
+                        </div>
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="p-2.5 bg-[#00c474]/10 rounded-xl">
+                                    <Target className="w-4 h-4 text-[#00c474]" />
+                                </div>
+                                <p className="text-[10px] font-black text-[#1b2c49]/40 dark:text-zinc-500 uppercase tracking-[0.2em]">Faturamento CRM</p>
+                            </div>
+                            <div className={`transition-all ${!hasCRMAccess ? 'blur-xl opacity-30 select-none' : ''}`}>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-xs font-black text-zinc-300">R$</span>
+                                    <h3 className="text-2xl font-black text-[#1b2c49] dark:text-white tracking-tighter">
+                                        {monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        {!hasCRMAccess ? (
+                            <div className="flex flex-col items-center justify-center py-6 bg-zinc-50/50 dark:bg-zinc-800/50 rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-700 relative z-10">
+                                <Lock className="w-6 h-6 text-zinc-300 mb-2" />
+                                <span className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]">Exclusivo Pro/Elite</span>
+                            </div>
+                        ) : (
+                            <div className="mt-6 relative z-10">
+                                <div className="flex justify-between items-center text-[10px] font-black text-zinc-400 dark:text-zinc-500 mb-2.5 uppercase tracking-widest">
+                                    <span>Progresso da Meta</span>
+                                    <span className="text-[#00c474] font-black">{Math.round(Math.min((monthlyRevenue / userSettings.pipelineGoal) * 100, 100))}%</span>
+                                </div>
+                                <div className="w-full bg-zinc-50 dark:bg-zinc-800 h-3 rounded-full overflow-hidden border border-zinc-100 dark:border-zinc-700 p-0.5">
+                                    <div className="bg-gradient-to-r from-[#00c474] to-[#00f28b] h-full rounded-full transition-all duration-1000 shadow-[0_0_12px_rgba(0,196,116,0.4)]" style={{ width: `${Math.min((monthlyRevenue / userSettings.pipelineGoal) * 100, 100)}%` }}></div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Card 3: Pipeline Health */}
+                    <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-200 dark:border-zinc-700 flex flex-col justify-between group hover:shadow-[0_32px_64px_-16px_rgba(18,28,45,0.08)] transition-all duration-500 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-125 transition-transform duration-700 text-[#1b2c49]">
+                            <KanbanSquare className="w-32 h-32" />
+                        </div>
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl">
+                                    <Trophy className="w-4 h-4 text-[#1b2c49] dark:text-zinc-400" />
+                                </div>
+                                <p className="text-[10px] font-black text-[#1b2c49]/40 dark:text-zinc-500 uppercase tracking-[0.2em]">Engajamento</p>
+                            </div>
+                            <div className={`transition-all ${!hasCRMAccess ? 'blur-xl opacity-30 select-none' : ''}`}>
+                                <div className="flex flex-col">
+                                    <span className="text-2xl font-black text-[#1b2c49] dark:text-white tracking-tighter">{crmLeads.length} <small className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Leads</small></span>
+                                    <p className="text-xs font-bold text-zinc-400 mt-1 italic">Ventrículo ativo do seu negócio</p>
+                                </div>
+                            </div>
+                        </div>
+                        {!hasCRMAccess ? (
+                            <div className="flex flex-col items-center justify-center py-6 bg-zinc-50/50 dark:bg-zinc-800/50 rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-700">
+                                <Lock className="w-6 h-6 text-zinc-300 mb-2" />
+                                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em]">Apenas no Pro</span>
+                            </div>
+                        ) : (
+                            <div className="mt-6 flex items-center justify-between relative z-10">
+                                <div className="flex -space-x-3">
+                                    {[1, 2, 3, 4].map(i => (
+                                        <div key={i} className="w-10 h-10 rounded-2xl border-4 border-white dark:border-zinc-900 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-black text-[#1b2c49] dark:text-zinc-400 shadow-sm transition-transform hover:-translate-y-1 hover:z-20">L</div>
+                                    ))}
+                                </div>
+                                <span className="text-[10px] font-black text-[#0068ff] uppercase tracking-widest bg-[#0068ff]/5 px-3 py-1.5 rounded-xl border border-[#0068ff]/10">+ gerados hoje</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Calendário e Agenda Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="lg:col-span-2 bg-white dark:bg-zinc-900 p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-200 dark:border-zinc-700">
+                        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
+                            <h3 className="text-xl font-black text-[#1b2c49] dark:text-white flex items-center gap-3">
+                                <div className="p-2.5 bg-[#0068ff]/10 rounded-xl">
+                                    <CalendarIcon className="w-5 h-5 text-[#0068ff]" />
+                                </div>
+                                Cronograma
+                            </h3>
+                            <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800 p-2 rounded-[20px] border border-zinc-200 dark:border-zinc-700 shadow-inner">
+                                <button onClick={() => setCurrentCalendarDate(new Date(currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1)))} className="p-2 bg-white dark:bg-zinc-700 hover:scale-110 active:scale-95 text-zinc-600 dark:text-zinc-300 rounded-xl shadow-sm transition-all border border-zinc-200 dark:border-zinc-600"><ChevronLeft className="w-4 h-4" /></button>
+                                <span className="text-xs font-black uppercase tracking-widest w-36 text-center text-[#1b2c49] dark:text-zinc-200">
+                                    {currentCalendarDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                                </span>
+                                <button onClick={() => setCurrentCalendarDate(new Date(currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1)))} className="p-2 bg-white dark:bg-zinc-700 hover:scale-110 active:scale-95 text-zinc-600 dark:text-zinc-300 rounded-xl shadow-sm transition-all border border-zinc-200 dark:border-zinc-600"><ChevronRight className="w-4 h-4" /></button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-7 gap-3 mb-3">
+                            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'].map((d, i) => <div key={`weekday-${i}`} className="text-center text-[10px] font-black text-zinc-300 dark:text-zinc-600 uppercase tracking-[0.2em]">{d}</div>)}
+                        </div>
+
+                        <div className="grid grid-cols-7 gap-3">
+                            {Array.from({ length: getFirstDayOfMonth(currentCalendarDate) }).map((_, i) => <div key={`empty-${i}`} className="h-12" />)}
+                            {Array.from({ length: getDaysInMonth(currentCalendarDate) }).map((_, i) => {
+                                const day = i + 1;
+                                const dateStr = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), day).toISOString().split('T')[0];
+                                const hasEvents = calendarEvents.some(e => e.date === dateStr);
+                                const isToday = dateStr === todayStr;
+                                return (
+                                    <button
+                                        key={day}
+                                        onClick={() => openAddEventModal(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), day))}
+                                        className={`group h-12 rounded-2xl text-sm font-black flex flex-col items-center justify-center relative transition-all duration-300
+                                        ${isToday ? 'bg-[#0068ff] text-white shadow-lg shadow-[#0068ff]/30 border-2 border-[#0068ff]' : 'bg-transparent border-2 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-600 text-[#1b2c49] dark:text-zinc-300 hover:scale-105 active:scale-95'}
+                                    `}
+                                    >
+                                        {day}
+                                        {hasEvents && !isToday && <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full bg-[#0068ff] ring-4 ring-[#0068ff]/10"></div>}
+                                        {isToday && <div className="absolute top-2 right-2 w-1 h-1 rounded-full bg-white/50"></div>}
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="bg-[#1b2c49] dark:bg-zinc-900 p-6 rounded-3xl shadow-[0_24px_48px_-12px_rgba(27,44,73,0.2)] border border-[#1b2c49] dark:border-zinc-700 flex flex-col text-white">
+                        <h3 className="text-xl font-black mb-6 flex items-center gap-3">
+                            <div className="p-2.5 bg-white/5 rounded-xl">
+                                <Clock className="w-6 h-6 text-zinc-300" />
+                            </div>
+                            Próximas Tarefas
+                        </h3>
+                        <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-hidden">
+                            {upcomingEvents.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-16 text-center">
+                                    <span className="text-zinc-400 font-bold italic">Sem eventos registrados.</span>
+                                    <button onClick={() => openAddEventModal(new Date())} className="mt-4 px-6 py-3 bg-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-[#1b2c49] transition-all">Novo Evento</button>
+                                </div>
+                            ) : (
+                                upcomingEvents.slice(0, 5).map(evt => {
+                                    const evtDate = new Date(evt.date + 'T00:00:00');
+                                    return (
+                                        <div key={evt.id} className="p-5 bg-white/5 hover:bg-white/10 rounded-[32px] border border-white/5 transition-all duration-300 group cursor-pointer active:scale-95">
+                                            <div className="flex items-center gap-5">
+                                                <div className="flex flex-col items-center justify-center bg-white text-[#1b2c49] w-14 h-14 rounded-[22px] shadow-lg shrink-0 group-hover:scale-110 transition-transform">
+                                                    <span className="text-[10px] font-black uppercase tracking-tighter leading-none">{evtDate.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</span>
+                                                    <span className="text-xl font-black leading-none mt-1">{evtDate.getDate()}</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-black text-sm uppercase tracking-tight truncate mb-1 group-hover:text-[#0068ff] transition-colors">{evt.title}</p>
+                                                    <div className="flex items-center gap-2 opacity-50">
+                                                        <Clock className="w-3 h-3" />
+                                                        <span className="text-[10px] font-bold tracking-widest">{evt.time || 'Dia inteiro'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Ações Rápidas de Alto Impacto */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onClick={() => setActiveTab('search')} className="group p-6 bg-[#0068ff] rounded-3xl text-left shadow-[0_20px_40px_-10px_rgba(0,104,255,0.3)] hover:shadow-[0_40px_64px_-20px_rgba(0,104,255,0.4)] hover:-translate-y-1 transition-all duration-500 overflow-hidden relative">
+                        <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:scale-125 group-hover:-rotate-6 transition-all duration-1000">
+                            <Target className="w-64 h-64 text-white" />
+                        </div>
+                        <div className="relative z-10 flex flex-col h-full">
+                            <div className="p-3 bg-white/10 w-fit rounded-2xl mb-6 border border-white/20 group-hover:scale-110 transition-transform">
+                                <SearchIcon className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-3xl font-black text-white mb-3 tracking-tighter leading-tight drop-shadow-md">Extrair <br />Novos Leads</h3>
+                            <p className="text-blue-100/60 text-sm font-medium mb-6 max-w-xs leading-relaxed italic">Inteligência de busca em tempo real para seu nicho.</p>
+                            <div className="mt-auto group">
+                                <div className="inline-flex items-center gap-3 bg-white px-6 py-3 rounded-2xl text-[#0068ff] text-[10px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 group-hover:px-8">
+                                    Iniciar Pesquisa <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                                </div>
+                            </div>
+                        </div>
+                    </button>
+
+                    <button onClick={() => setActiveTab('crm')} className="group p-6 bg-[#00c474] rounded-3xl text-left shadow-[0_20px_40px_-10px_rgba(0,196,116,0.3)] hover:shadow-[0_40px_64px_-20px_rgba(0,196,116,0.4)] hover:-translate-y-1 transition-all duration-500 overflow-hidden relative">
+                        <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:scale-125 group-hover:rotate-6 transition-all duration-1000">
+                            <TrendingUp className="w-64 h-64 text-white" />
+                        </div>
+                        <div className="relative z-10 flex flex-col h-full">
+                            <div className="p-3 bg-white/10 w-fit rounded-2xl mb-6 border border-white/20 group-hover:scale-110 transition-transform">
+                                <KanbanSquare className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-3xl font-black text-white mb-3 tracking-tighter leading-tight drop-shadow-md">Gerenciar <br />Seu Pipeline</h3>
+                            <p className="text-green-100/60 text-sm font-medium mb-6 max-w-xs leading-relaxed italic">Visualize seu funil e converta leads em lucro.</p>
+                            <div className="mt-auto group">
+                                <div className="inline-flex items-center gap-3 bg-white px-6 py-3 rounded-2xl text-[#00c474] text-[10px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 group-hover:px-8">
+                                    Ver Funil de Vendas <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                                </div>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+        </div>
+    );
+};
+
+export default Home;

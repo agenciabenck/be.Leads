@@ -126,8 +126,7 @@ const Subscription: React.FC<SubscriptionProps> = ({
                             </ul>
                             <button
                                 onClick={() => {
-                                    if (isCurrent || isLower) return;
-                                    if (plan.id === 'free') return;
+                                    // Desbloqueado para testes
                                     handleCheckout(plan.id as keyof typeof STRIPE_PRICES, billingCycle === 'annual');
                                 }}
                                 className={`w-full py-3 rounded-xl font-bold transition-all text-sm ${isCurrent
