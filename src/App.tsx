@@ -11,6 +11,7 @@ import { LeadTable } from '@/components/LeadTable';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import Sidebar from '@/components/Sidebar';
 import MobileHeader from '@/components/MobileHeader';
+import { getUserData, setUserData } from '@/utils/storageUtils';
 
 // Pages
 import Home from '@/pages/Home';
@@ -52,20 +53,18 @@ const App: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
     // User Profile & Settings
-    const [userSettings, setUserSettings] = useState<UserSettings>(() => {
-        const saved = localStorage.getItem('beleads_settings');
-        return saved ? JSON.parse(saved) : {
-            name: 'Usuário',
-            email: '',
-            avatar: '👨‍💼',
-            avatarType: 'emoji',
-            defaultState: 'SP',
-            pipelineGoal: 5000,
-            pipelineResetDay: 1,
-            plan: 'free',
-            hideSheetsModal: false,
-            notifications: { email: true, browser: true, weeklyReport: true }
-        };
+    const [userSettings, setUserSettings] = useState<UserSettings>({
+        name: 'Usuário',
+        email: '',
+        avatar: '👨‍💼',
+        avatarType: 'emoji',
+        avatarColor: '#3b82f6',
+        defaultState: 'SP',
+        pipelineGoal: 5000,
+        pipelineResetDay: 1,
+        plan: 'free',
+        hideSheetsModal: false,
+        notifications: { email: true, browser: true, weeklyReport: true }
     });
 
     // Search & Leads
@@ -75,10 +74,7 @@ const App: React.FC = () => {
     const [filters, setFilters] = useState<SearchFilters>({ maxResults: 10, minRating: 0, requirePhone: true });
     const [searchMode, setSearchMode] = useState<'free' | 'guided'>('free');
     const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
-    const [globalHistory, setGlobalHistory] = useState<string[]>(() => {
-        const saved = localStorage.getItem('beleads_history');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [globalHistory, setGlobalHistory] = useState<string[]>([]);
 
     // Guided Search State
     const [selectedNiche, setSelectedNiche] = useState('');
@@ -90,10 +86,7 @@ const App: React.FC = () => {
     const [isLoadingCities, setIsLoadingCities] = useState(false);
 
     // CRM State
-    const [crmLeads, setCrmLeads] = useState<CRMLead[]>(() => {
-        const saved = localStorage.getItem('beleads_crm');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [crmLeads, setCrmLeads] = useState<CRMLead[]>([]);
     const [crmSearchQuery, setCrmSearchQuery] = useState('');
     const [showNewLeadModal, setShowNewLeadModal] = useState(false);
     const [newLeadValue, setNewLeadValue] = useState('');
@@ -103,10 +96,7 @@ const App: React.FC = () => {
     const [newLeadUF, setNewLeadUF] = useState('');
 
     // Calendar & Events
-    const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(() => {
-        const saved = localStorage.getItem('beleads_calendar');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
     const [showEventModal, setShowEventModal] = useState(false);
     const [selectedDateEvents, setSelectedDateEvents] = useState<Date | null>(null);
     const [newEventData, setNewEventData] = useState({ title: '', description: '', time: '09:00' });
@@ -130,16 +120,59 @@ const App: React.FC = () => {
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null);
+
             if (session?.user) {
-                setUserSettings(prev => ({ ...prev, email: session.user.email ?? '' }));
+                const userId = session.user.id;
+
+                // Carregar dados isolados do usuário
+                const loadedSettings = getUserData<UserSettings>(userId, 'settings', {
+                    name: 'Usuário',
+                    email: session.user.email ?? '',
+                    avatar: '👨‍💼',
+                    avatarType: 'emoji',
+                    avatarColor: '#3b82f6',
+                    defaultState: 'SP',
+                    pipelineGoal: 5000,
+                    pipelineResetDay: 1,
+                    plan: 'free',
+                    hideSheetsModal: false,
+                    notifications: { email: true, browser: true, weeklyReport: true }
+                });
+
+                setUserSettings(loadedSettings);
+                setGlobalHistory(getUserData<string[]>(userId, 'history', []));
+                setCrmLeads(getUserData<CRMLead[]>(userId, 'crm', []));
+                setCalendarEvents(getUserData<CalendarEvent[]>(userId, 'calendar', []));
             }
+
             setAuthLoading(false);
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
+
             if (session?.user) {
-                setUserSettings(prev => ({ ...prev, email: session.user.email ?? '' }));
+                const userId = session.user.id;
+
+                // Carregar dados ao trocar de usuário
+                const loadedSettings = getUserData<UserSettings>(userId, 'settings', {
+                    name: 'Usuário',
+                    email: session.user.email ?? '',
+                    avatar: '👨‍💼',
+                    avatarType: 'emoji',
+                    avatarColor: '#3b82f6',
+                    defaultState: 'SP',
+                    pipelineGoal: 5000,
+                    pipelineResetDay: 1,
+                    plan: 'free',
+                    hideSheetsModal: false,
+                    notifications: { email: true, browser: true, weeklyReport: true }
+                });
+
+                setUserSettings(loadedSettings);
+                setGlobalHistory(getUserData<string[]>(userId, 'history', []));
+                setCrmLeads(getUserData<CRMLead[]>(userId, 'crm', []));
+                setCalendarEvents(getUserData<CalendarEvent[]>(userId, 'calendar', []));
             }
         });
 
@@ -147,13 +180,29 @@ const App: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        localStorage.setItem('beleads_settings', JSON.stringify(userSettings));
+        if (user) {
+            setUserData(user.id, 'settings', userSettings);
+        }
         document.documentElement.classList.toggle('dark', theme === 'dark');
-    }, [userSettings, theme]);
+    }, [userSettings, theme, user]);
 
-    useEffect(() => localStorage.setItem('beleads_crm', JSON.stringify(crmLeads)), [crmLeads]);
-    useEffect(() => localStorage.setItem('beleads_calendar', JSON.stringify(calendarEvents)), [calendarEvents]);
-    useEffect(() => localStorage.setItem('beleads_history', JSON.stringify(globalHistory)), [globalHistory]);
+    useEffect(() => {
+        if (user) {
+            setUserData(user.id, 'crm', crmLeads);
+        }
+    }, [crmLeads, user]);
+
+    useEffect(() => {
+        if (user) {
+            setUserData(user.id, 'calendar', calendarEvents);
+        }
+    }, [calendarEvents, user]);
+
+    useEffect(() => {
+        if (user) {
+            setUserData(user.id, 'history', globalHistory);
+        }
+    }, [globalHistory, user]);
 
     // Dynamic Title
     useEffect(() => {
@@ -256,6 +305,26 @@ const App: React.FC = () => {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
+
+        // Resetar estados para valores padrão
+        setUserSettings({
+            name: 'Usuário',
+            email: '',
+            avatar: '👨‍💼',
+            avatarType: 'emoji',
+            avatarColor: '#3b82f6',
+            defaultState: 'SP',
+            pipelineGoal: 5000,
+            pipelineResetDay: 1,
+            plan: 'free',
+            hideSheetsModal: false,
+            notifications: { email: true, browser: true, weeklyReport: true }
+        });
+        setGlobalHistory([]);
+        setCrmLeads([]);
+        setCalendarEvents([]);
+        setLeads([]);
+
         setUser(null);
     };
 
