@@ -43,9 +43,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                     { id: 'home', icon: Home, label: 'Início' },
                     { id: 'search', icon: SearchIcon, label: 'Buscar leads' },
                     { id: 'crm', icon: KanbanSquare, label: 'CRM' },
-                    { id: 'subscription', icon: Wallet, label: 'Assinatura', hidden: userSettings.plan === 'elite' },
+                    { id: 'subscription', icon: Wallet, label: 'Assinatura' },
                     { id: 'settings', icon: Settings, label: 'Configurações' }
-                ].filter(item => !item.hidden).map(item => (
+                ].map(item => (
                     <button
                         key={item.id}
                         onClick={() => setActiveTab(item.id as AppTab)}
