@@ -52,22 +52,20 @@ export class GoogleMapsService {
         setInterval(() => this.clearOldCache(), 1800000);
     }
 
-    /**
-     * 🎯 Busca lugares com randomização e cache
-     * Usa Places API Essentials tier ($5/1k)
-     */
     async searchBusiness(
         query: string,
         maxResults: number = 20,
-        randomize: boolean = true
-    ): Promise<BusinessLead[]> {
+        randomize: boolean = true,
+        pageToken?: string
+    ): Promise<{ places: BusinessLead[], nextToken?: string }> {
         try {
-            // Verificar cache
-            const cacheKey = `search_${query}_${maxResults}`;
-            const cached = this.getFromCache(cacheKey);
-
-            if (cached) {
-                return randomize ? this.shuffleArray(cached) : cached;
+            // Verificar cache (não cachear se houver token para simplificar)
+            const cacheKey = `search_${query}_${maxResults}_${pageToken || ''}`;
+            if (!pageToken) {
+                const cached = this.getFromCache(cacheKey);
+                if (cached) {
+                    return { places: randomize ? this.shuffleArray(cached) : cached };
+                }
             }
 
             // Fazer requisição à API
@@ -76,13 +74,13 @@ export class GoogleMapsService {
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Goog-Api-Key': this.apiKey,
-                    'X-Goog-FieldMask': SEARCH_FIELDS, // CRÍTICO: Mantém custo baixo
+                    'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.websiteUri,places.googleMapsUri,places.internationalPhoneNumber,nextPageToken', // Adicionado nextPageToken
                 },
                 body: JSON.stringify({
                     textQuery: query,
                     languageCode: 'pt-BR',
-                    maxResultCount: Math.min(maxResults, 20), // API limita a 20
-                    // Randomização via rankPreference
+                    maxResultCount: Math.min(maxResults, 20),
+                    pageToken: pageToken, // Token de paginação
                     rankPreference: randomize ? 'DISTANCE' : 'RELEVANCE'
                 }),
             });
@@ -98,7 +96,7 @@ export class GoogleMapsService {
             const data = await response.json();
 
             if (!data.places || data.places.length === 0) {
-                return [];
+                return { places: [] };
             }
 
             const results = data.places.map((place: any) => ({
@@ -107,28 +105,29 @@ export class GoogleMapsService {
                 address: place.formattedAddress || 'Endereço não disponível',
                 rating: place.rating,
                 userRatingCount: place.userRatingCount,
-                website: place.websiteUri, // Website da empresa
-                googleMapsUrl: place.googleMapsUri, // Link do Google Maps
-                phone: place.internationalPhoneNumber, // Telefone
+                website: place.websiteUri,
+                googleMapsUrl: place.googleMapsUri,
+                phone: place.internationalPhoneNumber,
             }));
 
-            // Salvar no cache
-            this.saveToCache(cacheKey, results);
+            // Salvar no cache apenas a primeira página
+            if (!pageToken) {
+                this.saveToCache(cacheKey, results);
+            }
 
-            // Randomização adicional no cliente
-            return randomize ? this.shuffleArray(results) : results;
+            return {
+                places: randomize ? this.shuffleArray(results) : results,
+                nextToken: data.nextPageToken
+            };
 
         } catch (error: any) {
             console.error('Google Maps Search Error:', error);
-
-            // Mensagens de erro amigáveis
             if (error.message?.includes('API key')) {
                 throw new Error('Chave da API inválida. Verifique as configurações.');
             }
             if (error.message?.includes('quota')) {
                 throw new Error('Limite de buscas atingido. Tente novamente mais tarde.');
             }
-
             throw new Error(error.message || 'Erro ao buscar leads. Tente novamente.');
         }
     }

@@ -71,14 +71,14 @@ export const useSearch = (globalHistory: string[]) => {
         try {
             const requestedAmount = filters.maxResults || 20;
             let allValidResults: Lead[] = [];
-            let nextPageToken: string | undefined = undefined;
+            let currentToken: string | undefined = undefined;
             let attempts = 0;
-            const maxAttempts = 3; // Evita loop infinito se houver poucos resultados no Google
+            const maxAttempts = 5;
 
             while (allValidResults.length < requestedAmount && attempts < maxAttempts) {
-                const gResults = await googleMapsService.searchBusiness(finalQuery, 20, true);
+                const { places: gResults, nextToken } = await googleMapsService.searchBusiness(finalQuery, 20, true, currentToken);
 
-                if (gResults.length === 0) break;
+                if (!gResults || gResults.length === 0) break;
 
                 const mappedResults: Lead[] = gResults.map(r => ({
                     id: r.id,
@@ -106,10 +106,10 @@ export const useSearch = (globalHistory: string[]) => {
                 );
 
                 allValidResults = [...allValidResults, ...newUnique];
+                currentToken = nextToken;
                 attempts++;
 
-                // Se a API trouxe poucos resultados e não temos mais o que buscar, paramos
-                if (gResults.length < 5) break;
+                if (!nextToken) break;
             }
 
             setLeads(allValidResults.slice(0, requestedAmount));
@@ -125,22 +125,49 @@ export const useSearch = (globalHistory: string[]) => {
         setIsLoadingMore(true);
         try {
             const currentQuery = searchMode === 'free' ? query : `${selectedNiche} em ${selectedCity}, ${selectedState}`;
-            const gResults = await googleMapsService.searchBusiness(currentQuery, quantity, true);
-            const newResults: Lead[] = gResults.map(r => ({
-                id: r.id,
-                name: r.name,
-                category: selectedNiche || 'Lead',
-                address: r.address,
-                rating: r.rating || 0,
-                reviews: r.userRatingCount || 0,
-                phone: r.phone || 'N/A',
-                website: r.website || 'N/A',
-                instagram: 'N/A',
-                googleMapsLink: r.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + r.address)}`
-            }));
+            let allValidResults: Lead[] = [];
+            let currentToken: string | undefined = undefined;
+            let attempts = 0;
+            const maxAttempts = 5;
 
-            const uniqueNewLeads = newResults.filter(nl => !leads.some(el => el.id === nl.id) && !globalHistory.includes(nl.id));
-            setLeads(prev => [...prev, ...uniqueNewLeads]);
+            while (allValidResults.length < quantity && attempts < maxAttempts) {
+                const { places: gResults, nextToken } = await googleMapsService.searchBusiness(currentQuery, 20, true, currentToken);
+
+                if (!gResults || gResults.length === 0) break;
+
+                const mappedResults: Lead[] = gResults.map(r => ({
+                    id: r.id,
+                    name: r.name,
+                    category: selectedNiche || 'Lead',
+                    address: r.address,
+                    rating: r.rating || 0,
+                    reviews: r.userRatingCount || 0,
+                    phone: r.phone || 'N/A',
+                    website: r.website || 'N/A',
+                    instagram: 'N/A',
+                    googleMapsLink: r.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + r.address)}`
+                }));
+
+                let filtered = mappedResults;
+                if (filters.requirePhone) {
+                    filtered = filtered.filter(r => r.phone && r.phone !== 'N/A');
+                }
+
+                // Filtrar duplicatas contra a tela ATUAL e contra o histórico
+                const newUnique = filtered.filter(nl =>
+                    !leads.some(el => el.id === nl.id) &&
+                    !allValidResults.some(el => el.id === nl.id) &&
+                    !globalHistory.includes(nl.id)
+                );
+
+                allValidResults = [...allValidResults, ...newUnique];
+                currentToken = nextToken;
+                attempts++;
+
+                if (!nextToken) break;
+            }
+
+            setLeads(prev => [...prev, ...allValidResults.slice(0, quantity)]);
         } catch (err: any) {
             setState(prev => ({ ...prev, error: err.message }));
         } finally {
