@@ -70,33 +70,49 @@ export const useSearch = (globalHistory: string[]) => {
         setState({ isSearching: true, error: null, hasSearched: true });
         try {
             const requestedAmount = filters.maxResults || 20;
-            const maxPerRequest = 20;
-            const numRequests = Math.ceil(requestedAmount / maxPerRequest);
-            let allResults: any[] = [];
+            let allValidResults: Lead[] = [];
+            let nextPageToken: string | undefined = undefined;
+            let attempts = 0;
+            const maxAttempts = 3; // Evita loop infinito se houver poucos resultados no Google
 
-            for (let i = 0; i < numRequests; i++) {
-                const gResults = await googleMapsService.searchBusiness(finalQuery, maxPerRequest, true);
-                const uniqueResults = gResults.filter(newLead => !allResults.some(existing => existing.id === newLead.id));
-                allResults = [...allResults, ...uniqueResults];
-                if (allResults.length >= requestedAmount) break;
+            while (allValidResults.length < requestedAmount && attempts < maxAttempts) {
+                const gResults = await googleMapsService.searchBusiness(finalQuery, 20, true);
+
+                if (gResults.length === 0) break;
+
+                const mappedResults: Lead[] = gResults.map(r => ({
+                    id: r.id,
+                    name: r.name,
+                    category: selectedNiche || 'Lead',
+                    address: r.address,
+                    rating: r.rating || 0,
+                    reviews: r.userRatingCount || 0,
+                    phone: r.phone || 'N/A',
+                    website: r.website || 'N/A',
+                    instagram: 'N/A',
+                    googleMapsLink: r.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + r.address)}`
+                }));
+
+                // Aplicar filtros internos (ex: Telefone Obrigatório)
+                let filtered = mappedResults;
+                if (filters.requirePhone) {
+                    filtered = filtered.filter(r => r.phone && r.phone !== 'N/A');
+                }
+
+                // Filtrar duplicatas locais e histórico global
+                const newUnique = filtered.filter(nl =>
+                    !allValidResults.some(el => el.id === nl.id) &&
+                    !globalHistory.includes(nl.id)
+                );
+
+                allValidResults = [...allValidResults, ...newUnique];
+                attempts++;
+
+                // Se a API trouxe poucos resultados e não temos mais o que buscar, paramos
+                if (gResults.length < 5) break;
             }
 
-            allResults = allResults.slice(0, requestedAmount);
-            const results: Lead[] = allResults.map(r => ({
-                id: r.id,
-                name: r.name,
-                category: selectedNiche || 'Lead',
-                address: r.address,
-                rating: r.rating || 0,
-                reviews: r.userRatingCount || 0,
-                phone: r.phone || 'N/A',
-                website: r.website || 'N/A',
-                instagram: 'N/A',
-                googleMapsLink: r.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + r.address)}`
-            }));
-
-            const newLeadsList = results.filter(r => !globalHistory.includes(r.id));
-            setLeads(newLeadsList);
+            setLeads(allValidResults.slice(0, requestedAmount));
         } catch (err: any) {
             setState(prev => ({ ...prev, error: err.message }));
         } finally {
