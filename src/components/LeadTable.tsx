@@ -53,7 +53,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, sortField, sortOrde
           <table className="w-full text-left border-collapse">
             <thead>
               <tr>
-                {['Empresa', 'Categoria', 'Reputação', 'Canais'].map((h, i) => (
+                {['Empresa', 'Reputação', 'Ações'].map((h, i) => (
                   <th key={i} className="px-6 py-4 text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -65,9 +65,8 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, sortField, sortOrde
                     <div className="h-5 bg-zinc-200 dark:bg-zinc-700 rounded w-3/4 mb-2"></div>
                     <div className="h-3 bg-zinc-100 dark:bg-zinc-800 rounded w-1/2"></div>
                   </td>
-                  <td className="px-6 py-5"><div className="h-6 bg-zinc-100 dark:bg-zinc-800 rounded-full w-24"></div></td>
                   <td className="px-6 py-5"><div className="h-5 bg-zinc-200 dark:bg-zinc-700 rounded w-12"></div></td>
-                  <td className="px-6 py-5"><div className="flex gap-2"><div className="h-8 w-8 bg-zinc-100 dark:bg-zinc-800 rounded-full"></div><div className="h-8 w-24 bg-zinc-100 dark:bg-zinc-800 rounded-md"></div></div></td>
+                  <td className="px-6 py-5"><div className="flex gap-2 justify-end"><div className="h-8 w-8 bg-zinc-100 dark:bg-zinc-800 rounded-full"></div><div className="h-8 w-8 bg-zinc-100 dark:bg-zinc-800 rounded-full"></div><div className="h-8 w-24 bg-zinc-100 dark:bg-zinc-800 rounded-md"></div></div></td>
                 </tr>
               ))}
             </tbody>
@@ -100,9 +99,6 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, sortField, sortOrde
               <tr className="bg-zinc-50/50 dark:bg-zinc-900/50">
                 <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors select-none" onClick={() => onSort(SortField.NAME)}>
                   <div className="flex items-center">Empresa {getSortIcon(SortField.NAME)}</div>
-                </th>
-                <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider select-none">
-                  Categoria
                 </th>
                 <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors select-none" onClick={() => onSort(SortField.RATING)}>
                   <div className="flex items-center">Reputação {getSortIcon(SortField.RATING)}</div>
@@ -151,12 +147,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, sortField, sortOrde
                       </div>
                     </td>
 
-                    {/* Coluna Categoria */}
-                    <td className="px-6 py-4 align-top">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 whitespace-nowrap">
-                        {lead.category}
-                      </span>
-                    </td>
+
 
                     {/* Coluna Avaliação */}
                     <td className="px-6 py-4 align-top">
@@ -217,41 +208,57 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, sortField, sortOrde
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 justify-end">
+                        <div className="flex items-center gap-2 justify-end flex-wrap">
 
-                          {lead.website && lead.website !== 'N/A' && !isInstagramLink(lead.website) && (
+                          {/* Ícone Website - Sempre visível */}
+                          {lead.website && lead.website !== 'N/A' && !isInstagramLink(lead.website) ? (
                             <a
                               href={ensureProtocol(lead.website)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center justify-center w-7 h-7 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-800 transition-all"
+                              className="flex items-center justify-center w-8 h-8 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-600 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white transition-all shadow-sm border border-blue-200 dark:border-blue-800/50 hover:border-blue-600"
                               title={`Visitar: ${lead.website}`}
                             >
-                              <Globe className="w-3.5 h-3.5" />
+                              <Globe className="w-4 h-4" />
                             </a>
+                          ) : (
+                            <div
+                              className="flex items-center justify-center w-8 h-8 bg-zinc-100 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600 rounded border border-zinc-200 dark:border-zinc-700 cursor-not-allowed"
+                              title="Não encontrado nas informações da busca"
+                            >
+                              <Globe className="w-4 h-4" />
+                            </div>
                           )}
 
-                          {((lead.instagram && lead.instagram !== 'N/A') || isInstagramLink(lead.website)) && (
+                          {/* Ícone Instagram - Sempre visível */}
+                          {((lead.instagram && lead.instagram !== 'N/A') || isInstagramLink(lead.website)) ? (
                             <a
-                              href={ensureProtocol(lead.instagram || lead.website)}
+                              href={ensureProtocol((lead.instagram && lead.instagram !== 'N/A') ? lead.instagram : lead.website || '')}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center justify-center w-7 h-7 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-pink-600 dark:text-pink-400 rounded hover:bg-pink-50 dark:hover:bg-pink-900/30 hover:border-pink-200 dark:hover:border-pink-800 transition-all"
+                              className="flex items-center justify-center w-8 h-8 bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 rounded hover:bg-pink-600 hover:text-white dark:hover:bg-pink-500 dark:hover:text-white transition-all shadow-sm border border-pink-200 dark:border-pink-800/50 hover:border-pink-600"
                               title="Instagram"
                             >
-                              <Instagram className="w-3.5 h-3.5" />
+                              <Instagram className="w-4 h-4" />
                             </a>
+                          ) : (
+                            <div
+                              className="flex items-center justify-center w-8 h-8 bg-zinc-100 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600 rounded border border-zinc-200 dark:border-zinc-700 cursor-not-allowed"
+                              title="Não encontrado nas informações da busca"
+                            >
+                              <Instagram className="w-4 h-4" />
+                            </div>
                           )}
 
-                          {/* Botão CRM - VERDE para Ação de Valor/Conversão */}
+                          {/* Botão CRM */}
                           <button
                             onClick={() => !isSaved && onAddToCRM(lead)}
                             disabled={isSaved}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all border ${isSaved
-                                ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border-zinc-200 dark:border-zinc-700 cursor-default'
-                                : hasCRMAccess
-                                  ? 'bg-success-600 hover:bg-success-700 text-white border-transparent shadow-sm shadow-success-500/20 active:scale-95'
-                                  : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-transparent cursor-not-allowed hover:bg-zinc-300 dark:hover:bg-zinc-700'
+                              ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border-zinc-200 dark:border-zinc-700 cursor-default'
+                              : hasCRMAccess
+                                ? 'bg-success-600 hover:bg-success-700 text-white border-transparent shadow-sm shadow-success-500/20 active:scale-95'
+                                : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-transparent cursor-not-allowed hover:bg-zinc-300 dark:hover:bg-zinc-700'
                               }`}
                             title={isSaved ? "Já adicionado ao CRM" : (!hasCRMAccess ? "Exclusivo Planos Pro e Elite" : "Adicionar ao CRM")}
                           >

@@ -34,9 +34,9 @@ const Settings: React.FC<SettingsProps> = ({
 }) => {
     return (
         <div className="animate-fade-in-up max-w-3xl mx-auto pb-10">
-            <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-8">Configurações</h2>
+            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-6">Configurações</h2>
 
-            <div className="bg-app-cardLight dark:bg-app-cardDark rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
+            <div className="bg-app-cardLight dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
                 <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
                     <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2"><User className="w-5 h-5 text-primary-500" /> Perfil</h3>
                 </div>
@@ -91,7 +91,7 @@ const Settings: React.FC<SettingsProps> = ({
                 </div>
             </div>
 
-            <div className="bg-app-cardLight dark:bg-app-cardDark rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
+            <div className="bg-app-cardLight dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
                 <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
                     <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2"><MapPin className="w-5 h-5 text-primary-500" /> Preferências de busca</h3>
                 </div>
@@ -113,7 +113,7 @@ const Settings: React.FC<SettingsProps> = ({
                 </div>
             </div>
 
-            <div className="bg-app-cardLight dark:bg-app-cardDark rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
+            <div className="bg-app-cardLight dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
                 <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
                     <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2"><Target className="w-5 h-5 text-primary-500" /> Metas e CRM</h3>
                 </div>
@@ -131,7 +131,7 @@ const Settings: React.FC<SettingsProps> = ({
                 </div>
             </div>
 
-            <div className="bg-app-cardLight dark:bg-app-cardDark rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
+            <div className="bg-app-cardLight dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
                 <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
                     <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2"><Database className="w-5 h-5 text-red-500" /> Gerenciamento de Dados</h3>
                 </div>
@@ -141,7 +141,7 @@ const Settings: React.FC<SettingsProps> = ({
                             <h4 className="font-bold text-sm text-zinc-900 dark:text-white">Histórico de Busca</h4>
                             <p className="text-xs text-zinc-500 mt-1">Limpa a memória de empresas já visitadas pela IA.</p>
                         </div>
-                        <button onClick={() => { if (window.confirm('Tem certeza? Isso fará com que empresas já vistas possam aparecer novamente.')) { setGlobalHistory([]); showNotification('Histórico limpo com sucesso!'); } }} disabled={globalHistory.length === 0} className="px-4 py-2 text-xs font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:text-red-500 hover:border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button onClick={() => { setGlobalHistory([]); }} disabled={globalHistory.length === 0} className="px-4 py-2 text-xs font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:text-red-500 hover:border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             Limpar ({globalHistory.length})
                         </button>
                     </div>
@@ -150,14 +150,14 @@ const Settings: React.FC<SettingsProps> = ({
                             <h4 className="font-bold text-sm text-zinc-900 dark:text-white">Resetar CRM</h4>
                             <p className="text-xs text-zinc-500 mt-1">Apaga todos os leads e recomeça do zero.</p>
                         </div>
-                        <button onClick={() => { if (window.confirm('ATENÇÃO: Isso apagará TODOS os seus leads do CRM. Esta ação não pode ser desfeita.')) { setCrmLeads([]); showNotification('CRM resetado com sucesso!'); } }} disabled={crmLeads.length === 0} className="px-4 py-2 text-xs font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button onClick={() => { setCrmLeads([]); }} disabled={crmLeads.length === 0} className="px-4 py-2 text-xs font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             Apagar Tudo ({crmLeads.length})
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-app-cardLight dark:bg-app-cardDark rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
+            <div className="bg-app-cardLight dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
                 <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
                     <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2"><LifeBuoy className="w-5 h-5 text-primary-500" /> Suporte</h3>
                 </div>
@@ -175,7 +175,7 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
 
             <div className="mt-6 flex justify-end">
-                <button onClick={() => showNotification('Configurações salvas com sucesso!')} className="bg-success-600 hover:bg-success-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-success-500/20 transition-all active:scale-95 flex items-center gap-2"><Check className="w-5 h-5" /> Salvar tudo</button>
+                <button onClick={() => { }} className="bg-success-600 hover:bg-success-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-success-500/20 transition-all active:scale-95 flex items-center gap-2"><Check className="w-5 h-5" /> Salvar tudo</button>
             </div>
         </div>
     );

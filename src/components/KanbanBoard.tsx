@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CRMLead, CRMStatus, CRMPriority } from '@/types/types';
+import { COMMON_NICHES } from '@/constants/appConstants';
 import {
     Trash2, MessageCircle, Mail, FileText, Check,
-    Search, Phone, Briefcase, Trophy, XCircle, Flame, AlertCircle, Clock, DollarSign, Edit3, Tag, X, Save, Copy
+    Search, Phone, Briefcase, Trophy, XCircle, Flame, AlertCircle, Clock, DollarSign, Edit3, X, Save, Copy
 } from 'lucide-react';
 
 interface KanbanBoardProps {
@@ -520,7 +522,7 @@ const EditLeadModal = ({ lead, onClose, onSave, onDelete }: { lead: CRMLead, onC
         email: lead.email || '',
         priority: lead.priority || 'medium',
         notes: lead.notes || '',
-        tags: lead.tags ? lead.tags.join(', ') : ''
+        category: lead.category || 'Manual'
     });
 
     const [priceInput, setPriceInput] = useState(() => {
@@ -551,15 +553,15 @@ const EditLeadModal = ({ lead, onClose, onSave, onDelete }: { lead: CRMLead, onC
         e.preventDefault();
         onSave(lead.id, {
             ...formData,
-            tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean) as string[],
             updatedAt: new Date().toISOString()
         });
     };
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-zinc-900/60" onClick={onClose}></div>
-            <div className="bg-app-cardLight dark:bg-app-cardDark w-full max-w-2xl relative z-10 flex flex-col max-h-[90vh] animate-fade-in-up border border-zinc-200 dark:border-zinc-800">
+    return createPortal(
+        // Modal backdrop with blur effect
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="absolute inset-0" onClick={onClose}></div>
+            <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl relative z-10 flex flex-col max-h-[90vh] animate-fade-in-up border border-zinc-200 dark:border-zinc-700 rounded-3xl shadow-2xl overflow-hidden">
                 <div className="flex justify-between items-center p-6 border-b border-zinc-100 dark:border-zinc-800">
                     <div>
                         <h2 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
@@ -588,7 +590,7 @@ const EditLeadModal = ({ lead, onClose, onSave, onDelete }: { lead: CRMLead, onC
                                     </select>
                                 </div>
                             </div>
-                            <div><label className="block text-xs font-bold text-zinc-500 uppercase mb-1.5">Tags (separadas por vírgula)</label><div className="relative"><Tag className="absolute left-3 top-3.5 w-4 h-4 text-zinc-400" /><input type="text" value={formData.tags} onChange={e => setFormData({ ...formData, tags: e.target.value })} placeholder="Ex: Quente, Indicação, SP" className="w-full pl-10 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white" /></div></div>
+                            <div><label className="block text-xs font-bold text-zinc-500 uppercase mb-1.5">Nicho</label><select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white">{COMMON_NICHES.map(niche => <option key={niche} value={niche}>{niche}</option>)}</select></div>
                         </div>
                         <div className="space-y-4">
                             <div><label className="block text-xs font-bold text-zinc-500 uppercase mb-1.5">WhatsApp</label><div className="relative"><MessageCircle className="absolute left-3 top-3.5 w-4 h-4 text-zinc-400" /><input type="text" maxLength={15} value={formData.phone} onChange={handlePhoneChange} className="w-full pl-10 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white" /></div></div>
@@ -597,11 +599,12 @@ const EditLeadModal = ({ lead, onClose, onSave, onDelete }: { lead: CRMLead, onC
                         </div>
                     </div>
                 </form>
-                <div className="p-6 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900/50 rounded-b-2xl">
-                    <button type="button" onClick={() => { if (confirm('Tem certeza que deseja excluir este negócio?')) { onDelete(lead.id); onClose(); } }} className="flex items-center gap-2 text-danger-500 hover:text-danger-700 font-medium px-4 py-2 hover:bg-danger-50 dark:hover:bg-danger-900/20 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /> Excluir</button>
+                <div className="p-6 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900/50">
+                    <button type="button" onClick={() => { onDelete(lead.id); onClose(); }} className="flex items-center gap-2 text-danger-500 hover:text-danger-700 font-medium px-4 py-2 hover:bg-danger-50 dark:hover:bg-danger-900/20 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /> Excluir</button>
                     <div className="flex gap-3"><button type="button" onClick={onClose} className="px-6 py-2.5 text-zinc-600 dark:text-zinc-300 font-bold hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-xl transition-colors">Cancelar</button><button type="button" onClick={handleSubmit} className="px-6 py-2.5 bg-success-600 hover:bg-success-700 text-white font-bold rounded-xl shadow-lg shadow-success-500/20 flex items-center gap-2"><Save className="w-4 h-4" /> Salvar alterações</button></div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

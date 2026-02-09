@@ -4,7 +4,6 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/services/supabase';
 import { createCheckoutSession } from '@/services/payment';
-import { searchLeads } from '@/services/gemini';
 import { Auth } from '@/components/Auth';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LeadTable } from '@/components/LeadTable';
@@ -12,6 +11,13 @@ import { KanbanBoard } from '@/components/KanbanBoard';
 import Sidebar from '@/components/Sidebar';
 import MobileHeader from '@/components/MobileHeader';
 import { getUserData, setUserData } from '@/utils/storageUtils';
+import { formatCurrency, formatPhone } from '@/utils/formatUtils';
+
+// Hooks
+import { useAuth } from '@/hooks/useAuth';
+import { useSearch } from '@/hooks/useSearch';
+import { useCRM } from '@/hooks/useCRM';
+import { useCalendar } from '@/hooks/useCalendar';
 
 // Pages
 import Home from '@/pages/Home';
@@ -28,66 +34,30 @@ import {
     LOADING_MESSAGES, STRIPE_PRICES, PLAN_HIERARCHY, DEMO_LEADS, PLAN_CREDITS
 } from '@/constants/appConstants';
 
-// Utilities
-const formatCurrency = (val: string) => {
-    let clean = val.replace(/\D/g, '');
-    let num = parseInt(clean) || 0;
-    return (num / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-};
-
-const formatPhone = (val: string) => {
-    let clean = val.replace(/\D/g, '');
-    if (clean.length > 11) clean = clean.slice(0, 11);
-    if (clean.length === 11) return `(${clean.slice(0, 2)}) ${clean.slice(2, 7)}-${clean.slice(7)}`;
-    if (clean.length === 10) return `(${clean.slice(0, 2)}) ${clean.slice(2, 6)}-${clean.slice(6)}`;
-    if (clean.length > 2) return `(${clean.slice(0, 2)}) ${clean.slice(2)}`;
-    return clean;
-};
-
 const App: React.FC = () => {
-    // --- State Management ---
-    const [user, setUser] = useState<any>(null);
-    const [authLoading, setAuthLoading] = useState(true);
+    // --- Custom Hooks ---
+    const { user, authLoading, userSettings, setUserSettings } = useAuth();
+    const {
+        crmLeads, setCrmLeads, crmSearchQuery, setCrmSearchQuery,
+        globalHistory, setGlobalHistory, addToCRM, updateLeadStatus, updateLead, deleteLead,
+        filteredLeads: filteredCrmLeads, monthlyRevenue
+    } = useCRM(user?.id);
+    const {
+        query, setQuery, leads, setLeads, state, setState, filters, setFilters, searchMode, setSearchMode,
+        loadingMessageIndex, selectedNiche, setSelectedNiche, selectedState, setSelectedState,
+        selectedCity, setSelectedCity, selectedNeighborhood, setSelectedNeighborhood, excludedCity, setExcludedCity,
+        cityList, isLoadingCities, handleSearch, handleLoadMore, isLoadingMore
+    } = useSearch(globalHistory);
+    const { calendarEvents, setCalendarEvents, upcomingEvents, addEvent, clearAllEvents } = useCalendar(user?.id);
+
+    // --- UI Local State ---
     const [activeTab, setActiveTab] = useState<AppTab>('home');
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [locationPermission, setLocationPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
+    const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
 
-    // User Profile & Settings
-    const [userSettings, setUserSettings] = useState<UserSettings>({
-        name: 'Usuário',
-        email: '',
-        avatar: '👨‍💼',
-        avatarType: 'emoji',
-        avatarColor: '#3b82f6',
-        defaultState: 'SP',
-        pipelineGoal: 5000,
-        pipelineResetDay: 1,
-        plan: 'free',
-        hideSheetsModal: false,
-        notifications: { email: true, browser: true, weeklyReport: true }
-    });
-
-    // Search & Leads
-    const [query, setQuery] = useState('');
-    const [leads, setLeads] = useState<Lead[]>([]);
-    const [state, setState] = useState<SearchState>({ isSearching: false, error: null, hasSearched: false });
-    const [filters, setFilters] = useState<SearchFilters>({ maxResults: 10, minRating: 0, requirePhone: true });
-    const [searchMode, setSearchMode] = useState<'free' | 'guided'>('free');
-    const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
-    const [globalHistory, setGlobalHistory] = useState<string[]>([]);
-
-    // Guided Search State
-    const [selectedNiche, setSelectedNiche] = useState('');
-    const [selectedState, setSelectedState] = useState('');
-    const [selectedCity, setSelectedCity] = useState('');
-    const [selectedNeighborhood, setSelectedNeighborhood] = useState('');
-    const [excludedCity, setExcludedCity] = useState('');
-    const [cityList, setCityList] = useState<string[]>([]);
-    const [isLoadingCities, setIsLoadingCities] = useState(false);
-
-    // CRM State
-    const [crmLeads, setCrmLeads] = useState<CRMLead[]>([]);
-    const [crmSearchQuery, setCrmSearchQuery] = useState('');
+    // Modals
     const [showNewLeadModal, setShowNewLeadModal] = useState(false);
     const [newLeadValue, setNewLeadValue] = useState('');
     const [newLeadPhone, setNewLeadPhone] = useState('');
@@ -95,185 +65,32 @@ const App: React.FC = () => {
     const [newLeadCity, setNewLeadCity] = useState('');
     const [newLeadUF, setNewLeadUF] = useState('');
 
-    // Calendar & Events
-    const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
     const [showEventModal, setShowEventModal] = useState(false);
     const [selectedDateEvents, setSelectedDateEvents] = useState<Date | null>(null);
     const [newEventData, setNewEventData] = useState({ title: '', description: '', time: '09:00' });
     const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
     const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
 
-    // Dashboard State
-    const [dailyQuote, setDailyQuote] = useState('Bora prospectar e fechar novos negócios hoje?');
-
-    // Subscription & Billing
-    const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
-
-    // Export Modals
     const [showExportModal, setShowExportModal] = useState(false);
-    const [dontShowSheetsAgain, setDontShowSheetsAgain] = useState(false);
+    const [loadMoreQuantity, setLoadMoreQuantity] = useState(10);
 
     // Refs
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // --- Side Effects ---
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-
-            if (session?.user) {
-                const userId = session.user.id;
-
-                // Carregar dados isolados do usuário
-                const loadedSettings = getUserData<UserSettings>(userId, 'settings', {
-                    name: 'Usuário',
-                    email: session.user.email ?? '',
-                    avatar: '👨‍💼',
-                    avatarType: 'emoji',
-                    avatarColor: '#3b82f6',
-                    defaultState: 'SP',
-                    pipelineGoal: 5000,
-                    pipelineResetDay: 1,
-                    plan: 'free',
-                    hideSheetsModal: false,
-                    notifications: { email: true, browser: true, weeklyReport: true }
-                });
-
-                setUserSettings(loadedSettings);
-                setGlobalHistory(getUserData<string[]>(userId, 'history', []));
-                setCrmLeads(getUserData<CRMLead[]>(userId, 'crm', []));
-                setCalendarEvents(getUserData<CalendarEvent[]>(userId, 'calendar', []));
-            }
-
-            setAuthLoading(false);
-        });
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-
-            if (session?.user) {
-                const userId = session.user.id;
-
-                // Carregar dados ao trocar de usuário
-                const loadedSettings = getUserData<UserSettings>(userId, 'settings', {
-                    name: 'Usuário',
-                    email: session.user.email ?? '',
-                    avatar: '👨‍💼',
-                    avatarType: 'emoji',
-                    avatarColor: '#3b82f6',
-                    defaultState: 'SP',
-                    pipelineGoal: 5000,
-                    pipelineResetDay: 1,
-                    plan: 'free',
-                    hideSheetsModal: false,
-                    notifications: { email: true, browser: true, weeklyReport: true }
-                });
-
-                setUserSettings(loadedSettings);
-                setGlobalHistory(getUserData<string[]>(userId, 'history', []));
-                setCrmLeads(getUserData<CRMLead[]>(userId, 'crm', []));
-                setCalendarEvents(getUserData<CalendarEvent[]>(userId, 'calendar', []));
-            }
-        });
-
-        return () => subscription.unsubscribe();
-    }, []);
-
-    useEffect(() => {
-        if (user) {
-            setUserData(user.id, 'settings', userSettings);
-        }
         document.documentElement.classList.toggle('dark', theme === 'dark');
-    }, [userSettings, theme, user]);
-
-    useEffect(() => {
-        if (user) {
-            setUserData(user.id, 'crm', crmLeads);
-        }
-    }, [crmLeads, user]);
-
-    useEffect(() => {
-        if (user) {
-            setUserData(user.id, 'calendar', calendarEvents);
-        }
-    }, [calendarEvents, user]);
-
-    useEffect(() => {
-        if (user) {
-            setUserData(user.id, 'history', globalHistory);
-        }
-    }, [globalHistory, user]);
-
-    // Dynamic Title
-    useEffect(() => {
-        if (!user) {
-            document.title = 'be.Leads';
-        } else {
-            document.title = `Olá, ${userSettings.name} - be.Leads`;
-        }
-    }, [user, userSettings.name]);
-
-    // IBGE City Loader
-    useEffect(() => {
-        if (!selectedState) {
-            setCityList([]);
-            return;
-        }
-        setIsLoadingCities(true);
-        fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${selectedState}/municipios`)
-            .then(res => res.json())
-            .then(data => {
-                setCityList(data.map((c: any) => c.nome).sort());
-                setIsLoadingCities(false);
-            })
-            .catch(() => setIsLoadingCities(false));
-    }, [selectedState]);
-
-    // Loading Messages Animation
-    useEffect(() => {
-        let interval: any;
-        if (state.isSearching) {
-            interval = setInterval(() => {
-                setLoadingMessageIndex(prev => (prev + 1) % LOADING_MESSAGES.length);
-            }, 3000);
-        }
-        return () => clearInterval(interval);
-    }, [state.isSearching]);
+    }, [theme]);
 
     // --- Derived State ---
     const MAX_CREDITS = PLAN_CREDITS[userSettings.plan];
-    const USED_CREDITS = leads.length + (crmLeads.length / 10); // Simulação simples
+    const USED_CREDITS = leads.length;
     const PLAN_PERCENTAGE = Math.min((USED_CREDITS / MAX_CREDITS) * 100, 100);
     const PLAN = { name: userSettings.plan };
 
     const hasCRMAccess = PLAN_HIERARCHY[userSettings.plan] >= PLAN_HIERARCHY.pro;
     const hasExportAccess = PLAN_HIERARCHY[userSettings.plan] >= PLAN_HIERARCHY.start;
     const hasWhatsAppAccess = PLAN_HIERARCHY[userSettings.plan] >= PLAN_HIERARCHY.start;
-
-    const filteredCrmLeads = useMemo(() => {
-        if (!crmSearchQuery) return crmLeads;
-        const q = crmSearchQuery.toLowerCase();
-        return crmLeads.filter(l =>
-            l.name.toLowerCase().includes(q) ||
-            l.category.toLowerCase().includes(q) ||
-            (l.phone && l.phone.includes(q))
-        );
-    }, [crmLeads, crmSearchQuery]);
-
-    const monthlyRevenue = useMemo(() => {
-        return crmLeads
-            .filter(l => l.status === 'won')
-            .reduce((acc, l) => acc + (l.potentialValue || 0), 0);
-    }, [crmLeads]);
-
-    const upcomingEvents = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return calendarEvents
-            .filter(e => new Date(e.date + 'T00:00:00') >= today)
-            .sort((a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''))
-            .slice(0, 3);
-    }, [calendarEvents]);
 
     const todayStr = new Date().toISOString().split('T')[0];
     const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
@@ -305,99 +122,8 @@ const App: React.FC = () => {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
-
-        // Resetar estados para valores padrão
-        setUserSettings({
-            name: 'Usuário',
-            email: '',
-            avatar: '👨‍💼',
-            avatarType: 'emoji',
-            avatarColor: '#3b82f6',
-            defaultState: 'SP',
-            pipelineGoal: 5000,
-            pipelineResetDay: 1,
-            plan: 'free',
-            hideSheetsModal: false,
-            notifications: { email: true, browser: true, weeklyReport: true }
-        });
-        setGlobalHistory([]);
-        setCrmLeads([]);
-        setCalendarEvents([]);
+        // useAuth will handle the session state change
         setLeads([]);
-
-        setUser(null);
-    };
-
-    const handleSearch = async (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
-
-        let finalQuery = query;
-        if (searchMode === 'guided') {
-            if (!selectedNiche || !selectedState) {
-                showNotification('Preencha pelo menos o nicho e o estado!', 'error');
-                return;
-            }
-
-            let queryParts = [`${selectedNiche}`];
-            if (selectedCity) {
-                queryParts.push(`em ${selectedCity}, ${selectedState}`);
-            } else {
-                queryParts.push(`no estado de ${selectedState}`);
-            }
-
-            finalQuery = queryParts.join(' ');
-
-            if (selectedNeighborhood && selectedCity) finalQuery += `, bairro ${selectedNeighborhood}`;
-            if (excludedCity) finalQuery += ` -${excludedCity}`;
-        }
-
-        if (!finalQuery.trim()) return;
-
-        setState({ isSearching: true, error: null, hasSearched: true });
-        try {
-            let results: Lead[] = [];
-
-            // Tenta usar Google Maps Service para "dados reais" se houver API Key
-            // Caso contrário, ou se falhar, usa a busca via IA (Gemini)
-            const gmapsApiKey = import.meta.env.VITE_API_KEY; // Usando a chave disponível
-            if (gmapsApiKey && gmapsApiKey !== 'PLACEHOLDER_API_KEY') {
-                try {
-                    const gResults = await googleMapsService.searchBusiness(finalQuery);
-                    results = gResults.map(r => ({
-                        id: r.id,
-                        name: r.name,
-                        category: selectedNiche || 'Lead',
-                        address: r.address,
-                        rating: r.rating || 0,
-                        reviews: r.userRatingCount || 0,
-                        phone: 'Clique para ver', // Detalhes sob demanda
-                        website: 'N/A'
-                    }));
-                } catch (apiError) {
-                    console.warn("Google Maps API failed, falling back to Gemini:", apiError);
-                    results = await searchLeads(finalQuery, filters, undefined, globalHistory);
-                }
-            } else {
-                results = await searchLeads(finalQuery, filters, undefined, globalHistory);
-            }
-
-            const newLeads = results.filter(r => !globalHistory.includes(r.id));
-            setLeads(newLeads);
-            if (newLeads.length === 0) showNotification('Nenhum lead novo encontrado.', 'info');
-        } catch (err: any) {
-            setState(prev => ({ ...prev, error: err.message }));
-        } finally {
-            setState(prev => ({ ...prev, isSearching: false }));
-        }
-    };
-
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [loadMoreQuantity, setLoadMoreQuantity] = useState(10);
-    const handleLoadMore = async () => {
-        setIsLoadingMore(true);
-        // Lógica de "ver mais" delegada ao Gemini
-        await handleSearch();
-        setIsLoadingMore(false);
     };
 
     const handleAddToCRM = (lead: Lead) => {
@@ -405,37 +131,7 @@ const App: React.FC = () => {
             setActiveTab('subscription');
             return;
         }
-        if (crmLeads.some(l => l.id === lead.id)) {
-            showNotification('Lead já está no CRM!', 'info');
-            return;
-        }
-        const newCrmLead: CRMLead = {
-            ...lead,
-            status: 'prospecting',
-            priority: 'medium',
-            tags: [],
-            addedAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            potentialValue: 0
-        };
-        setCrmLeads(prev => [newCrmLead, ...prev]);
-        setGlobalHistory(prev => [...prev, lead.id]);
-        showNotification('Lead adicionado ao CRM!');
-    };
-
-    const handleCRMStatusChange = (leadId: string, newStatus: CRMStatus) => {
-        setCrmLeads(prev => prev.map(l =>
-            l.id === leadId ? { ...l, status: newStatus, updatedAt: new Date().toISOString() } : l
-        ));
-    };
-
-    const handleUpdateLead = (leadId: string, updates: Partial<CRMLead>) => {
-        setCrmLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
-    };
-
-    const handleDuplicateLead = (lead: CRMLead) => {
-        const duplicate = { ...lead, id: `copy-${Date.now()}`, name: `${lead.name} (Cópia)`, addedAt: new Date().toISOString() };
-        setCrmLeads(prev => [duplicate, ...prev]);
+        addToCRM(lead);
     };
 
     const handleManualAddLead = (e: React.FormEvent<HTMLFormElement>) => {
@@ -462,7 +158,8 @@ const App: React.FC = () => {
             addedAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             potentialValue: valNum,
-            notes: formData.get('notes') as string
+            notes: formData.get('notes') as string,
+            googleMapsLink: ''
         };
 
         setCrmLeads(prev => [newLead, ...prev]);
@@ -472,32 +169,26 @@ const App: React.FC = () => {
         setNewLeadNiche('');
         setNewLeadCity('');
         setNewLeadUF('');
-        showNotification('Novo negócio adicionado!');
     };
 
     const handleAddEvent = (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedDateEvents || !newEventData.title) return;
 
-        const newEvent: CalendarEvent = {
-            id: Math.random().toString(36).substr(2, 9),
+        addEvent({
             date: selectedDateEvents.toISOString().split('T')[0],
             time: newEventData.time,
             title: newEventData.title,
             description: newEventData.description,
             type: 'meeting'
-        };
+        });
 
-        setCalendarEvents(prev => [...prev, newEvent]);
         setShowEventModal(false);
         setNewEventData({ title: '', description: '', time: '09:00' });
-        showNotification('Compromisso agendado!');
     };
 
-    const handleCheckout = async (planId: keyof typeof STRIPE_PRICES, isAnnual: boolean) => {
-        // MODO TESTE: Mudança instantânea de plano ignorando Stripe
+    const handleCheckout = async (planId: keyof typeof STRIPE_PRICES, _isAnnual: boolean) => {
         setUserSettings(prev => ({ ...prev, plan: planId as UserPlan }));
-        showNotification(`Plano atualizado para ${planId} (Modo Teste)!`);
     };
 
     const handleExportCSV = () => {
@@ -578,16 +269,12 @@ const App: React.FC = () => {
         );
     };
 
-    const renderSubscriptionMessage = () => {
-        return null;
-    };
-
     // --- Loading Screen ---
     if (authLoading) {
         return (
-            <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center">
+            <div className="min-h-screen w-full bg-[#030712] flex items-center justify-center">
                 <div className="text-center">
-                    <Loader2 className="w-12 h-12 text-primary-500 animate-spin mx-auto mb-4" />
+                    <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
                     <p className="text-zinc-400 text-sm">Carregando...</p>
                 </div>
             </div>
@@ -618,7 +305,7 @@ const App: React.FC = () => {
             />
 
             {/* Main Content Area */}
-            <main className="flex-1 h-full overflow-y-auto relative flex flex-col p-4 md:p-8 pt-6 md:pt-10 scrollbar-thin">
+            <main className="flex-1 h-full overflow-y-auto relative flex flex-col p-4 md:p-8 pt-12 md:pt-20 scrollbar-thin">
 
                 {/* Mobile Header */}
                 <MobileHeader setIsSidebarOpen={setIsSidebarOpen} isSidebarOpen={isSidebarOpen} />
@@ -627,7 +314,7 @@ const App: React.FC = () => {
                 {activeTab === 'home' && (
                     <Home
                         userSettings={userSettings}
-                        dailyQuote={dailyQuote}
+                        dailyQuote="Bora prospectar e fechar novos negócios hoje?"
                         renderAvatar={renderAvatar}
                         PLAN={PLAN}
                         USED_CREDITS={USED_CREDITS}
@@ -658,14 +345,30 @@ const App: React.FC = () => {
                         leads={leads}
                         setLeads={setLeads}
                         state={state}
-                        setState={setState}
                         filters={filters}
                         setFilters={setFilters}
                         handleSearch={handleSearch}
                         loadingMessageIndex={loadingMessageIndex}
-                        locationPermission={'prompt'} // Simplificado
-                        requestLocation={() => { }}
-                        setLocationPermission={() => { }}
+                        locationPermission={locationPermission}
+                        requestLocation={() => {
+                            navigator.geolocation.getCurrentPosition(
+                                (position) => {
+                                    const { latitude, longitude } = position.coords;
+                                    setLocationPermission('granted');
+
+                                    // Preencher query com coordenadas para busca por proximidade
+                                    setQuery(`Negócios próximos a ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+
+                                    // Executar busca automaticamente
+                                    setTimeout(() => handleSearch(), 100);
+                                },
+                                (error) => {
+                                    setLocationPermission('denied');
+                                    console.error('Erro ao obter localização:', error);
+                                }
+                            );
+                        }}
+                        setLocationPermission={setLocationPermission}
                         searchMode={searchMode}
                         setSearchMode={setSearchMode}
                         query={query}
@@ -697,7 +400,7 @@ const App: React.FC = () => {
                         hasWhatsAppAccess={hasWhatsAppAccess}
                         loadMoreQuantity={loadMoreQuantity}
                         setLoadMoreQuantity={setLoadMoreQuantity}
-                        handleLoadMore={handleLoadMore}
+                        handleLoadMore={() => handleLoadMore(loadMoreQuantity)}
                         isLoadingMore={isLoadingMore}
                     />
                 )}
@@ -711,9 +414,12 @@ const App: React.FC = () => {
                         setShowNewLeadModal={setShowNewLeadModal}
                         crmLeads={crmLeads}
                         filteredCrmLeads={filteredCrmLeads}
-                        handleCRMStatusChange={handleCRMStatusChange}
-                        handleUpdateLead={handleUpdateLead}
-                        handleDuplicateLead={handleDuplicateLead}
+                        handleCRMStatusChange={updateLeadStatus}
+                        handleUpdateLead={updateLead}
+                        handleDuplicateLead={(lead) => {
+                            const duplicate = { ...lead, id: `copy-${Date.now()}`, name: `${lead.name} (Cópia)`, addedAt: new Date().toISOString() };
+                            setCrmLeads(prev => [duplicate, ...prev]);
+                        }}
                         pipelineGoal={userSettings.pipelineGoal}
                         setPipelineGoal={(g) => setUserSettings(prev => ({ ...prev, pipelineGoal: g }))}
                         pipelineResetDay={userSettings.pipelineResetDay}
@@ -727,7 +433,6 @@ const App: React.FC = () => {
                         setBillingCycle={setBillingCycle}
                         userSettings={userSettings}
                         handleCheckout={handleCheckout}
-                        renderSubscriptionMessage={renderSubscriptionMessage}
                     />
                 )}
 
@@ -752,7 +457,7 @@ const App: React.FC = () => {
             {/* Modals are kept in App.tsx for shared access or can be moved to pages */}
             {/* Modal de Novo Evento */}
             {showEventModal && selectedDateEvents && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm animate-in fade-in duration-300 overflow-hidden">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300 overflow-hidden">
                     <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[32px] shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-300">
                         <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
                             <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-3">

@@ -8,7 +8,6 @@ interface SubscriptionProps {
     setBillingCycle: (v: 'monthly' | 'annual') => void;
     userSettings: UserSettings;
     handleCheckout: (planId: keyof typeof STRIPE_PRICES, isAnnual: boolean) => Promise<void>;
-    renderSubscriptionMessage: () => React.ReactNode;
 }
 
 const Subscription: React.FC<SubscriptionProps> = ({
@@ -16,44 +15,45 @@ const Subscription: React.FC<SubscriptionProps> = ({
     setBillingCycle,
     userSettings,
     handleCheckout,
-    renderSubscriptionMessage
 }) => {
     return (
         <div className="animate-fade-in-up max-w-6xl mx-auto w-full pb-10">
-            <div className="text-center mb-10">
-                <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">Planos</h2>
-                <p className="text-zinc-500 mb-6">Escolha a melhor ferramenta para escalar suas vendas.</p>
+            <div className="mb-10">
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Planos</h2>
+                <p className="text-zinc-500 dark:text-zinc-400 mb-6">Escolha a melhor ferramenta para escalar suas vendas.</p>
 
                 {/* Toggle Mensal/Anual */}
-                <div className="inline-flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-full">
-                    <button
-                        onClick={() => setBillingCycle('monthly')}
-                        className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${billingCycle === 'monthly'
-                            ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-md'
-                            : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-                            }`}
-                    >
-                        Mensal
-                    </button>
-                    <button
-                        onClick={() => setBillingCycle('annual')}
-                        className={`px-6 py-2 rounded-full text-sm font-semibold transition-all relative ${billingCycle === 'annual'
-                            ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-md'
-                            : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-                            }`}
-                    >
-                        Anual
-                        <span className="absolute -top-2 -right-2 bg-success-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                            -20%
-                        </span>
-                    </button>
-                </div>
+                <div className="text-center">
+                    <div className="inline-flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-full">
+                        <button
+                            onClick={() => setBillingCycle('monthly')}
+                            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${billingCycle === 'monthly'
+                                ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-md'
+                                : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                                }`}
+                        >
+                            Mensal
+                        </button>
+                        <button
+                            onClick={() => setBillingCycle('annual')}
+                            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all relative ${billingCycle === 'annual'
+                                ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-md'
+                                : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                                }`}
+                        >
+                            Anual
+                            <span className="absolute -top-2 -right-2 bg-success-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                -20%
+                            </span>
+                        </button>
+                    </div>
 
-                {billingCycle === 'annual' && (
-                    <p className="text-xs text-success-600 dark:text-success-400 mt-3 font-medium">
-                        💰 Economize 20% com o plano anual!
-                    </p>
-                )}
+                    {billingCycle === 'annual' && (
+                        <p className="text-xs text-success-600 dark:text-success-400 mt-3 font-medium">
+                            💰 Economize 20% com o plano anual!
+                        </p>
+                    )}
+                </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
@@ -68,9 +68,9 @@ const Subscription: React.FC<SubscriptionProps> = ({
                     const isLower = planLevel < currentLevel;
                     const showPopular = plan.popular && userSettings.plan !== 'elite' && userSettings.plan !== 'pro';
 
-                    let cardStyle = 'bg-app-cardLight dark:bg-app-cardDark border-zinc-200 dark:border-zinc-800';
+                    let cardStyle = 'bg-app-cardLight dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800';
                     if (showPopular) {
-                        cardStyle = 'bg-app-cardLight dark:bg-app-cardDark border-success-500 ring-2 ring-success-500/20 scale-105 z-10';
+                        cardStyle = 'bg-app-cardLight dark:bg-zinc-900 border-success-500 ring-2 ring-success-500/20 scale-105 z-10';
                     } else if (isCurrent) {
                         if (plan.id === 'free') {
                             cardStyle = 'bg-zinc-50 dark:bg-zinc-900 border-zinc-400 ring-1 ring-zinc-400 shadow-xl shadow-zinc-500/10 scale-[1.02]';
@@ -144,7 +144,7 @@ const Subscription: React.FC<SubscriptionProps> = ({
                     )
                 })}
             </div>
-            {renderSubscriptionMessage()}
+            {/* Removed renderSubscriptionMessage */}
         </div>
     );
 };

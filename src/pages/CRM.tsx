@@ -60,8 +60,8 @@ const CRM: React.FC<CRMProps> = ({
 
             <div className={`flex justify-between items-center mb-6 transition-all duration-500 ${!hasCRMAccess ? 'blur-sm select-none pointer-events-none opacity-50' : ''}`}>
                 <div>
-                    <h2 className="text-3xl font-bold text-zinc-900 dark:text-white">CRM Pipeline</h2>
-                    <p className="text-zinc-500">Gerencie seus negócios e vendas.</p>
+                    <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">CRM Pipeline</h2>
+                    <p className="text-zinc-500 dark:text-zinc-400">Gerencie seus negócios e vendas.</p>
                 </div>
                 <div className="flex gap-3">
                     <div className="relative">
@@ -74,7 +74,7 @@ const CRM: React.FC<CRMProps> = ({
 
             <div className={`flex-1 overflow-hidden transition-all duration-500 ${!hasCRMAccess ? 'blur-sm select-none pointer-events-none opacity-60 grayscale-[0.3]' : ''}`}>
                 {crmLeads.length === 0 && hasCRMAccess ? (
-                    <div className="flex flex-col items-center justify-center h-full bg-app-cardLight dark:bg-app-cardDark rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 m-4">
+                    <div className="flex flex-col items-center justify-center h-full bg-app-cardLight dark:bg-zinc-900 rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 m-4">
                         <KanbanSquare className="w-16 h-16 text-zinc-300 dark:text-zinc-600 mb-4" />
                         <h3 className="text-xl font-bold text-zinc-800 dark:text-zinc-200">Seu pipeline está vazio</h3>
                         <p className="text-zinc-500 max-w-md text-center mb-6">Adicione leads manualmente ou importe da busca para começar a gerenciar suas vendas.</p>

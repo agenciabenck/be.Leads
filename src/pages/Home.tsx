@@ -3,9 +3,10 @@ import {
     Shield, Lock, Calendar as CalendarIcon,
     ChevronLeft, ChevronRight, Clock, Search as SearchIcon,
     ArrowRight, ListTodo, TrendingUp, Crown, Share2, Sun, Moon, DollarSign, Users,
-    LayoutList, Trash2, X, Gift, UserPlus, Zap, Edit3
+    LayoutList, Trash2, X, Gift, UserPlus, Zap, Edit3, Copy, MessageCircle, Mail
 } from 'lucide-react';
 import { UserSettings, CalendarEvent, CRMLead, AppTab } from '@/types/types';
+import { PLAN_HIERARCHY } from '@/constants/appConstants';
 
 interface HomeProps {
     userSettings: UserSettings;
@@ -81,10 +82,10 @@ const Home: React.FC<HomeProps> = ({
                 {/* Header */}
                 <header className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-[44px] font-bold text-zinc-900 dark:text-white leading-tight">
+                        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
                             Olá, {userSettings.name || 'Usuário'}!
-                        </h1>
-                        <p className="text-[15px] font-medium text-text-secondary mt-1">
+                        </h2>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
                             {quote}
                         </p>
                     </div>
@@ -113,12 +114,12 @@ const Home: React.FC<HomeProps> = ({
                 {/* KPI Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
                     {/* Card 1: Status do seu plano */}
-                    <div className="bg-white dark:bg-zinc-900 p-7 rounded-[32px] shadow-sm border border-zinc-100 dark:border-zinc-800 flex flex-col h-full">
-                        <div className="flex items-center gap-3 mb-8">
-                            <div className="w-11 h-11 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center ring-1 ring-zinc-100/50 dark:ring-white/10">
-                                <Shield className="w-6 h-6 text-zinc-800 dark:text-zinc-200" />
+                    <div className="bg-white dark:bg-zinc-900 p-6 rounded-[32px] shadow-sm border border-zinc-100 dark:border-zinc-800 flex flex-col h-full">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center ring-1 ring-zinc-100/50 dark:ring-white/10">
+                                <Shield className="w-5 h-5 text-zinc-800 dark:text-zinc-200" />
                             </div>
-                            <h3 className="text-[17px] font-bold text-zinc-800 dark:text-white tracking-tight">Status do seu plano</h3>
+                            <h3 className="text-base font-bold text-zinc-800 dark:text-white tracking-tight">Status do seu plano</h3>
                         </div>
 
                         <div className="mt-auto">
@@ -133,47 +134,65 @@ const Home: React.FC<HomeProps> = ({
                     </div>
 
                     {/* Card 2: Leads no CRM */}
-                    <div className="bg-white dark:bg-zinc-900 p-7 rounded-[32px] shadow-sm border border-zinc-100 dark:border-zinc-800">
+                    <div className="bg-white dark:bg-zinc-900 p-6 rounded-[32px] shadow-sm border border-zinc-100 dark:border-zinc-800">
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="w-11 h-11 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center ring-1 ring-zinc-100/50 dark:ring-white/10">
-                                <Users className="w-6 h-6 text-zinc-300 dark:text-zinc-600" />
+                            <div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center ring-1 ring-zinc-100/50 dark:ring-white/10">
+                                <Users className={`w-5 h-5 ${hasCRMAccess ? 'text-zinc-800 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`} />
                             </div>
-                            <h3 className="text-[17px] font-bold text-text-secondary dark:text-zinc-500 tracking-tight">Leads no CRM</h3>
+                            <h3 className={`text-base font-bold tracking-tight ${hasCRMAccess ? 'text-zinc-800 dark:text-white' : 'text-text-secondary dark:text-zinc-500'}`}>Leads no CRM</h3>
                         </div>
 
-                        <div className="flex items-center justify-between mt-auto">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-10 border border-zinc-200 dark:border-zinc-700 rounded-lg flex items-center justify-center bg-white dark:bg-zinc-800 shadow-sm">
-                                    <Lock className="w-5 h-5 text-zinc-300 dark:text-zinc-600" />
-                                </div>
-                                <p className="text-[10px] font-bold text-text-secondary dark:text-zinc-500 leading-tight max-w-[90px]">Disponível a partir <br />do plano Pro.</p>
+                        {hasCRMAccess ? (
+                            <div className="flex items-baseline gap-2 mt-auto">
+                                <span className="text-3xl font-bold text-zinc-900 dark:text-white">
+                                    {crmLeads.length}
+                                </span>
+                                <span className="text-sm text-zinc-500 dark:text-zinc-400">leads ativos</span>
                             </div>
-                            <button onClick={() => setActiveTab('subscription')} className="px-8 py-3.5 bg-primary text-white text-[15px] font-bold rounded-2xl shadow-lg shadow-primary/20 hover:opacity-90">
-                                Liberar acesso
-                            </button>
-                        </div>
+                        ) : (
+                            <div className="flex items-center justify-between mt-auto">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-10 border border-zinc-200 dark:border-zinc-700 rounded-lg flex items-center justify-center bg-white dark:bg-zinc-800 shadow-sm">
+                                        <Lock className="w-5 h-5 text-zinc-300 dark:text-zinc-600" />
+                                    </div>
+                                    <p className="text-[10px] font-bold text-text-secondary dark:text-zinc-500 leading-tight max-w-[90px]">Disponível a partir <br />do plano Pro.</p>
+                                </div>
+                                <button onClick={() => setActiveTab('subscription')} className="px-8 py-3.5 bg-primary text-white text-[15px] font-bold rounded-2xl shadow-lg shadow-primary/20 hover:opacity-90">
+                                    Liberar acesso
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Card 3: Ganho mensal */}
-                    <div className="bg-white dark:bg-zinc-900 p-7 rounded-[32px] shadow-sm border border-zinc-100 dark:border-zinc-800">
+                    <div className="bg-white dark:bg-zinc-900 p-6 rounded-[32px] shadow-sm border border-zinc-100 dark:border-zinc-800">
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="w-11 h-11 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center ring-1 ring-zinc-100/50 dark:ring-white/10">
-                                <DollarSign className="w-6 h-6 text-zinc-300 dark:text-zinc-600" />
+                            <div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center ring-1 ring-zinc-100/50 dark:ring-white/10">
+                                <DollarSign className={`w-5 h-5 ${hasCRMAccess ? 'text-zinc-800 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`} />
                             </div>
-                            <h3 className="text-[17px] font-bold text-text-secondary dark:text-zinc-500 tracking-tight">Ganho mensal</h3>
+                            <h3 className={`text-base font-bold tracking-tight ${hasCRMAccess ? 'text-zinc-800 dark:text-white' : 'text-text-secondary dark:text-zinc-500'}`}>Ganho mensal</h3>
                         </div>
 
-                        <div className="flex items-center justify-between mt-auto">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-10 border border-zinc-200 dark:border-zinc-700 rounded-lg flex items-center justify-center bg-white dark:bg-zinc-800 shadow-sm">
-                                    <Lock className="w-5 h-5 text-zinc-300 dark:text-zinc-600" />
-                                </div>
-                                <p className="text-[10px] font-bold text-text-secondary dark:text-zinc-500 leading-tight max-w-[90px]">Disponível a partir <br />do plano Pro.</p>
+                        {hasCRMAccess ? (
+                            <div className="flex flex-col gap-1 mt-auto">
+                                <span className="text-3xl font-bold text-zinc-900 dark:text-white">
+                                    R$ {monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                                <span className="text-sm text-zinc-500 dark:text-zinc-400">neste mês</span>
                             </div>
-                            <button onClick={() => setActiveTab('subscription')} className="px-8 py-3.5 bg-primary text-white text-[15px] font-bold rounded-2xl shadow-lg shadow-primary/20 hover:opacity-90">
-                                Liberar acesso
-                            </button>
-                        </div>
+                        ) : (
+                            <div className="flex items-center justify-between mt-auto">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-10 border border-zinc-200 dark:border-zinc-700 rounded-lg flex items-center justify-center bg-white dark:bg-zinc-800 shadow-sm">
+                                        <Lock className="w-5 h-5 text-zinc-300 dark:text-zinc-600" />
+                                    </div>
+                                    <p className="text-[10px] font-bold text-text-secondary dark:text-zinc-500 leading-tight max-w-[90px]">Disponível a partir <br />do plano Pro.</p>
+                                </div>
+                                <button onClick={() => setActiveTab('subscription')} className="px-8 py-3.5 bg-primary text-white text-[15px] font-bold rounded-2xl shadow-lg shadow-primary/20 hover:opacity-90">
+                                    Liberar acesso
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -311,9 +330,7 @@ const Home: React.FC<HomeProps> = ({
                                                     </div>
                                                     <button
                                                         onClick={() => {
-                                                            if (confirm('Deseja excluir este compromisso?')) {
-                                                                setCalendarEvents(prev => prev.filter(e => e.id !== evt.id));
-                                                            }
+                                                            setCalendarEvents(prev => prev.filter(e => e.id !== evt.id));
                                                         }}
                                                         className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-full transition-all text-white/20 hover:text-red-400"
                                                     >
@@ -365,9 +382,9 @@ const Home: React.FC<HomeProps> = ({
                             <Share2 className="w-7 h-7 dark:text-zinc-100" />
                         </div>
                         <div className="text-left">
-                            <h4 className="text-[18px] font-bold mb-1 dark:text-white">Compartilhe e ganhe</h4>
+                            <h4 className="text-[18px] font-bold mb-1 dark:text-white">Compartilhe com amigos</h4>
                             <p className="text-[11px] text-text-secondary dark:text-zinc-500 font-medium leading-normal">
-                                Convide amigos para a plataforma e ganhe créditos extras de busca para impulsionar seus resultados.
+                                Ajude outros empreendedores a descobrir essa ferramenta e facilite a busca por novos clientes.
                             </p>
                         </div>
                     </button>
@@ -391,52 +408,55 @@ const Home: React.FC<HomeProps> = ({
 
                         <div className="flex flex-col items-center text-center">
                             <div className="w-20 h-20 bg-primary/10 rounded-[28px] flex items-center justify-center mb-6">
-                                <Gift className="w-10 h-10 text-primary" />
+                                <Share2 className="w-10 h-10 text-primary" />
                             </div>
-                            <h3 className="text-[28px] font-bold text-zinc-900 dark:text-white mb-2">Compartilhe e Ganhe!</h3>
-                            <p className="text-zinc-500 dark:text-zinc-400 font-medium mb-8">
-                                Ao convidar amigos, você e eles ganham benefícios exclusivos na plataforma.
+                            <h3 className="text-[28px] font-bold text-zinc-900 dark:text-white mb-2">Compartilhe essa ferramenta!</h3>
+                            <p className="text-zinc-500 dark:text-zinc-400 font-medium mb-8 max-w-md">
+                                Ajude outros empreendedores a encontrar clientes de forma mais eficiente. Compartilhe o be.Leads com seus amigos e colegas!
                             </p>
 
-                            <div className="w-full space-y-4 mb-10">
-                                <div className="flex items-start gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl border border-zinc-100 dark:border-zinc-700 text-left">
-                                    <div className="w-10 h-10 bg-white dark:bg-zinc-800 rounded-xl shadow-sm flex items-center justify-center shrink-0">
-                                        <UserPlus className="w-5 h-5 text-primary" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-zinc-900 dark:text-white text-[15px]">Amigo ganha créditos</h4>
-                                        <p className="text-[13px] text-zinc-500 dark:text-zinc-400 font-medium">Seus amigos ganham créditos de busca ao criar uma conta.</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl border border-zinc-100 dark:border-zinc-700 text-left">
-                                    <div className="w-10 h-10 bg-white dark:bg-zinc-800 rounded-xl shadow-sm flex items-center justify-center shrink-0">
-                                        <Zap className="w-5 h-5 text-green-500" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-zinc-900 dark:text-white text-[15px]">Você ganha bônus</h4>
-                                        <p className="text-[13px] text-zinc-500 dark:text-zinc-400 font-medium">Você ganha créditos de busca por cada indicação que ativar a conta.</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl border border-zinc-100 dark:border-zinc-700 text-left">
-                                    <div className="w-10 h-10 bg-white dark:bg-zinc-800 rounded-xl shadow-sm flex items-center justify-center shrink-0">
-                                        <Crown className="w-5 h-5 text-amber-500" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-zinc-900 dark:text-white text-[15px]">Comissões Pro</h4>
-                                        <p className="text-[13px] text-zinc-500 dark:text-zinc-400 font-medium">Ganhe bônus especial se seu amigo assinar um plano Pro ou Elite.</p>
-                                    </div>
+                            <div className="w-full space-y-3 mb-8">
+                                <button
+                                    onClick={() => {
+                                        const text = '🚀 Descobri o be.Leads - uma ferramenta incrível para encontrar leads qualificados! Confira: https://beleads.com.br';
+                                        navigator.clipboard.writeText(text);
+                                        alert('Mensagem copiada! Cole no WhatsApp, e-mail ou redes sociais.');
+                                    }}
+                                    className="w-full py-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                >
+                                    <Copy className="w-5 h-5" />
+                                    Copiar mensagem para compartilhar
+                                </button>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={() => {
+                                            const text = encodeURIComponent('🚀 Descobri o be.Leads - uma ferramenta incrível para encontrar leads qualificados! Confira: https://beleads.com.br');
+                                            window.open(`https://wa.me/?text=${text}`, '_blank');
+                                        }}
+                                        className="py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                    >
+                                        <MessageCircle className="w-4 h-4" />
+                                        WhatsApp
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            const subject = encodeURIComponent('Ferramenta incrível para encontrar leads');
+                                            const body = encodeURIComponent('Olá!\n\nDescobrí o be.Leads, uma ferramenta que ajuda a encontrar leads qualificados de forma rápida e eficiente.\n\nConfira: https://beleads.com.br\n\nAcho que pode ser útil para você!');
+                                            window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+                                        }}
+                                        className="py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                    >
+                                        <Mail className="w-4 h-4" />
+                                        E-mail
+                                    </button>
                                 </div>
                             </div>
 
-                            <button
-                                onClick={() => {
-                                    navigator.clipboard.writeText('https://beleads.com.br/invite/user123');
-                                    alert('Link de convite copiado!');
-                                }}
-                                className="w-full py-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-[0.98]"
-                            >
-                                Copiar meu link de convite
-                            </button>
+                            <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                                Obrigado por ajudar a divulgar nossa ferramenta! 💙
+                            </p>
                         </div>
                     </div>
                 </div>

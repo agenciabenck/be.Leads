@@ -43,9 +43,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                     { id: 'home', icon: Home, label: 'Início' },
                     { id: 'search', icon: SearchIcon, label: 'Buscar leads' },
                     { id: 'crm', icon: KanbanSquare, label: 'CRM' },
-                    { id: 'subscription', icon: Wallet, label: 'Assinatura' },
+                    { id: 'subscription', icon: Wallet, label: 'Assinatura', hidden: userSettings.plan === 'elite' },
                     { id: 'settings', icon: Settings, label: 'Configurações' }
-                ].map(item => (
+                ].filter(item => !item.hidden).map(item => (
                     <button
                         key={item.id}
                         onClick={() => setActiveTab(item.id as AppTab)}
@@ -57,8 +57,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             </nav>
 
             {/* Plan Card */}
-            <div className="mx-4 mb-6 p-5 bg-sidebar-plan rounded-3xl">
-                <div className="mb-4">
+            <div className="mx-4 mb-8 p-4 bg-sidebar-plan rounded-3xl">
+                <div className="mb-3">
                     <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">SEU PLANO</span>
                     <h4 className="text-xl font-bold text-text-light mt-1 capitalize">{PLAN.name}</h4>
                 </div>
@@ -69,19 +69,25 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden mb-4">
+                <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden mb-3">
                     <div
                         className="h-full bg-primary transition-all duration-500"
                         style={{ width: `${PLAN_PERCENTAGE}%` }}
                     />
                 </div>
 
-                <button
-                    onClick={() => setActiveTab('subscription')}
-                    className="w-full py-3.5 text-[13px] font-bold rounded-2xl bg-success hover:bg-success-600 text-white transition-all active:scale-[0.98]"
-                >
-                    Fazer upgrade de plano
-                </button>
+                {userSettings.plan === 'elite' ? (
+                    <div className="w-full py-3 text-[13px] font-bold rounded-2xl bg-success/20 text-success flex items-center justify-center gap-2 border border-success/30 cursor-default">
+                        Você está no topo! 👑
+                    </div>
+                ) : (
+                    <button
+                        onClick={() => setActiveTab('subscription')}
+                        className="w-full py-3 text-[13px] font-bold rounded-2xl bg-success hover:bg-success-600 text-white transition-all active:scale-[0.98] shadow-lg shadow-success/20"
+                    >
+                        Fazer upgrade de plano
+                    </button>
+                )}
             </div>
 
             {/* User Section */}

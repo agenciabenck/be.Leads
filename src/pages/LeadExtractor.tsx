@@ -12,7 +12,6 @@ interface LeadExtractorProps {
     leads: Lead[];
     setLeads: React.Dispatch<React.SetStateAction<Lead[]>>;
     state: SearchState;
-    setState: React.Dispatch<React.SetStateAction<SearchState>>;
     filters: SearchFilters;
     setFilters: React.Dispatch<React.SetStateAction<SearchFilters>>;
     handleSearch: (e?: React.FormEvent) => Promise<void>;
@@ -59,7 +58,6 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
     leads,
     setLeads,
     state,
-    setState,
     filters,
     setFilters,
     handleSearch,
@@ -103,36 +101,17 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
 }) => {
     return (
         <div className="space-y-6 animate-fade-in-up">
-            {/* Geolocation Prompt */}
-            {locationPermission === 'prompt' && (
-                <div className="bg-primary-50 border border-primary-100 rounded-2xl p-4 flex items-center justify-between animate-in fade-in slide-in-from-top-4 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-primary-100 p-2 rounded-xl text-primary-600">
-                            <MapPin className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-bold text-slate-900">Leads por proximidade</h4>
-                            <p className="text-xs text-slate-500">Ative sua localização para encontrar leads perto de você.</p>
-                        </div>
-                    </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setLocationPermission('denied')}
-                            className="text-xs font-bold text-slate-400 px-3 py-2 hover:text-slate-600 transition-colors"
-                        >
-                            Agora não
-                        </button>
-                        <button
-                            onClick={requestLocation}
-                            className="bg-primary-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-primary-700 shadow-md shadow-primary-500/20 active:scale-95 transition-all"
-                        >
-                            Ativar
-                        </button>
-                    </div>
-                </div>
-            )}
+            {/* Header com título */}
+            <div>
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
+                    Buscar Leads
+                </h2>
+                <p className="text-zinc-500 dark:text-zinc-400">
+                    Encontre novos clientes potenciais para o seu negócio.
+                </p>
+            </div>
 
-            <div className="bg-app-cardLight dark:bg-app-cardDark p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+            <div className="bg-app-cardLight dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div className="bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl flex gap-1">
                         <button onClick={() => setSearchMode('free')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${searchMode === 'free' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}>
@@ -149,7 +128,7 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                             </span>
                         )}
                         <button
-                            onClick={() => { if (globalHistory.length > 0 && window.confirm('Limpar histórico de busca? Isso fará com que resultados anteriores possam aparecer novamente.')) setGlobalHistory([]) }}
+                            onClick={() => { if (globalHistory.length > 0) setGlobalHistory([]) }}
                             disabled={globalHistory.length === 0}
                             className={`text-xs font-medium flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 pl-3 transition-colors ${globalHistory.length === 0 ? 'text-zinc-300 dark:text-zinc-700 cursor-not-allowed' : 'text-zinc-400 hover:text-red-500'}`}
                         >
@@ -160,7 +139,7 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
 
                 {searchMode === 'free' ? (
                     <div className="flex gap-2">
-                        <input className="flex-1 p-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm transition-all" placeholder="Ex: Restaurantes Italianos em Pinheiros, SP..." value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
+                        <input className="flex-1 p-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm transition-all" placeholder="Ex: Restaurantes Italianos em Pinheiros, SP..." value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -217,7 +196,6 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                             <p className="font-bold text-sm">Ocorreu um erro na busca</p>
                             <p className="text-sm opacity-90">{state.error}</p>
                         </div>
-                        <button onClick={() => setState(prev => ({ ...prev, error: null }))} className="ml-auto hover:bg-red-100 dark:hover:bg-red-900/40 p-1 rounded-lg transition-colors"><X className="w-4 h-4" /></button>
                     </div>
                 )}
 
@@ -230,11 +208,10 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                         <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700"></div>
                         <div className="flex items-center gap-2">
                             <select value={filters.maxResults} onChange={e => setFilters(prev => ({ ...prev, maxResults: parseInt(e.target.value) }))} className="py-1.5 px-2 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg">
-                                <option value="5">5 resultados</option>
                                 <option value="10">10 resultados</option>
                                 <option value="20">20 resultados</option>
-                                <option value="30">30 resultados</option>
-                                <option value="50">50 resultados</option>
+                                <option value="40">40 resultados</option>
+                                <option value="60">60 resultados</option>
                             </select>
                         </div>
                         <label className="flex items-center gap-2 cursor-pointer bg-zinc-50 dark:bg-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-primary-300 transition-colors">
@@ -255,6 +232,7 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                     <div className="flex items-center gap-3">
                         <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Resultados</h2>
                         {leads.length > 0 && <span className="bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 px-2.5 py-0.5 rounded-full text-sm font-bold">{leads.length}</span>}
+                        <span className="text-xs text-zinc-400 dark:text-zinc-600">Dados retirados do Google Maps, fornecidos por API oficial.</span>
                     </div>
                     {leads.length > 0 && (
                         <div className="flex gap-2">
@@ -289,7 +267,7 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                 />
 
                 {leads.length > 0 && (
-                    <div className="mt-6 flex flex-col items-center gap-4 bg-app-cardLight dark:bg-app-cardDark p-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
+                    <div className="mt-6 flex flex-col items-center gap-4 bg-app-cardLight dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
                         <div className="flex items-center gap-3">
                             <select
                                 value={loadMoreQuantity}
