@@ -250,5 +250,5 @@ export class GoogleMapsService {
 
 // Singleton - Instância única do serviço
 export const googleMapsService = new GoogleMapsService(
-    import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY || import.meta.env.VITE_API_KEY || ''
 );
