@@ -7,4 +7,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Supabase URL e/ou Anon Key não configurados no .env.local');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+        storageKey: 'beleads_v2_auth_token',
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+    }
+});

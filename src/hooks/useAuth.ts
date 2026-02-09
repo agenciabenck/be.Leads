@@ -37,8 +37,11 @@ export const useAuth = () => {
     }, []);
 
     const handleUserSession = async (currentUser: any) => {
-        setUser(currentUser ?? null);
-        if (currentUser) {
+        // Only accept user if they have an email (prevent anonymous/ghost sessions)
+        const validUser = currentUser && currentUser.email ? currentUser : null;
+        setUser(validUser);
+
+        if (validUser) {
             // Load settings from storage
             const loadedSettings = getUserData<UserSettings>(currentUser.id, 'settings', {
                 name: 'Usuário',
@@ -57,17 +60,34 @@ export const useAuth = () => {
 
             // Fetch subscription from DB
             try {
-                const { data: sub } = await supabase
+                const { data: sub, error: subError } = await supabase
                     .from('user_subscriptions')
                     .select('*')
                     .eq('user_id', currentUser.id)
-                    .single();
+                    .maybeSingle();
 
                 if (sub) {
                     loadedSettings.plan = sub.plan_id as UserPlan;
-                    // We'll store credits in a way useSearch can access, 
-                    // or just rely on useAuth providing the latest settings.
-                    // For now, let's ensure the plan is synced.
+                } else {
+                    // SILENT INITIALIZATION: If user exists but no subscription record
+                    // (e.g. users registered before this migration), create one.
+                    console.log('[Auth] No subscription found, initializing free plan...');
+                    const now = new Date();
+                    const { data: newSub } = await supabase
+                        .from('user_subscriptions')
+                        .insert({
+                            user_id: currentUser.id,
+                            plan_id: 'free',
+                            leads_used: 0,
+                            last_credit_reset: now.toISOString(),
+                            status: 'active'
+                        })
+                        .select()
+                        .single();
+
+                    if (newSub) {
+                        loadedSettings.plan = 'free';
+                    }
                 }
             } catch (err) {
                 console.error('Error fetching subscription:', err);

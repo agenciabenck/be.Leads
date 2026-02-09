@@ -311,7 +311,7 @@ const App: React.FC = () => {
     }
 
     // --- Auth Protection ---
-    if (!user) {
+    if (!user || !user.email) {
         return <Auth onAuthSuccess={() => { }} />;
     }
 
