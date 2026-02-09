@@ -9,6 +9,7 @@ export interface BusinessLead {
     website?: string; // Agora retornado na busca
     phone?: string; // Só em getPlaceDetails
     googleMapsUrl?: string; // Agora retornado na busca
+    types?: string[]; // Categorias do Google
 }
 
 const GOOGLE_PLACES_API_BASE = 'https://places.googleapis.com/v1';

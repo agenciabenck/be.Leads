@@ -45,7 +45,7 @@ const App: React.FC = () => {
     const {
         query, setQuery, leads, setLeads, state, setState, filters, setFilters, searchMode, setSearchMode,
         loadingMessageIndex, selectedNiche, setSelectedNiche, selectedState, setSelectedState,
-        selectedCity, setSelectedCity, selectedNeighborhood, setSelectedNeighborhood, excludedCity, setExcludedCity,
+        selectedCity, setSelectedCity, excludedCity, setExcludedCity,
         cityList, isLoadingCities, handleSearch, handleLoadMore, isLoadingMore
     } = useSearch(globalHistory);
     const { calendarEvents, setCalendarEvents, upcomingEvents, addEvent, clearAllEvents } = useCalendar(user?.id);
@@ -188,7 +188,30 @@ const App: React.FC = () => {
     };
 
     const handleCheckout = async (planId: keyof typeof STRIPE_PRICES, _isAnnual: boolean) => {
-        setUserSettings(prev => ({ ...prev, plan: planId as UserPlan }));
+        if (!user) return;
+
+        try {
+            // Bypass Stripe: Update Plan directly in DB
+            const { error: updateError } = await supabase
+                .from('user_subscriptions')
+                .update({
+                    plan_id: planId,
+                    status: 'active'
+                })
+                .eq('user_id', user.id);
+
+            if (updateError) throw updateError;
+
+            // Update local state
+            setUserSettings(prev => ({ ...prev, plan: planId as UserPlan }));
+            showNotification(`Parabéns! Seu plano agora é ${planId.toUpperCase()}.`, 'success');
+
+            // Go to home
+            setTimeout(() => setActiveTab('home'), 1500);
+        } catch (err: any) {
+            console.error('[Plano] Erro ao atualizar:', err);
+            showNotification('Erro ao atualizar plano. Tente novamente.', 'error');
+        }
     };
 
     const handleExportCSV = () => {
@@ -410,8 +433,6 @@ const App: React.FC = () => {
                         setSelectedCity={setSelectedCity}
                         isLoadingCities={isLoadingCities}
                         cityList={cityList}
-                        selectedNeighborhood={selectedNeighborhood}
-                        setSelectedNeighborhood={setSelectedNeighborhood}
                         excludedCity={excludedCity}
                         setExcludedCity={setExcludedCity}
                         globalHistory={globalHistory}

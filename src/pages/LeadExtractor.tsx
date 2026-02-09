@@ -31,8 +31,6 @@ interface LeadExtractorProps {
     setSelectedCity: (v: string) => void;
     isLoadingCities: boolean;
     cityList: string[];
-    selectedNeighborhood: string;
-    setSelectedNeighborhood: (v: string) => void;
     excludedCity: string;
     setExcludedCity: (v: string) => void;
     globalHistory: string[];
@@ -77,8 +75,6 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
     setSelectedCity,
     isLoadingCities,
     cityList,
-    selectedNeighborhood,
-    setSelectedNeighborhood,
     excludedCity,
     setExcludedCity,
     globalHistory,
@@ -164,7 +160,7 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                                     </select>
                                     <ChevronDown className="absolute right-3 top-4 w-4 h-4 text-zinc-400 pointer-events-none" />
                                 </div>
-                                <div className="md:col-span-3 relative group">
+                                <div className="md:col-span-5 relative group">
                                     <MapPin className="absolute left-3 top-3.5 w-5 h-5 text-zinc-400 group-focus-within:text-primary-500 transition-colors pointer-events-none" />
                                     <select value={selectedCity} onChange={e => setSelectedCity(e.target.value)} disabled={!selectedState || isLoadingCities} className="w-full pl-10 p-3 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white disabled:opacity-50 focus:ring-2 focus:ring-primary-500 outline-none appearance-none transition-all shadow-sm">
                                         <option value="">{isLoadingCities ? 'Carregando...' : 'Cidade'}</option>
@@ -172,11 +168,7 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                                     </select>
                                     <ChevronDown className="absolute right-3 top-4 w-4 h-4 text-zinc-400 pointer-events-none" />
                                 </div>
-                                <div className="md:col-span-3 relative group">
-                                    <Building2 className="absolute left-3 top-3.5 w-5 h-5 text-zinc-400 group-focus-within:text-primary-500 transition-colors pointer-events-none" />
-                                    <input placeholder="Bairro (Opcional)" value={selectedNeighborhood} onChange={e => setSelectedNeighborhood(e.target.value)} className="w-full pl-10 p-3 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none transition-all shadow-sm" />
-                                </div>
-                                <div className="md:col-span-4 relative group">
+                                <div className="md:col-span-5 relative group">
                                     <Trash2 className="absolute left-3 top-3.5 w-5 h-5 text-red-400 pointer-events-none" />
                                     <select value={excludedCity} onChange={e => setExcludedCity(e.target.value)} disabled={!selectedState || isLoadingCities} className="w-full pl-10 p-3 rounded-xl border border-red-200 bg-red-50 text-red-700 dark:bg-red-900/10 dark:text-red-300 dark:border-red-900/30 focus:ring-2 focus:ring-red-500 outline-none appearance-none transition-all shadow-sm">
                                         <option value="">Excluir cidade...</option>

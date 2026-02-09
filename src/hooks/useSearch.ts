@@ -16,7 +16,6 @@ export const useSearch = (globalHistory: string[]) => {
     const [selectedNiche, setSelectedNiche] = useState('');
     const [selectedState, setSelectedState] = useState('');
     const [selectedCity, setSelectedCity] = useState('');
-    const [selectedNeighborhood, setSelectedNeighborhood] = useState('');
     const [excludedCity, setExcludedCity] = useState('');
     const [cityList, setCityList] = useState<string[]>([]);
     const [isLoadingCities, setIsLoadingCities] = useState(false);
@@ -61,7 +60,7 @@ export const useSearch = (globalHistory: string[]) => {
                 .from('user_subscriptions')
                 .select('*')
                 .eq('user_id', user.id)
-                .single();
+                .maybeSingle(); // Use maybeSingle to avoid 406 errors
             subscriptionData = data;
         } catch (err) {
             console.error('Erro ao buscar créditos:', err);
@@ -91,7 +90,7 @@ export const useSearch = (globalHistory: string[]) => {
             // Primeira vez ou erro, inicializa
             await supabase
                 .from('user_subscriptions')
-                .upsert({ user_id: user.id, last_credit_reset: now.toISOString() });
+                .upsert({ user_id: user.id, last_credit_reset: now.toISOString(), plan_id: 'free', leads_used: 0, status: 'active' });
         }
 
         if (used >= limit) {
@@ -101,78 +100,101 @@ export const useSearch = (globalHistory: string[]) => {
 
         // --- FIM LÓGICA DE CRÉDITOS ---
 
-        let finalQuery = query;
-        if (searchMode === 'guided') {
-            if (!selectedNiche || !selectedState) return;
-
-            let queryParts = [`${selectedNiche}`];
-            if (selectedCity) {
-                queryParts.push(`em ${selectedCity}, ${selectedState}, Brasil`);
-            } else {
-                queryParts.push(`no estado de ${selectedState}, Brasil`);
-            }
-            finalQuery = queryParts.join(' ');
-            if (selectedNeighborhood && selectedCity) finalQuery += `, bairro ${selectedNeighborhood}`;
-            if (excludedCity) finalQuery += ` -${excludedCity}`;
+        const requestedAmount = Math.min(filters.maxResults || 20, limit - used);
+        if (requestedAmount <= 0) {
+            setState(prev => ({ ...prev, error: 'Você não possui créditos suficientes para esta busca.' }));
+            return;
         }
 
-        if (!finalQuery.trim()) return;
-
         setState({ isSearching: true, error: null, hasSearched: true });
+
         try {
-            const requestedAmount = Math.min(filters.maxResults || 20, limit - used);
-            if (requestedAmount <= 0) {
-                throw new Error('Você não possui créditos suficientes para esta busca.');
+            let allValidResults: Lead[] = [];
+            const searchQueries: string[] = [];
+
+            if (searchMode === 'guided') {
+                if (!selectedNiche || !selectedState) {
+                    setState(prev => ({ ...prev, isSearching: false, error: 'Nicho e Estado são obrigatórios na busca guiada.' }));
+                    return;
+                }
+
+                if (selectedCity) {
+                    let q = `${selectedNiche} em ${selectedCity}, ${selectedState}, Brasil`;
+                    if (excludedCity) q += ` -${excludedCity}`;
+                    searchQueries.push(q);
+                } else {
+                    // MULTI-CITY SEARCH: If state selected but no city, use major cities
+                    const { MAIOR_CIDADES } = await import('@/constants/appConstants');
+                    const cities = MAIOR_CIDADES[selectedState] || [];
+
+                    if (cities.length > 0) {
+                        cities.forEach(city => {
+                            searchQueries.push(`${selectedNiche} em ${city}, ${selectedState}, Brasil`);
+                        });
+                    } else {
+                        searchQueries.push(`${selectedNiche} no estado de ${selectedState}, Brasil`);
+                    }
+                }
+            } else {
+                searchQueries.push(query);
             }
 
-            let allValidResults: Lead[] = [];
-            let currentToken: string | undefined = undefined;
-            let attempts = 0;
-            const maxAttempts = 10;
+            console.log(`[Busca] Iniciando para: ${searchQueries.length} query(s) | Alvo: ${requestedAmount}`);
 
-            console.log(`[Busca] Iniciando para: "${finalQuery}" | Limite Restante: ${limit - used}`);
+            for (const currentQuery of searchQueries) {
+                if (allValidResults.length >= requestedAmount) break;
 
-            while (allValidResults.length < requestedAmount && attempts < maxAttempts) {
-                console.log(`[Busca] Tentativa ${attempts + 1}...`);
-                const { places: gResults, nextToken } = await googleMapsService.searchBusiness(finalQuery, 20, true, currentToken);
+                let currentToken: string | undefined = undefined;
+                let pageCount = 0;
+                const maxPages = 5; // Limite de páginas por nicho/cidade para não esgotar quota atoa
 
-                if (!gResults || gResults.length === 0) break;
+                while (allValidResults.length < requestedAmount && pageCount < maxPages) {
+                    console.log(`[Busca] Paginação ${pageCount + 1}: "${currentQuery}"`);
+                    const { places: gResults, nextToken } = await googleMapsService.searchBusiness(currentQuery, 20, true, currentToken);
 
-                const mappedResults: Lead[] = gResults.map(r => ({
-                    id: r.id,
-                    name: r.name,
-                    category: selectedNiche || 'Lead',
-                    address: r.address,
-                    rating: r.rating || 0,
-                    reviews: r.userRatingCount || 0,
-                    phone: r.phone || 'N/A',
-                    website: r.website || 'N/A',
-                    instagram: 'N/A',
-                    googleMapsLink: r.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + r.address)}`
-                }));
+                    if (!gResults || gResults.length === 0) break;
 
-                let filtered = mappedResults;
-                if (filters.requirePhone) {
-                    filtered = filtered.filter(r => r.phone && r.phone !== 'N/A');
+                    const mappedResults: Lead[] = gResults.map(r => ({
+                        id: r.id,
+                        name: r.name,
+                        category: selectedNiche || r.types?.[0] || 'Lead',
+                        address: r.address,
+                        rating: r.rating || 0,
+                        reviews: r.userRatingCount || 0,
+                        phone: r.phone || 'N/A',
+                        website: r.website || 'N/A',
+                        instagram: 'N/A',
+                        googleMapsLink: r.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + r.address)}`
+                    }));
+
+                    let filtered = mappedResults;
+                    if (filters.requirePhone) {
+                        filtered = filtered.filter(r => r.phone && r.phone !== 'N/A');
+                    }
+
+                    // Strict state filtering for guided mode
+                    if (searchMode === 'guided' && selectedState) {
+                        const stateCode = selectedState.toUpperCase();
+                        filtered = filtered.filter(r => {
+                            const addr = r.address.toUpperCase();
+                            return addr.includes(`, ${stateCode}`) || addr.includes(` - ${stateCode}`) || addr.includes(stateCode);
+                        });
+                    }
+
+                    const newUnique = filtered.filter(nl =>
+                        !allValidResults.some(el => el.id === nl.id) &&
+                        !globalHistory.includes(nl.id)
+                    );
+
+                    allValidResults = [...allValidResults, ...newUnique];
+                    currentToken = nextToken;
+                    pageCount++;
+
+                    if (!nextToken || allValidResults.length >= requestedAmount) break;
+
+                    // Pequeno delay para evitar rate limit da API se estivermos paginando muito rápido
+                    await new Promise(resolve => setTimeout(resolve, 300));
                 }
-
-                if (searchMode === 'guided' && selectedState) {
-                    const stateCode = selectedState.toUpperCase();
-                    filtered = filtered.filter(r => {
-                        const addr = r.address.toUpperCase();
-                        return addr.includes(`, ${stateCode}`) || addr.includes(` - ${stateCode}`) || addr.includes(stateCode);
-                    });
-                }
-
-                const newUnique = filtered.filter(nl =>
-                    !allValidResults.some(el => el.id === nl.id) &&
-                    !globalHistory.includes(nl.id)
-                );
-
-                allValidResults = [...allValidResults, ...newUnique];
-                currentToken = nextToken;
-                attempts++;
-                if (!nextToken) break;
             }
 
             const finalResults = allValidResults.slice(0, requestedAmount);
@@ -279,7 +301,6 @@ export const useSearch = (globalHistory: string[]) => {
         selectedNiche, setSelectedNiche,
         selectedState, setSelectedState,
         selectedCity, setSelectedCity,
-        selectedNeighborhood, setSelectedNeighborhood,
         excludedCity, setExcludedCity,
         cityList,
         isLoadingCities,

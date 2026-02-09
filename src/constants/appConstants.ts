@@ -100,9 +100,51 @@ export const DEMO_LEADS = [
     { id: '2', name: 'Exemplo Lead B', category: 'Academia', address: 'Rua Oscar Freire, 500', phone: '(11) 88888-8888', rating: 4.8, reviews: 350, website: 'www.gym.com', status: 'contacted', priority: 'high', tags: ['Quente'], addedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
 ];
 
+export const MAIOR_CIDADES: Record<string, string[]> = {
+    'AC': ['Rio Branco', 'Cruzeiro do Sul', 'Sena Madureira', 'Tarauacá', 'Feijó'],
+    'AL': ['Maceió', 'Arapiraca', 'Rio Largo', 'Palmeira dos Índios', 'União dos Palmares'],
+    'AM': ['Manaus', 'Parintins', 'Itacoatiara', 'Manacapuru', 'Coari'],
+    'AP': ['Macapá', 'Santana', 'Laranjal do Jari', 'Oiapoque', 'Porto Grande'],
+    'BA': ['Salvador', 'Feira de Santana', 'Vitória da Conquista', 'Camaçari', 'Juazeiro'],
+    'CE': ['Fortaleza', 'Caucaia', 'Juazeiro do Norte', 'Maracanaú', 'Sobral'],
+    'DF': ['Brasília', 'Taguatinga', 'Ceilândia', 'Samambaia', 'Plano Piloto'],
+    'ES': ['Serra', 'Vila Velha', 'Cariacica', 'Vitória', 'Cachoeiro de Itapemirim'],
+    'GO': ['Goiânia', 'Aparecida de Goiânia', 'Anápolis', 'Rio Verde', 'Luziânia'],
+    'MA': ['São Luís', 'Imperatriz', 'São José de Ribamar', 'Timon', 'Caxias'],
+    'MG': ['Belo Horizonte', 'Uberlândia', 'Contagem', 'Juiz de Fora', 'Betim'],
+    'MS': ['Campo Grande', 'Dourados', 'Três Lagoas', 'Corumbá', 'Ponta Porã'],
+    'MT': ['Cuiabá', 'Várzea Grande', 'Rondonópolis', 'Sinop', 'Tangará da Serra'],
+    'PA': ['Belém', 'Ananindeua', 'Santarém', 'Marabá', 'Parauapebas'],
+    'PB': ['João Pessoa', 'Campina Grande', 'Santa Rita', 'Patos', 'Bayeux'],
+    'PE': ['Recife', 'Jaboatão dos Guararapes', 'Olinda', 'Caruaru', 'Petrolina'],
+    'PI': ['Teresina', 'Parnaíba', 'Picos', 'Piripiri', 'Floriano'],
+    'PR': ['Curitiba', 'Londrina', 'Maringá', 'Ponta Grossa', 'Cascavel'],
+    'RJ': ['Rio de Janeiro', 'São Gonçalo', 'Duque de Caxias', 'Nova Iguaçu', 'Niterói'],
+    'RN': ['Natal', 'Mossoró', 'Parnamirim', 'São Gonçalo do Amarante', 'Macaíba'],
+    'RO': ['Porto Velho', 'Ji-Paraná', 'Ariquemes', 'Vilhena', 'Cacoal'],
+    'RR': ['Boa Vista', 'Rorainópolis', 'Caracaraí', 'Pacaraima', 'Cantá'],
+    'RS': ['Porto Alegre', 'Caxias do Sul', 'Canoas', 'Pelotas', 'Santa Maria'],
+    'SC': ['Joinville', 'Florianópolis', 'Blumenau', 'São José', 'Itajaí'],
+    'SE': ['Aracaju', 'Nossa Senhora do Socorro', 'Lagarto', 'Itabaiana', 'São Cristóvão'],
+    'SP': ['São Paulo', 'Guarulhos', 'Campinas', 'São Bernardo do Campo', 'Santo André'],
+    'TO': ['Palmas', 'Araguaína', 'Gurupi', 'Porto Nacional', 'Paraíso do Tocantins']
+};
+
 export const PLAN_CREDITS = {
     free: 60,
     start: 500,
     pro: 1200,
     elite: 3200
+};
+
+export const CONST_STRIPE_PRICES: Record<string, 'start' | 'pro' | 'elite'> = {
+    "price_1QovA7SFY1oG7C21R71N24": 'start',
+    "price_1QovBSSFdF1oG7C2188X922": 'pro',
+    "price_1QovCfSFG1oG7Y21O99m24": 'elite'
+};
+
+export const CONST_STRIPE_PRICES_ANNUAL: Record<string, 'start' | 'pro' | 'elite'> = {
+    "price_1QovA7SFY1oG7C21R71N24": 'start', // Placeholder, verify if annual has different IDs
+    "price_1QovBSSFdF1oG7C2188X922": 'pro',
+    "price_1QovCfSFG1oG7Y21O99m24": 'elite'
 };
