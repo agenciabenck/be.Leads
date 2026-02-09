@@ -101,8 +101,8 @@ export const DEMO_LEADS = [
 ];
 
 export const PLAN_CREDITS = {
-    free: 50,
-    start: 300,
-    pro: 1500,
-    elite: 5000
+    free: 60,
+    start: 500,
+    pro: 1200,
+    elite: 3200
 };

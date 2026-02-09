@@ -64,6 +64,8 @@ export interface UserSubscription {
   status: 'active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'unpaid' | null;
   plan: 'free' | 'start' | 'pro' | 'elite';
   currentPeriodEnd: string | null;
+  leadsUsed: number;
+  lastCreditReset: string;
 }
 
 export interface UserSettings {
@@ -80,6 +82,7 @@ export interface UserSettings {
   pipelineResetDay: number; // Dia do mês que a meta reseta
   plan: UserPlan;
   hideSheetsModal: boolean;
+  lastCreditReset: string;
   notifications: {
     email: boolean;
     browser: boolean;

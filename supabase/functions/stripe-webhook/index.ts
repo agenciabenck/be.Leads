@@ -14,6 +14,13 @@ const supabaseClient = createClient(
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
+interface StripeSubscription {
+    id: string;
+    customer: string;
+    status: string;
+    current_period_end: number;
+}
+
 serve(async (req) => {
     const signature = req.headers.get('Stripe-Signature')
 
@@ -28,33 +35,29 @@ serve(async (req) => {
             undefined,
             cryptoProvider
         )
-    } catch (err) {
+    } catch (err: any) {
+        console.error(`Webhook Error: ${err.message}`);
         return new Response(err.message, { status: 400 })
     }
 
-    // Handle the event
     switch (event.type) {
         case 'checkout.session.completed':
-            const session = event.data.object
-            // Atualizar customer_id se ainda não tiver
-            // Atualizar status para active
+            // Logic for checkout completion if needed
             break
 
         case 'customer.subscription.updated':
-            const subscription = event.data.object
-            await updateSubscription(subscription)
+            await updateSubscription(event.data.object as StripeSubscription)
             break
 
         case 'customer.subscription.deleted':
-            const deletedSubscription = event.data.object
-            await updateSubscription(deletedSubscription)
+            await updateSubscription(event.data.object as StripeSubscription)
             break
     }
 
     return new Response(JSON.stringify({ received: true }), { status: 200 })
 })
 
-async function updateSubscription(subscription: any) {
+async function updateSubscription(subscription: StripeSubscription) {
     const customerId = subscription.customer
 
     const { data: customer } = await supabaseClient
@@ -64,14 +67,12 @@ async function updateSubscription(subscription: any) {
         .single()
 
     if (customer) {
-        // Map product ID to plan name logic here if needed, or store product ID
-        // For simplicity, we just store status and current_period_end
         await supabaseClient
             .from('user_subscriptions')
             .update({
                 status: subscription.status,
                 stripe_subscription_id: subscription.id,
-                current_period_end: new Date(subscription.current_period_end * 1000)
+                current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
             })
             .eq('user_id', customer.user_id)
     }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-    RotateCcw, Loader2, CalendarIcon, X, Plus, Copy, ExternalLink, Clock
+    RotateCcw, Loader2, CalendarIcon, X, Plus, Copy, ExternalLink, Clock, FileSpreadsheet
 } from 'lucide-react';
 import { supabase } from '@/services/supabase';
 import { createCheckoutSession } from '@/services/payment';
@@ -196,16 +196,45 @@ const App: React.FC = () => {
             setActiveTab('subscription');
             return;
         }
-        const headers = ['Nome', 'Categoria', 'Telefone', 'Endereço', 'Rating', 'Reviews', 'Website'];
-        const rows = leads.map(l => [l.name, l.category, l.phone, l.address, l.rating, l.reviews, l.website]);
-        const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].map(e => e.join(",")).join("\n");
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `beleads_export_${Date.now()}.csv`);
+
+        // Helper function to escape CSV fields
+        const escapeCSVField = (field: any): string => {
+            if (field === null || field === undefined) return '';
+            const str = String(field);
+            // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        const headers = ['Nome', 'Categoria', 'Telefone', 'Endereço', 'Rating', 'Reviews', 'Website', 'Instagram', 'Google Maps'];
+        const rows = leads.map(l => [
+            escapeCSVField(l.name),
+            escapeCSVField(l.category),
+            escapeCSVField(l.phone),
+            escapeCSVField(l.address),
+            escapeCSVField(l.rating),
+            escapeCSVField(l.reviews),
+            escapeCSVField(l.website),
+            escapeCSVField(l.instagram),
+            escapeCSVField(l.googleMapsLink)
+        ]);
+
+        const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+
+        link.setAttribute('href', url);
+        link.setAttribute('download', `beleads_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        showNotification('Arquivo Excel/CSV baixado com sucesso!', 'success');
     };
 
     const handleExportGoogleSheets = () => {
@@ -305,7 +334,7 @@ const App: React.FC = () => {
             />
 
             {/* Main Content Area */}
-            <main className="flex-1 h-full overflow-y-auto relative flex flex-col p-4 md:p-8 pt-12 md:pt-20 scrollbar-thin">
+            <main className="flex-1 h-full overflow-y-auto relative flex flex-col p-4 md:px-4 md:py-8 pt-12 md:pt-20 scrollbar-thin">
 
                 {/* Mobile Header */}
                 <MobileHeader setIsSidebarOpen={setIsSidebarOpen} isSidebarOpen={isSidebarOpen} />
@@ -695,14 +724,99 @@ const App: React.FC = () => {
 
             {/* Modal Export Sheets */}
             {showExportModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 p-6 text-center">
-                        <Copy className="w-16 h-16 text-green-600 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">Dados copiados!</h3>
-                        <p className="text-sm text-zinc-500 mb-6">Cole no Google Sheets usando Ctrl+V.</p>
-                        <div className="flex gap-3">
-                            <button onClick={() => setShowExportModal(false)} className="flex-1 py-3 text-zinc-600 dark:text-zinc-400 font-bold hover:bg-zinc-100 rounded-xl">Fechar</button>
-                            <button onClick={handleConfirmSheetsModal} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2"><ExternalLink className="w-4 h-4" /> Abrir Sheets</button>
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-md animate-in fade-in duration-300 overflow-hidden">
+                    <div
+                        className="absolute inset-0"
+                        onClick={() => setShowExportModal(false)}
+                    />
+                    <div className="relative bg-white dark:bg-zinc-900 w-full max-w-md rounded-[40px] shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 fade-in duration-300">
+                        <button
+                            onClick={() => setShowExportModal(false)}
+                            className="absolute top-6 right-6 p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all text-zinc-400 hover:text-zinc-900 dark:hover:text-white z-10"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+
+                        <div className="p-5 md:p-6">
+                            {/* Header */}
+                            <div className="flex flex-col items-center text-center mb-6">
+                                <div className="w-14 h-14 bg-green-50 dark:bg-green-900/20 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-green-100 dark:ring-green-900/30">
+                                    <FileSpreadsheet className="w-7 h-7 text-green-600 dark:text-green-400" />
+                                </div>
+                                <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-1">Dados Copiados!</h3>
+                                <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium max-w-sm">
+                                    {leads.length} lead{leads.length !== 1 ? 's' : ''} {leads.length !== 1 ? 'foram copiados' : 'foi copiado'}
+                                </p>
+                            </div>
+
+                            {/* Instructions */}
+                            <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-[20px] p-4 mb-4 border border-zinc-100 dark:border-zinc-700">
+                                <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-3 flex items-center gap-2">
+                                    <span className="w-5 h-5 bg-primary/10 rounded-full flex items-center justify-center text-primary text-[10px] font-bold">1</span>
+                                    Como colar no Google Sheets:
+                                </h4>
+                                <div className="space-y-2.5 text-left">
+                                    <div className="flex items-start gap-2.5">
+                                        <div className="w-7 h-7 bg-white dark:bg-zinc-700 rounded-lg flex items-center justify-center shrink-0 border border-zinc-200 dark:border-zinc-600">
+                                            <ExternalLink className="w-3.5 h-3.5 text-primary" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-zinc-900 dark:text-white">Crie uma nova planilha</p>
+                                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Clique no botão abaixo para criar</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2.5">
+                                        <div className="w-7 h-7 bg-white dark:bg-zinc-700 rounded-lg flex items-center justify-center shrink-0 border border-zinc-200 dark:border-zinc-600">
+                                            <Copy className="w-3.5 h-3.5 text-green-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-zinc-900 dark:text-white">Cole os dados</p>
+                                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Use <kbd className="px-1 py-0.5 bg-zinc-200 dark:bg-zinc-600 rounded text-[10px] font-mono">Ctrl+V</kbd> na célula A1</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2.5">
+                                        <div className="w-7 h-7 bg-white dark:bg-zinc-700 rounded-lg flex items-center justify-center shrink-0 border border-zinc-200 dark:border-zinc-600">
+                                            <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-zinc-900 dark:text-white">Pronto!</p>
+                                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Dados organizados automaticamente</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex flex-col gap-2">
+                                <button
+                                    onClick={handleConfirmSheetsModal}
+                                    className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg shadow-green-200 dark:shadow-green-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm"
+                                >
+                                    <ExternalLink className="w-4 h-4" />
+                                    Abrir Google Sheets
+                                </button>
+                                <button
+                                    onClick={() => setShowExportModal(false)}
+                                    className="w-full py-3 bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 font-bold rounded-xl transition-all active:scale-[0.98] text-sm"
+                                >
+                                    Fechar
+                                </button>
+                            </div>
+
+                            {/* Footer Note */}
+                            <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                <label className="flex items-center justify-center gap-2 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        checked={userSettings.hideSheetsModal}
+                                        onChange={(e) => setUserSettings(prev => ({ ...prev, hideSheetsModal: e.target.checked }))}
+                                        className="rounded text-primary-600 focus:ring-primary-500 cursor-pointer"
+                                    />
+                                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors">
+                                        Não mostrar novamente (abrir direto)
+                                    </span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>

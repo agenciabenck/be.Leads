@@ -321,7 +321,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
             )}
 
             {/* ... Rest of Kanban Board (Columns, Cards) ... */}
-            <div className="flex h-full gap-6 overflow-x-auto pb-4 items-start select-none">
+            <div className="flex h-full gap-4 overflow-x-auto pb-4 items-start select-none">
                 {COLUMNS.map((column) => {
                     const columnLeads = leads.filter((lead) => lead.status === column.id);
                     const totalValue = columnLeads.reduce((acc, lead) => acc + (lead.potentialValue || 0), 0);
@@ -339,7 +339,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
                             key={column.id}
                             onDragOver={(e) => handleDragOver(e, column.id)}
                             onDrop={(e) => handleDrop(e, column.id)}
-                            className={`flex-shrink-0 w-80 flex flex-col h-full max-h-full rounded-2xl transition-all duration-300 ${specialEffectClass}`}
+                            className={`flex-shrink-0 w-72 flex flex-col h-full max-h-full rounded-2xl transition-all duration-300 ${specialEffectClass}`}
                         >
                             <div className={`flex flex-col mb-2 p-2 rounded-t-2xl border-b-2 ${column.border.replace('border-', 'border-b-')} transition-colors`}>
                                 <div className="flex items-center justify-between mb-2">
@@ -357,14 +357,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
                                 </div>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto space-y-3 p-2 pb-10 scrollbar-thin">
+                            <div className="flex-1 overflow-y-auto space-y-2 p-1.5 pb-10 scrollbar-thin">
                                 {columnLeads.map((lead) => (
                                     <div
                                         key={lead.id}
                                         draggable={!readOnly}
                                         onDragStart={(e) => handleDragStart(e, lead.id)}
                                         onClick={() => !readOnly && setEditingLead(lead)}
-                                        className={`group bg-white dark:bg-zinc-800 p-3 rounded-xl shadow-sm border-t-2 ${lead.priority === 'high' ? 'border-t-red-500' : lead.priority === 'medium' ? 'border-t-amber-500' : 'border-t-blue-500'} border-x border-b border-zinc-200 dark:border-zinc-700 relative transition-all duration-300 ${!readOnly ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''} ${draggedLeadId === lead.id ? 'opacity-40 border-dashed ring-2 ring-primary-400 rotate-2 scale-95' : ''}`}
+                                        className={`group bg-white dark:bg-zinc-800 p-2.5 rounded-xl shadow-sm border-t-2 ${lead.priority === 'high' ? 'border-t-red-500' : lead.priority === 'medium' ? 'border-t-amber-500' : 'border-t-blue-500'} border-x border-b border-zinc-200 dark:border-zinc-700 relative transition-all duration-300 ${!readOnly ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''} ${draggedLeadId === lead.id ? 'opacity-40 border-dashed ring-2 ring-primary-400 rotate-2 scale-95' : ''}`}
                                     >
                                         {!readOnly && (
                                             <div className="absolute top-2 right-2 flex gap-1 z-20">
@@ -401,7 +401,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
                                             </div>
                                         )}
 
-                                        <div className="flex justify-between items-start mb-2 pr-20">
+                                        <div className="flex justify-between items-start mb-1 pr-16">
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={(e) => cyclePriority(e, lead)}
@@ -418,9 +418,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
                                             </div>
                                         </div>
 
-                                        <h4 className="text-[13px] font-bold text-zinc-800 dark:text-zinc-100 leading-snug line-clamp-2 mb-1.5">{lead.name}</h4>
+                                        <h4 className="text-[13px] font-bold text-zinc-800 dark:text-zinc-100 leading-snug line-clamp-2 mb-1">{lead.name}</h4>
 
-                                        <div className="mb-2 relative z-10" onClick={(e) => e.stopPropagation()}>
+                                        <div className="mb-1.5 relative z-10" onClick={(e) => e.stopPropagation()}>
                                             {quickEditingId === lead.id ? (
                                                 <div className="flex items-center gap-2 animate-in fade-in zoom-in-95 duration-100 bg-zinc-50 dark:bg-zinc-900 p-1 rounded-lg border border-primary-200 dark:border-primary-800 shadow-sm">
                                                     <span className="text-[10px] font-bold text-zinc-400 pl-1">R$</span>
@@ -449,7 +449,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
                                         </div>
 
                                         {lead.notes && lead.notes.trim() !== '' && (
-                                            <div className="mb-3 p-2 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-100 dark:border-zinc-700/50">
+                                            <div className="mb-2 p-1.5 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-100 dark:border-zinc-700/50">
                                                 <div className="flex items-start gap-1.5">
                                                     <FileText className="w-3 h-3 text-zinc-400 mt-0.5 flex-shrink-0" />
                                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 italic leading-relaxed">{lead.notes}</p>
@@ -457,7 +457,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
                                             </div>
                                         )}
 
-                                        <div className="flex items-center justify-between pt-1.5 border-t border-zinc-100 dark:border-zinc-700/50">
+                                        <div className="flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-700/50">
                                             <div className="flex items-center gap-1.5">
                                                 {lead.tags && lead.tags.length > 0 && (
                                                     <div className="flex -space-x-1 grayscale opacity-60">

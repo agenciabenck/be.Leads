@@ -20,17 +20,24 @@ serve(async (req) => {
         )
 
         const { data: { user } } = await supabaseClient.auth.getUser()
-
         if (!user) throw new Error('User not found')
 
-        const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
+        const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+        if (!stripeKey) throw new Error('STRIPE_SECRET_KEY is missing');
+
+        const stripe = new Stripe(stripeKey, {
             apiVersion: '2022-11-15',
             httpClient: Stripe.createFetchHttpClient(),
         })
 
-        const { returnUrl } = await req.json()
+        let returnUrl: string;
+        try {
+            const body = await req.json();
+            returnUrl = body.returnUrl;
+        } catch (e) {
+            throw new Error('Invalid JSON body');
+        }
 
-        // Get Customer ID
         const { data: subscriptionData } = await supabaseClient
             .from('user_subscriptions')
             .select('stripe_customer_id')
@@ -38,29 +45,24 @@ serve(async (req) => {
             .single()
 
         if (!subscriptionData?.stripe_customer_id) {
-            throw new Error('No subscription found')
+            throw new Error('No stripe customer found for this user');
         }
 
         const session = await stripe.billingPortal.sessions.create({
             customer: subscriptionData.stripe_customer_id,
-            return_url: returnUrl,
+            return_url: returnUrl || req.headers.get('origin') || '',
         })
 
         return new Response(
             JSON.stringify({ url: session.url }),
-            {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 200,
-            }
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
 
-    } catch (error) {
+    } catch (error: any) {
+        console.error('PORTAL ERROR:', error);
         return new Response(
             JSON.stringify({ error: error.message }),
-            {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 400,
-            }
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
     }
 })
