@@ -4,13 +4,15 @@ import { googleMapsService } from '@/services/googleMapsService';
 import { Lead, SearchState, SearchFilters, UserPlan } from '@/types/types';
 import { LOADING_MESSAGES, PLAN_CREDITS } from '@/constants/appConstants';
 
-export const useSearch = (globalHistory: string[]) => {
+export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: number) => void) => {
     const [query, setQuery] = useState('');
     const [leads, setLeads] = useState<Lead[]>([]);
     const [state, setState] = useState<SearchState>({ isSearching: false, error: null, hasSearched: false });
     const [filters, setFilters] = useState<SearchFilters>({ maxResults: 10, minRating: 0, requirePhone: true });
     const [searchMode, setSearchMode] = useState<'free' | 'guided'>('free');
     const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+    const [appendMode, setAppendMode] = useState(true);
+    const [searchHistory, setSearchHistory] = useState<any[]>([]);
 
     // Guided Search State
     const [selectedNiche, setSelectedNiche] = useState('');
@@ -198,14 +200,17 @@ export const useSearch = (globalHistory: string[]) => {
             }
 
             const finalResults = allValidResults.slice(0, requestedAmount);
-            setLeads(finalResults);
+            setLeads(prev => [...prev, ...finalResults]);
 
             // Atualiza uso no banco
             if (finalResults.length > 0) {
+                const newTotal = used + finalResults.length;
                 await supabase
                     .from('user_subscriptions')
-                    .update({ leads_used: used + finalResults.length })
+                    .update({ leads_used: newTotal })
                     .eq('user_id', user.id);
+
+                if (onCreditsUsed) onCreditsUsed(newTotal);
             }
 
         } catch (err: any) {
@@ -277,10 +282,13 @@ export const useSearch = (globalHistory: string[]) => {
             setLeads(prev => [...prev, ...finalResults]);
 
             if (finalResults.length > 0) {
+                const newTotal = used + finalResults.length;
                 await supabase
                     .from('user_subscriptions')
-                    .update({ leads_used: used + finalResults.length })
+                    .update({ leads_used: newTotal })
                     .eq('user_id', user.id);
+
+                if (onCreditsUsed) onCreditsUsed(newTotal);
             }
 
         } catch (err: any) {
@@ -289,6 +297,45 @@ export const useSearch = (globalHistory: string[]) => {
         } finally {
             setIsLoadingMore(false);
         }
+    };
+
+    const loadSearchHistory = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Lógica de Reset às 9:00 AM
+        const now = new Date();
+        const last9AM = new Date();
+        last9AM.setHours(9, 0, 0, 0);
+        if (now.getHours() < 9) {
+            last9AM.setDate(last9AM.getDate() - 1);
+        }
+
+        const { data, error } = await supabase
+            .from('search_history')
+            .select('*')
+            .eq('user_id', user.id)
+            .gte('created_at', last9AM.toISOString())
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Erro ao carregar histórico:', error);
+            return;
+        }
+
+        setSearchHistory(data || []);
+    };
+
+    const clearSearchHistory = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        await supabase
+            .from('search_history')
+            .delete()
+            .eq('user_id', user.id);
+
+        setSearchHistory([]);
     };
 
     return {
@@ -306,6 +353,11 @@ export const useSearch = (globalHistory: string[]) => {
         isLoadingCities,
         handleSearch,
         handleLoadMore,
-        isLoadingMore
+        isLoadingMore,
+        appendMode,
+        setAppendMode,
+        searchHistory,
+        loadSearchHistory,
+        clearSearchHistory
     };
 };

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Search, Search as SearchIcon, MapPin, LayoutGrid, List, Briefcase,
     ChevronDown, Building2, Trash2, AlertTriangle, X, Filter, Phone,
-    Loader2, Download, FileSpreadsheet, Plus, Sparkles
+    Loader2, Download, FileSpreadsheet, Plus, Sparkles, Clock
 } from 'lucide-react';
 import { Lead, SearchState, SearchFilters, SortField, SortOrder, CRMLead, AppTab } from '@/types/types';
 import { COMMON_NICHES, BRAZIL_STATES, LOADING_MESSAGES } from '@/constants/appConstants';
@@ -14,7 +14,7 @@ interface LeadExtractorProps {
     state: SearchState;
     filters: SearchFilters;
     setFilters: React.Dispatch<React.SetStateAction<SearchFilters>>;
-    handleSearch: (e?: React.FormEvent) => Promise<void>;
+    handleSearch: (e?: React.FormEvent, shouldClear?: boolean) => Promise<void>;
     loadingMessageIndex: number;
     locationPermission: 'prompt' | 'granted' | 'denied';
     requestLocation: () => void;
@@ -50,6 +50,9 @@ interface LeadExtractorProps {
     setLoadMoreQuantity: (v: number) => void;
     handleLoadMore: () => void;
     isLoadingMore: boolean;
+    searchHistory: any[];
+    loadSearchHistory: () => Promise<void>;
+    clearSearchHistory: () => Promise<void>;
 }
 
 const LeadExtractor: React.FC<LeadExtractorProps> = ({
@@ -93,8 +96,13 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
     loadMoreQuantity,
     setLoadMoreQuantity,
     handleLoadMore,
-    isLoadingMore
+    isLoadingMore,
+    searchHistory,
+    loadSearchHistory,
+    clearSearchHistory
 }) => {
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+
     return (
         <div className="space-y-6 animate-fade-in-up">
             {/* Header com título */}
@@ -124,6 +132,12 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                             </span>
                         )}
                         <button
+                            onClick={() => { loadSearchHistory(); setShowHistoryModal(true); }}
+                            className="text-xs font-bold text-primary-600 hover:text-primary-700 transition-colors flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/20 rounded-lg"
+                        >
+                            <Clock className="w-3.5 h-3.5" /> Histórico diário
+                        </button>
+                        <button
                             onClick={() => { if (globalHistory.length > 0) setGlobalHistory([]) }}
                             disabled={globalHistory.length === 0}
                             className={`text-xs font-medium flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 pl-3 transition-colors ${globalHistory.length === 0 ? 'text-zinc-300 dark:text-zinc-700 cursor-not-allowed' : 'text-zinc-400 hover:text-red-500'}`}
@@ -133,9 +147,22 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                     </div>
                 </div>
 
+                {/* Title and Reset Info */}
+                <div className="mt-4 mb-2 flex flex-col md:flex-row md:items-end justify-between gap-2">
+                    {searchMode === 'free' ? (
+                        <h3 className="text-xs font-bold text-zinc-500 uppercase ml-1">Escolha o nicho e local</h3>
+                    ) : (
+                        <div className="hidden md:block"></div> /* Spacer to keep alignment if needed */
+                    )}
+                    <div className="flex items-center gap-2 text-[11px] text-zinc-400">
+                        <Sparkles className="w-3 h-3 text-amber-500" />
+                        <span>O histórico de buscas é resetado automaticamente todos os dias às 09:00 AM.</span>
+                    </div>
+                </div>
+
                 {searchMode === 'free' ? (
                     <div className="flex gap-2">
-                        <input className="flex-1 p-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm transition-all" placeholder="Ex: Restaurantes Italianos em Pinheiros, SP..." value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
+                        <input className="flex-1 p-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm transition-all" placeholder="Ex: Restaurantes Italianos em Pinheiros, SP..." value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch(e, true)} />
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -202,8 +229,6 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                             <select value={filters.maxResults} onChange={e => setFilters(prev => ({ ...prev, maxResults: parseInt(e.target.value) }))} className="py-1.5 px-2 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg">
                                 <option value="10">10 resultados</option>
                                 <option value="20">20 resultados</option>
-                                <option value="40">40 resultados</option>
-                                <option value="60">60 resultados</option>
                             </select>
                         </div>
                         <label className="flex items-center gap-2 cursor-pointer bg-zinc-50 dark:bg-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-primary-300 transition-colors">
@@ -212,8 +237,8 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                             <span className="text-sm text-zinc-600 dark:text-zinc-300 whitespace-nowrap">Com telefone</span>
                         </label>
                     </div>
-                    <button onClick={(e) => handleSearch(e)} disabled={state.isSearching} className="w-full md:w-auto bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary-500/30 transition-all active:scale-95 disabled:opacity-70 disabled:scale-100">
-                        {state.isSearching ? <><Loader2 className="animate-spin w-5 h-5" /> {LOADING_MESSAGES[loadingMessageIndex]}</> : <><Search className="w-5 h-5" /> Buscar leads</>}
+                    <button onClick={(e) => handleSearch(e, true)} disabled={state.isSearching} className="w-full md:w-auto bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary-500/30 transition-all active:scale-95 disabled:opacity-70 disabled:scale-100">
+                        {state.isSearching ? <><Loader2 className="animate-spin w-5 h-5" /> {LOADING_MESSAGES[loadingMessageIndex]}</> : <><Search className="w-5 h-5" /> Nova busca de leads</>}
                     </button>
                 </div>
             </div>
@@ -224,7 +249,17 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                     <div className="flex items-center gap-3">
                         <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Resultados</h2>
                         {leads.length > 0 && <span className="bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 px-2.5 py-0.5 rounded-full text-sm font-bold">{leads.length}</span>}
-                        <span className="text-xs text-zinc-400 dark:text-zinc-600">Dados retirados do Google Maps, fornecidos por API oficial.</span>
+                        {leads.length > 0 && (
+                            <button
+                                onClick={() => setLeads([])}
+                                className="text-xs font-medium text-zinc-400 hover:text-red-500 transition-colors flex items-center gap-1 ml-2"
+                            >
+                                <Trash2 className="w-3 h-3" /> Limpar resultados
+                            </button>
+                        )}
+                        <span className="text-xs text-zinc-400 dark:text-zinc-600 ml-auto hidden md:flex items-center gap-1.5">
+                            Dados do Google Maps (API oficial e a magia da IA <Sparkles className="w-3 h-3 text-primary-500" />)
+                        </span>
                     </div>
                     {leads.length > 0 && (
                         <div className="flex gap-2">
@@ -266,11 +301,8 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                                 onChange={(e) => setLoadMoreQuantity(parseInt(e.target.value) || 10)}
                                 className="py-2 px-4 text-sm font-bold bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
                             >
-                                <option value="5">5 resultados</option>
                                 <option value="10">10 resultados</option>
                                 <option value="20">20 resultados</option>
-                                <option value="30">30 resultados</option>
-                                <option value="50">50 resultados</option>
                             </select>
                         </div>
                         <button
@@ -284,6 +316,63 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                     </div>
                 )}
             </div>
+
+            {/* Modal de Histórico Refinado */}
+            {showHistoryModal && (
+                <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[32px] shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-300 overflow-hidden flex flex-col items-center text-center">
+                        {/* Modal Header */}
+                        <div className="w-full p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
+                            <div className="flex items-center gap-3 text-left">
+                                <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
+                                    <Clock className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white leading-tight">Histórico diário</h3>
+                                    <p className="text-[11px] text-zinc-400 font-medium tracking-tight">Buscas realizadas desde as 09:00 AM</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowHistoryModal(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-400 hover:text-zinc-600">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Modal Body - Centralized */}
+                        <div className="p-10 flex flex-col items-center justify-center w-full">
+                            <div className="w-20 h-20 bg-primary-50 dark:bg-primary-900/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                                <Sparkles className="w-10 h-10 text-primary-500" />
+                            </div>
+                            <h4 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">Novidades em breve!</h4>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-[300px] leading-relaxed mx-auto">
+                                Esta função será atualizada em breve para você ter controle total sobre seus leads. Estamos preparando algo incrível!
+                            </p>
+
+                            {/* Visual dummy elements for "premium" feel */}
+                            <div className="mt-8 w-full max-w-[320px] space-y-3 opacity-20 pointer-events-none filter blur-[2px] mx-auto">
+                                {[1, 2].map(i => (
+                                    <div key={i} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-700 flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-700 rounded-lg"></div>
+                                            <div className="h-3 w-24 bg-zinc-200 dark:bg-zinc-700 rounded-md"></div>
+                                        </div>
+                                        <div className="h-3 w-10 bg-zinc-200 dark:bg-zinc-700 rounded-md"></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Modal Footer - Centralized Action */}
+                        <div className="w-full p-6 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex justify-center">
+                            <button
+                                onClick={() => setShowHistoryModal(false)}
+                                className="w-full max-w-[200px] py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl font-bold text-sm shadow-xl hover:opacity-90 transition-all active:scale-95"
+                            >
+                                Entendi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

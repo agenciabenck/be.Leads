@@ -81,6 +81,7 @@ export interface UserSettings {
   pipelineGoal: number; // Meta mensal em R$
   pipelineResetDay: number; // Dia do mês que a meta reseta
   plan: UserPlan;
+  leadsUsed: number;
   hideSheetsModal: boolean;
   lastCreditReset: string;
   notifications: {

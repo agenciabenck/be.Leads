@@ -16,6 +16,7 @@ export const useAuth = () => {
         pipelineGoal: 5000,
         pipelineResetDay: 1,
         plan: 'free',
+        leadsUsed: 0,
         hideSheetsModal: false,
         lastCreditReset: new Date().toISOString(),
         notifications: { email: true, browser: true, weeklyReport: true }
@@ -63,6 +64,7 @@ export const useAuth = () => {
                 pipelineGoal: 5000,
                 pipelineResetDay: 1,
                 plan: 'free',
+                leadsUsed: 0,
                 hideSheetsModal: false,
                 lastCreditReset: new Date().toISOString(),
                 notifications: { email: true, browser: true, weeklyReport: true }
@@ -92,6 +94,7 @@ export const useAuth = () => {
                 if (sub) {
                     console.log('[Auth] Subscription from DB:', sub);
                     loadedSettings.plan = (sub.plan_id as UserPlan) || 'free';
+                    loadedSettings.leadsUsed = sub.leads_used || 0;
                 } else {
                     // SILENT INITIALIZATION: If user exists but no subscription record
                     console.log('[Auth] No subscription found, initializing free plan...');

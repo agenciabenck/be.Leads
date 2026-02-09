@@ -46,8 +46,11 @@ const App: React.FC = () => {
         query, setQuery, leads, setLeads, state, setState, filters, setFilters, searchMode, setSearchMode,
         loadingMessageIndex, selectedNiche, setSelectedNiche, selectedState, setSelectedState,
         selectedCity, setSelectedCity, excludedCity, setExcludedCity,
-        cityList, isLoadingCities, handleSearch, handleLoadMore, isLoadingMore
-    } = useSearch(globalHistory);
+        cityList, isLoadingCities, handleSearch, handleLoadMore, isLoadingMore,
+        searchHistory, loadSearchHistory, clearSearchHistory
+    } = useSearch(globalHistory, (newTotal) => {
+        setUserSettings(prev => ({ ...prev, leadsUsed: newTotal }));
+    });
     const { calendarEvents, setCalendarEvents, upcomingEvents, addEvent, clearAllEvents } = useCalendar(user?.id);
 
     // --- UI Local State ---
@@ -84,7 +87,7 @@ const App: React.FC = () => {
 
     // --- Derived State ---
     const MAX_CREDITS = PLAN_CREDITS[userSettings.plan];
-    const USED_CREDITS = leads.length;
+    const USED_CREDITS = userSettings.leadsUsed;
     const PLAN_PERCENTAGE = Math.min((USED_CREDITS / MAX_CREDITS) * 100, 100);
     const PLAN = { name: userSettings.plan };
 
@@ -452,6 +455,9 @@ const App: React.FC = () => {
                         setLoadMoreQuantity={setLoadMoreQuantity}
                         handleLoadMore={() => handleLoadMore(loadMoreQuantity)}
                         isLoadingMore={isLoadingMore}
+                        searchHistory={searchHistory}
+                        loadSearchHistory={loadSearchHistory}
+                        clearSearchHistory={clearSearchHistory}
                     />
                 )}
 
