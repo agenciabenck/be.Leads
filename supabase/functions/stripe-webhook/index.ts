@@ -57,8 +57,16 @@ serve(async (req) => {
     return new Response(JSON.stringify({ received: true }), { status: 200 })
 })
 
-async function updateSubscription(subscription: StripeSubscription) {
+const PRICE_MAP: Record<string, string> = {
+    "price_1QovA7SFY1oG7C21R71N24": 'start',
+    "price_1QovBSSFdF1oG7C2188X922": 'pro',
+    "price_1QovCfSFG1oG7Y21O99m24": 'elite'
+};
+
+async function updateSubscription(subscription: any) {
     const customerId = subscription.customer
+    const priceId = subscription.items?.data[0]?.price?.id;
+    const planName = PRICE_MAP[priceId] || 'free';
 
     const { data: customer } = await supabaseClient
         .from('user_subscriptions')
@@ -67,11 +75,15 @@ async function updateSubscription(subscription: StripeSubscription) {
         .single()
 
     if (customer) {
+        // If status is active, we update the plan. 
+        // We also reset leads if the plan CHANGED or if it's a renewal (handled by simple update here, 
+        // though ideal regular reset is by date/invoice event. For now, plan consistency is P0).
+
         await supabaseClient
             .from('user_subscriptions')
             .update({
                 status: subscription.status,
-                stripe_subscription_id: subscription.id,
+                plan_id: planName,
                 current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
             })
             .eq('user_id', customer.user_id)

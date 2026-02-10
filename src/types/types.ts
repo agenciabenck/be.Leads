@@ -90,6 +90,7 @@ export interface UserSettings {
     weeklyReport: boolean;
   };
   billingCycle: 'monthly' | 'annual';
+  subscriptionStatus: 'active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'unpaid' | null;
 }
 
 export type AppTab = 'home' | 'search' | 'crm' | 'subscription' | 'settings';

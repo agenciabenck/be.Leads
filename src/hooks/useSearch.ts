@@ -76,23 +76,7 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
         let lastReset = subscriptionData?.last_credit_reset ? new Date(subscriptionData.last_credit_reset) : null;
 
         // Reset Mensal se necessário
-        if (lastReset) {
-            const nextReset = new Date(lastReset);
-            nextReset.setMonth(nextReset.getMonth() + 1);
 
-            if (now >= nextReset) {
-                used = 0;
-                lastReset = now;
-                await supabase
-                    .from('user_subscriptions')
-                    .update({ leads_used: 0, last_credit_reset: now.toISOString() })
-                    .eq('user_id', user.id);
-            }
-        } else {
-            await supabase
-                .from('user_subscriptions')
-                .upsert({ user_id: user.id, last_credit_reset: now.toISOString(), plan_id: 'free', leads_used: 0, status: 'active' });
-        }
 
         const remainingCredits = limit - used;
         const requestedQuantity = filters.maxResults || 20;
@@ -204,11 +188,15 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
                 setLeads(prev => [...prev, ...finalResults]);
                 const newTotal = used + finalResults.length;
 
-                // ATUALIZAR CRÉDITOS NO SUPABASE
-                await supabase
-                    .from('user_subscriptions')
-                    .update({ leads_used: newTotal })
-                    .eq('user_id', user.id);
+                // ATUALIZAR CRÉDITOS NO SUPABASE VIA RPC (Seguro)
+                const { data: rpcData, error: rpcError } = await supabase.rpc('consume_credits', { amount: finalResults.length });
+
+                if (rpcError) {
+                    console.error('Erro ao debitar créditos:', rpcError);
+                } else if (rpcData && !rpcData.success) {
+                    console.error('Erro de crédito:', rpcData.message);
+                }
+
 
                 if (onCreditsUsed) onCreditsUsed(newTotal);
 
@@ -299,10 +287,9 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
                 setLeads(prev => [...prev, ...finalResults]);
                 const newTotal = used + finalResults.length;
 
-                await supabase
-                    .from('user_subscriptions')
-                    .update({ leads_used: newTotal })
-                    .eq('user_id', user.id);
+                const { data: rpcData, error: rpcError } = await supabase.rpc('consume_credits', { amount: finalResults.length });
+                if (rpcError) console.error('Erro ao debitar créditos (LoadMore):', rpcError);
+
 
                 if (onCreditsUsed) onCreditsUsed(newTotal);
 

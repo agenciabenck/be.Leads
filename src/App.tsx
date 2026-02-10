@@ -3,7 +3,7 @@ import {
     RotateCcw, Loader2, CalendarIcon, X, Plus, Copy, ExternalLink, Clock, FileSpreadsheet, Sparkles, Phone, PlusCircle, MessageCircle
 } from 'lucide-react';
 import { supabase } from '@/services/supabase';
-import { createCheckoutSession } from '@/services/payment';
+import { createCheckoutSession, createPortalSession } from '@/services/payment';
 import { Auth } from '@/components/Auth';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LeadTable } from '@/components/LeadTable';
@@ -209,35 +209,23 @@ const App: React.FC = () => {
         if (!user) return;
 
         try {
-            // Bypass Stripe: Update Plan directly in DB
-            const { error: updateError } = await supabase
-                .from('user_subscriptions')
-                .update({
-                    plan_id: planId,
-                    status: 'active'
-                })
-                .eq('user_id', user.id);
+            // Check if user needs to go to portal
+            const isFree = userSettings.plan === 'free';
+            const isActive = userSettings.subscriptionStatus === 'active' || userSettings.subscriptionStatus === 'trialing';
 
-            if (updateError) throw updateError;
+            if (isActive && !isFree) {
+                showNotification('Redirecionando para o portal para gerenciar sua assinatura...', 'info');
+                await createPortalSession();
+                return;
+            }
 
-            // Update local state
-            const newCycle = isAnnual ? 'annual' : 'monthly';
-            setUserSettings(prev => ({
-                ...prev,
-                plan: planId as UserPlan,
-                billingCycle: newCycle
-            }));
+            // Create Checkout Session
+            showNotification('Iniciando checkout seguro...', 'info');
+            await createCheckoutSession(STRIPE_PRICES[planId], isAnnual);
 
-            // Also update the UI toggle explicitely
-            setBillingCycle(newCycle);
-
-            showNotification(`Parabéns! Seu plano agora é ${planId.toUpperCase()}.`, 'success');
-
-            // Removed redirect to Home as requested
-            // setTimeout(() => setActiveTab('home'), 1500);
         } catch (err: any) {
-            console.error('[Plano] Erro ao atualizar:', err);
-            showNotification('Erro ao atualizar plano. Tente novamente.', 'error');
+            console.error('[Plano] Erro ao iniciar checkout:', err);
+            showNotification(err.message || 'Erro ao iniciar pagamento.', 'error');
         }
     };
 

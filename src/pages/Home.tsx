@@ -150,7 +150,7 @@ const Home: React.FC<HomeProps> = ({
                             <div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-xl flex items-center justify-center ring-1 ring-zinc-100/50 dark:ring-white/10">
                                 <Shield className="w-5 h-5 text-zinc-800 dark:text-zinc-200" />
                             </div>
-                            <h3 className="text-base font-bold text-zinc-800 dark:text-white tracking-tight">Status do seu plano</h3>
+                            <h3 className="text-base font-bold text-zinc-800 dark:text-white tracking-tight leading-none">Status do seu plano</h3>
                         </div>
 
                         <div className="flex flex-col h-full mt-auto">
@@ -187,7 +187,7 @@ const Home: React.FC<HomeProps> = ({
                             <div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-xl flex items-center justify-center ring-1 ring-zinc-100/50 dark:ring-white/10">
                                 <Users className={`w-5 h-5 ${hasCRMAccess ? 'text-zinc-800 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`} />
                             </div>
-                            <h3 className={`text-base font-bold tracking-tight ${hasCRMAccess ? 'text-zinc-800 dark:text-white' : 'text-text-secondary dark:text-zinc-500'}`}>Leads no CRM</h3>
+                            <h3 className={`text-base font-bold tracking-tight leading-none ${hasCRMAccess ? 'text-zinc-800 dark:text-white' : 'text-text-secondary dark:text-zinc-500'}`}>Leads no CRM</h3>
                         </div>
 
                         {hasCRMAccess ? (
@@ -230,7 +230,7 @@ const Home: React.FC<HomeProps> = ({
                             <div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-xl flex items-center justify-center ring-1 ring-zinc-100/50 dark:ring-white/10">
                                 <DollarSign className={`w-5 h-5 ${hasCRMAccess ? 'text-zinc-800 dark:text-zinc-200' : 'text-zinc-300 dark:text-zinc-600'}`} />
                             </div>
-                            <h3 className={`text-base font-bold tracking-tight ${hasCRMAccess ? 'text-zinc-800 dark:text-white' : 'text-text-secondary dark:text-zinc-500'}`}>Ganho mensal</h3>
+                            <h3 className={`text-base font-bold tracking-tight leading-none ${hasCRMAccess ? 'text-zinc-800 dark:text-white' : 'text-text-secondary dark:text-zinc-500'}`}>Ganho mensal</h3>
                         </div>
 
                         {hasCRMAccess ? (

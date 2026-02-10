@@ -20,7 +20,8 @@ export const useAuth = () => {
         hideSheetsModal: false,
         lastCreditReset: new Date().toISOString(),
         notifications: { email: true, browser: true, weeklyReport: true },
-        billingCycle: 'monthly'
+        billingCycle: 'monthly',
+        subscriptionStatus: 'active'
     });
 
     useEffect(() => {
@@ -63,7 +64,8 @@ export const useAuth = () => {
                 hideSheetsModal: false,
                 lastCreditReset: new Date().toISOString(),
                 notifications: { email: true, browser: true, weeklyReport: true },
-                billingCycle: 'monthly'
+                billingCycle: 'monthly',
+                subscriptionStatus: 'active'
             };
 
             const loadedSettings = getUserData<UserSettings>(currentUser.id, 'settings', baseSettings);
@@ -81,7 +83,7 @@ export const useAuth = () => {
             try {
                 const { data: sub, error: subError } = await supabase
                     .from('user_subscriptions')
-                    .select('plan_id, leads_used, last_credit_reset')
+                    .select('plan_id, leads_used, last_credit_reset, status')
                     .eq('user_id', currentUser.id)
                     .maybeSingle();
 
@@ -91,19 +93,10 @@ export const useAuth = () => {
 
                     loadedSettings.plan = (sub.plan_id as UserPlan) || 'free';
                     loadedSettings.leadsUsed = sub.leads_used || 0;
+                    loadedSettings.subscriptionStatus = sub.status;
                 } else {
                     // SILENT INITIALIZATION: If user exists but no subscription record
-
-                    const now = new Date();
-                    await supabase
-                        .from('user_subscriptions')
-                        .upsert({
-                            user_id: currentUser.id,
-                            plan_id: 'free',
-                            leads_used: 0,
-                            last_credit_reset: now.toISOString(),
-                            status: 'active'
-                        });
+                    await supabase.rpc('ensure_free_plan');
                     loadedSettings.plan = 'free';
                 }
             } catch (err) {

@@ -82,6 +82,11 @@ serve(async (req) => {
                     stripe_customer_id: customerId,
                     status: 'incomplete'
                 })
+        } else {
+            // Check if user already has an active subscription to prevent double-billing
+            if (subscriptionData.status === 'active' || subscriptionData.status === 'trialing') {
+                throw new Error('Você já possui uma assinatura ativa. Utilize o portal para gerenciar seu plano.');
+            }
         }
 
         const origin = req.headers.get('origin') || 'http://localhost:5173';
