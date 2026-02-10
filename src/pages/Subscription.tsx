@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, BadgeCheck } from 'lucide-react';
 import { UserSettings, UserPlan } from '@/types/types';
 import { PLAN_HIERARCHY, STRIPE_PRICES } from '@/constants/appConstants';
 
@@ -63,18 +63,38 @@ const Subscription: React.FC<SubscriptionProps> = ({
     return (
         <div className="animate-fade-in-up max-w-6xl mx-auto w-full pb-10">
             <div className="mb-10">
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Planos</h2>
+                <h2 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2 tracking-tighter">Planos</h2>
                 <p className="text-zinc-500 dark:text-zinc-400 mb-6">Escolha a melhor ferramenta para escalar suas vendas.</p>
 
-                {/* Toggle Mensal/Anual */}
-                <div className="flex flex-col items-center gap-4 mb-8">
-                    <div className="bg-white dark:bg-zinc-800 p-1 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex items-center shadow-sm">
+                {/* Toggle Mensal/Anual & Banner - Alinhados em linha com mesmo gap dos planos */}
+                <div className="flex flex-col lg:flex-row items-center justify-center gap-6 mb-12">
+                    <div className="bg-white dark:bg-zinc-800 p-1 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex items-center shadow-sm relative group/toggle">
                         <button
-                            onClick={() => setBillingCycle('monthly')}
-                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${billingCycle === 'monthly' ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-md' : 'text-zinc-500'}`}
+                            onClick={() => {
+                                if (userSettings.plan !== 'free' && userSettings.billingCycle === 'annual') return;
+                                setBillingCycle('monthly');
+                            }}
+                            disabled={userSettings.plan !== 'free' && userSettings.billingCycle === 'annual'}
+                            title={userSettings.plan !== 'free' && userSettings.billingCycle === 'annual' ? "Plano anual em vigência" : ""}
+                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${billingCycle === 'monthly'
+                                ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-md'
+                                : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                                } ${userSettings.plan !== 'free' && userSettings.billingCycle === 'annual'
+                                    ? 'cursor-not-allowed opacity-50 hover:text-zinc-500'
+                                    : 'cursor-pointer'
+                                }`}
                         >
                             Mensal
                         </button>
+
+                        {/* Tooltip personalizado para quando estiver bloqueado */}
+                        {userSettings.plan !== 'free' && userSettings.billingCycle === 'annual' && (
+                            <div className="hidden group-hover/toggle:block absolute -top-10 left-0 bg-zinc-900 text-white text-xs px-3 py-1.5 rounded-lg whitespace-nowrap shadow-xl z-50">
+                                Plano anual em vigência
+                                <div className="absolute -bottom-1 left-4 w-2 h-2 bg-zinc-900 rotate-45"></div>
+                            </div>
+                        )}
+
                         <button
                             onClick={() => setBillingCycle('annual')}
                             className={`px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${billingCycle === 'annual' ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-md' : 'text-zinc-500'}`}
@@ -85,39 +105,132 @@ const Subscription: React.FC<SubscriptionProps> = ({
                             </span>
                         </button>
                     </div>
+
+                    <div className="inline-flex items-center gap-3 px-6 py-2.5 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm animate-fade-in">
+                        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-success-50 dark:bg-success-900/30 text-success-600 dark:text-success-400 transition-all duration-300">
+                            {billingCycle === 'monthly' ? '🚀' : '✨'}
+                        </span>
+                        <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400 transition-all duration-300">
+                            {billingCycle === 'monthly' ? (
+                                <>Economize agora e garanta o melhor preço com o <span className="text-zinc-900 dark:text-white font-bold">plano anual</span></>
+                            ) : (
+                                <><span className="text-success-600 dark:text-success-400 font-bold">Desconto aplicado</span> com sucesso em todos os planos!</>
+                            )}
+                        </p>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {planList.map(plan => {
                         const currentLevel = PLAN_HIERARCHY[userSettings.plan];
                         const planLevel = PLAN_HIERARCHY[plan.id as UserPlan];
-                        const isCurrent = userSettings.plan === plan.id;
-                        const isLower = planLevel < currentLevel;
-                        const showPopular = plan.popular && userSettings.plan !== 'elite' && userSettings.plan !== 'pro';
+
+                        // Exact match: Same Plan AND Same Cycle
+                        const isCurrentPlan = userSettings.plan === plan.id;
+                        const isCurrentCycle = userSettings.billingCycle === billingCycle;
+                        const isExactMatch = isCurrentPlan && isCurrentCycle;
+
+                        // Logic:
+                        // 1. Block Downgrade of Tiers
+                        const isTierDowngrade = planLevel < currentLevel;
+
+                        // 2. Block Cycle Downgrade
+                        const isCycleDowngrade = userSettings.billingCycle === 'annual' && billingCycle === 'monthly';
+
+                        // 3. Upgrade opportunities
+                        const isDowngrade = isTierDowngrade || (isCurrentPlan && isCycleDowngrade);
+                        const isCrossCycleUpgrade = isCurrentPlan && userSettings.billingCycle === 'monthly' && billingCycle === 'annual';
+
+                        // Show popular on PRO if user is on Free or Start (Logic: highlight PRO for non-premium/low-tier users)
+                        const showPopular = plan.id === 'pro' && (userSettings.plan === 'free' || userSettings.plan === 'start');
+                        // Current Plan Logic
+                        const isCurrentTier = userSettings.plan === plan.id;
+                        // isExactMatch already defined
+
+                        // Determine Badge Text
+                        let badgeText = '';
+                        if (isExactMatch) badgeText = 'Plano Atual';
+                        else if (isCurrentTier) badgeText = userSettings.billingCycle === 'annual' ? 'Seu plano (Anual)' : 'Seu plano (Mensal)';
+
+                        const showCurrentBadge = isCurrentTier; // Show badge for any card of the current tier
 
                         let cardStyle = 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800';
+
                         if (showPopular) {
                             cardStyle = 'bg-white dark:bg-zinc-900 border-success-500 ring-2 ring-success-500/20 scale-105 z-10';
-                        } else if (isCurrent) {
+                        } else if (showCurrentBadge) {
                             if (plan.id === 'free') {
                                 cardStyle = 'bg-zinc-50 dark:bg-zinc-900 border-zinc-400 ring-1 ring-zinc-400 shadow-xl shadow-zinc-500/10 scale-[1.02]';
                             } else {
-                                cardStyle = 'bg-gradient-to-br from-success-50 to-white dark:from-zinc-900 dark:to-zinc-800/50 border-success-500 ring-1 ring-success-500 shadow-xl shadow-success-500/10 scale-[1.02]';
+                                // Premium Plan Highlight
+                                cardStyle = 'bg-gradient-to-br from-success-50/50 to-white dark:from-zinc-900 dark:to-zinc-800/50 border-success-500 ring-2 ring-success-500/40 shadow-2xl shadow-success-500/10 scale-[1.02] z-0';
                             }
                         }
 
+                        // Button State Logic
+                        let buttonText = 'Selecionar plano';
+                        let buttonStyle = 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 active:scale-95'; // Default Black
+                        let isDisabled = false;
+
+                        if (isExactMatch) {
+                            buttonText = 'Plano atual';
+                            // Gray for current plan
+                            buttonStyle = 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-default shadow-none';
+                            isDisabled = true;
+                        } else if (isCurrentTier) {
+                            // User has this Tier but different cycle
+                            if (isCycleDowngrade) {
+                                buttonText = 'Seu plano é Anual';
+                                // Gray for current plan variation
+                                buttonStyle = 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-default border border-zinc-300 dark:border-zinc-700';
+                                isDisabled = true;
+                            } else if (plan.id === 'free') {
+                                // Free plan is always "Current" regardless of cycle view - NO upgrade to annual option
+                                buttonText = 'Plano atual';
+                                buttonStyle = 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-default shadow-none';
+                                isDisabled = true;
+                            } else {
+                                // Upgrade from Monthly to Annual (Cross Cycle)
+                                buttonText = 'Mudar para anual';
+                                // Default Black
+                                buttonStyle = 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 active:scale-95';
+                            }
+                        } else if (showCurrentBadge) {
+                            // Fallback
+                            buttonText = 'Plano atual';
+                            buttonStyle = 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-default shadow-none';
+                            isDisabled = true;
+                        } else if (isDowngrade) {
+                            buttonText = 'Indisponível';
+                            buttonStyle = 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed opacity-50';
+                            isDisabled = true;
+                        } else if (isCrossCycleUpgrade) {
+                            buttonText = 'Mudar para anual';
+                            // Default Black
+                        } else if (planLevel > currentLevel) {
+                            buttonText = 'Selecionar plano';
+                            // Default Black
+                        }
+
+                        // Override for Popular (Green)
+                        if (showPopular && !showCurrentBadge && !isDowngrade) {
+                            buttonStyle = 'bg-success-600 text-white hover:bg-success-700 shadow-lg shadow-success-500/20 active:scale-95';
+                        }
+
                         return (
-                            <div key={plan.id} className={`relative rounded-3xl p-5 border flex flex-col transition-all ${cardStyle} ${isLower ? 'opacity-70 grayscale-[0.5]' : ''}`}>
+                            <div key={plan.id} className={`relative rounded-3xl p-5 border flex flex-col transition-all ${cardStyle} ${isDowngrade && !showCurrentBadge ? 'opacity-70 grayscale-[0.5]' : ''}`}>
                                 {showPopular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-success-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg shadow-success-500/30">Mais popular</div>}
-                                {isCurrent && (
+                                {showCurrentBadge && (
                                     <div className="absolute top-2 right-2">
                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${plan.id === 'free' ? 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-300 dark:border-zinc-700' : 'bg-success-100 text-success-700 dark:bg-success-900 dark:text-success-300 border-success-200 dark:border-success-800'}`}>
-                                            <Check className="w-3 h-3" /> Atual
+                                            <BadgeCheck className="w-3 h-3" /> {badgeText}
                                         </span>
                                     </div>
                                 )}
                                 <div className="flex flex-col mb-4">
-                                    <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">{plan.name}</h3>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <h3 className="text-3xl font-bold text-zinc-900 dark:text-white tracking-tighter">{plan.name}</h3>
+                                    </div>
                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed min-h-[32px] mb-3">
                                         {plan.headline}
                                     </p>
@@ -170,34 +283,31 @@ const Subscription: React.FC<SubscriptionProps> = ({
                                 </ul>
 
                                 <button
-                                    onClick={() => !isLower && handleCheckout(plan.id as keyof typeof STRIPE_PRICES, billingCycle === 'annual')}
-                                    disabled={isCurrent || isLower}
-                                    className={`w-full py-3 rounded-2xl font-bold transition-all text-sm ${isCurrent
-                                        ? 'bg-success-600 text-white cursor-default shadow-md active:scale-100'
-                                        : isLower
-                                            ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed opacity-50'
-                                            : showPopular
-                                                ? 'bg-success-600 text-white hover:bg-success-700 shadow-lg shadow-success-500/20 active:scale-95'
-                                                : 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 active:scale-95'
-                                        }`}
+                                    onClick={() => !isDisabled && handleCheckout(plan.id as keyof typeof STRIPE_PRICES, billingCycle === 'annual')}
+                                    disabled={isDisabled}
+                                    className={`w-full py-3 rounded-xl font-bold transition-all text-sm ${buttonStyle}`}
                                 >
-                                    {isCurrent ? 'Plano atual' : isLower ? 'Plano inferior' : 'Selecionar plano'}
+                                    {buttonText}
                                 </button>
                             </div>
                         );
                     })}
                 </div>
 
-                <div className="mt-8 text-center pb-12">
-                    <div className="inline-flex items-center gap-3 px-6 py-3 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm animate-fade-in">
-                        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-success-50 dark:bg-success-900/30 text-success-600 dark:text-success-400">
-                            🚀
-                        </span>
-                        <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                            Economize agora e garanta o melhor preço com o <span className="text-zinc-900 dark:text-white font-bold">plano anual</span>
-                        </p>
+                {/* Card Enterprise/Suporte - Compacto, Centralizado e Rounded-3xl */}
+                <div className="mt-12 bg-zinc-900 dark:bg-zinc-900/50 rounded-3xl p-6 border border-zinc-800 dark:border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl shadow-zinc-900/20 max-w-2xl mx-auto">
+                    <div>
+                        <h3 className="text-lg font-bold text-white mb-1">Precisa de mais recursos?</h3>
+                        <p className="text-xs text-zinc-400 max-w-xs">Para planos customizados, limites maiores ou suporte para times, entre em contato.</p>
                     </div>
+                    <a
+                        href="mailto:suporte@agenciabenck.com"
+                        className="px-6 py-2.5 bg-white text-zinc-900 rounded-xl font-bold hover:bg-zinc-100 transition-all active:scale-95 shadow-lg text-sm whitespace-nowrap"
+                    >
+                        suporte@agenciabenck.com
+                    </a>
                 </div>
+
             </div>
         </div>
     );

@@ -19,7 +19,8 @@ export const useAuth = () => {
         leadsUsed: 0,
         hideSheetsModal: false,
         lastCreditReset: new Date().toISOString(),
-        notifications: { email: true, browser: true, weeklyReport: true }
+        notifications: { email: true, browser: true, weeklyReport: true },
+        billingCycle: 'monthly'
     });
 
     useEffect(() => {
@@ -47,12 +48,6 @@ export const useAuth = () => {
             const meta = currentUser.user_metadata || {};
             const metadataName = meta.full_name || meta.name || meta.displayName || meta.first_name || meta.custom_name;
 
-            console.log('[Auth] Hydration details:', {
-                id: currentUser.id,
-                email: currentUser.email,
-                metadataName,
-                rawMetadata: meta
-            });
 
             const baseSettings: UserSettings = {
                 name: metadataName || 'Usuário',
@@ -67,7 +62,8 @@ export const useAuth = () => {
                 leadsUsed: 0,
                 hideSheetsModal: false,
                 lastCreditReset: new Date().toISOString(),
-                notifications: { email: true, browser: true, weeklyReport: true }
+                notifications: { email: true, browser: true, weeklyReport: true },
+                billingCycle: 'monthly'
             };
 
             const loadedSettings = getUserData<UserSettings>(currentUser.id, 'settings', baseSettings);
@@ -77,7 +73,7 @@ export const useAuth = () => {
 
             // PRIORITY: If metadata has a real name, use it over "Usuário"
             if (metadataName && (loadedSettings.name === 'Usuário' || !loadedSettings.name)) {
-                console.log('[Auth] Using metadata name:', metadataName);
+
                 loadedSettings.name = metadataName;
             }
 
@@ -92,12 +88,12 @@ export const useAuth = () => {
                 if (subError && subError.code !== 'PGRST116') throw subError;
 
                 if (sub) {
-                    console.log('[Auth] Subscription from DB:', sub);
+
                     loadedSettings.plan = (sub.plan_id as UserPlan) || 'free';
                     loadedSettings.leadsUsed = sub.leads_used || 0;
                 } else {
                     // SILENT INITIALIZATION: If user exists but no subscription record
-                    console.log('[Auth] No subscription found, initializing free plan...');
+
                     const now = new Date();
                     await supabase
                         .from('user_subscriptions')

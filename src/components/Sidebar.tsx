@@ -1,4 +1,4 @@
-import { Home, Search as SearchIcon, KanbanSquare, Wallet, Settings, LogOut } from 'lucide-react';
+import { Home, Search as SearchIcon, KanbanSquare, Wallet, Settings, LogOut, BadgeCheck } from 'lucide-react';
 import { AppTab, UserSettings } from '@/types/types';
 
 interface SidebarProps {
@@ -76,14 +76,17 @@ const Sidebar: React.FC<SidebarProps> = ({
                     />
                 </div>
 
-                {userSettings.plan === 'elite' ? (
-                    <div className="w-full py-3 text-[13px] font-bold rounded-2xl bg-success/20 text-success flex items-center justify-center gap-2 border border-success/30 cursor-default">
-                        Você está no topo! 👑
-                    </div>
+                {(userSettings.plan === 'elite' || userSettings.plan === 'pro') ? (
+                    <button
+                        onClick={() => setActiveTab('subscription')}
+                        className="w-full py-3 text-[13px] font-bold rounded-xl bg-success/20 hover:bg-success/30 text-success flex items-center justify-center gap-2 border border-success/30 transition-all cursor-pointer"
+                    >
+                        {userSettings.plan === 'elite' ? 'Você está no topo!' : 'Plano Pro ativo'} <BadgeCheck className="w-4 h-4" />
+                    </button>
                 ) : (
                     <button
                         onClick={() => setActiveTab('subscription')}
-                        className="w-full py-3 text-[13px] font-bold rounded-2xl bg-success hover:bg-success-600 text-white transition-all active:scale-[0.98] shadow-lg shadow-success/20"
+                        className="w-full py-3 text-[13px] font-bold rounded-xl bg-success hover:bg-success-600 text-white transition-all active:scale-[0.98] shadow-lg shadow-success/20"
                     >
                         Fazer upgrade de plano
                     </button>

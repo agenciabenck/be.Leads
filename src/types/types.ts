@@ -89,6 +89,15 @@ export interface UserSettings {
     browser: boolean;
     weeklyReport: boolean;
   };
+  billingCycle: 'monthly' | 'annual';
 }
 
 export type AppTab = 'home' | 'search' | 'crm' | 'subscription' | 'settings';
+
+export interface SearchHistoryItem {
+  id: string;
+  lead_name: string | null;
+  lead_phone: string | null;
+  lead_id: string | null;
+  created_at: string;
+}

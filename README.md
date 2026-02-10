@@ -170,6 +170,13 @@ RewriteRule . /index.html [L]
 
 ## 📝 Changelog Recente
 
+### [2026-02-10] - Refinamento de UI e Lógica de Planos
+- ✅ **Lógica de Plano Anual**: Seleção de ciclo anual persiste corretamente e bloqueia visualmente a troca para mensal.
+- ✅ **Banner Promocional**: Feedback visual imediato ("Desconto aplicado") ao selecionar plano anual.
+- ✅ **Refinamento Visual**: Títulos padronizados com `tracking-tighter` e tamanho `text-4xl`.
+- ✅ **UX de Upgrade**: Botões de upgrade substituídos por badges clicáveis ("Você está no topo!") para usuários Pro/Elite na Home e Sidebar.
+- ✅ **Plano Free**: Removida opção de "mudar para anual" para plano gratuito.
+
 ### [2026-02-08] - Isolamento de Dados por Usuário
 - ✅ Implementado storage isolado por `user.id`
 - ✅ Criado `storageUtils.ts` para gerenciar localStorage

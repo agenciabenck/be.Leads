@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/services/supabase';
 import { googleMapsService } from '@/services/googleMapsService';
-import { Lead, SearchState, SearchFilters, UserPlan } from '@/types/types';
+import { Lead, SearchState, SearchFilters, UserPlan, SearchHistoryItem } from '@/types/types';
 import { LOADING_MESSAGES, PLAN_CREDITS } from '@/constants/appConstants';
 
 export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: number) => void) => {
     const [query, setQuery] = useState('');
     const [leads, setLeads] = useState<Lead[]>([]);
     const [state, setState] = useState<SearchState>({ isSearching: false, error: null, hasSearched: false });
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [filters, setFilters] = useState<SearchFilters>({ maxResults: 10, minRating: 0, requirePhone: true });
     const [searchMode, setSearchMode] = useState<'free' | 'guided'>('free');
     const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
     const [appendMode, setAppendMode] = useState(true);
-    const [searchHistory, setSearchHistory] = useState<any[]>([]);
+    const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
 
     // Guided Search State
     const [selectedNiche, setSelectedNiche] = useState('');
@@ -49,7 +50,7 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
         return () => clearInterval(interval);
     }, [state.isSearching]);
 
-    const handleSearch = async (e?: React.FormEvent) => {
+    const handleSearch = async (e?: React.FormEvent, shouldClear: boolean = false) => {
         if (e) e.preventDefault();
 
         const { data: { user } } = await supabase.auth.getUser();
@@ -62,7 +63,7 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
                 .from('user_subscriptions')
                 .select('*')
                 .eq('user_id', user.id)
-                .maybeSingle(); // Use maybeSingle to avoid 406 errors
+                .maybeSingle();
             subscriptionData = data;
         } catch (err) {
             console.error('Erro ao buscar créditos:', err);
@@ -80,7 +81,6 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
             nextReset.setMonth(nextReset.getMonth() + 1);
 
             if (now >= nextReset) {
-                console.log('[Créditos] Reset mensal detectado. Renovando Leads...');
                 used = 0;
                 lastReset = now;
                 await supabase
@@ -89,25 +89,28 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
                     .eq('user_id', user.id);
             }
         } else {
-            // Primeira vez ou erro, inicializa
             await supabase
                 .from('user_subscriptions')
                 .upsert({ user_id: user.id, last_credit_reset: now.toISOString(), plan_id: 'free', leads_used: 0, status: 'active' });
         }
+
+        const remainingCredits = limit - used;
+        const requestedQuantity = filters.maxResults || 20;
 
         if (used >= limit) {
             setState(prev => ({ ...prev, error: 'Limite de leads atingido para seu plano este mês. Faça um upgrade para continuar!' }));
             return;
         }
 
-        // --- FIM LÓGICA DE CRÉDITOS ---
-
-        const requestedAmount = Math.min(filters.maxResults || 20, limit - used);
-        if (requestedAmount <= 0) {
-            setState(prev => ({ ...prev, error: 'Você não possui créditos suficientes para esta busca.' }));
+        if (requestedQuantity > remainingCredits) {
+            setState(prev => ({
+                ...prev,
+                error: `Você possui apenas ${remainingCredits} créditos restantes. Por favor, selecione uma busca de ${remainingCredits <= 10 ? '10' : '20'} resultados ou faça um upgrade.`
+            }));
             return;
         }
 
+        if (shouldClear) setLeads([]);
         setState({ isSearching: true, error: null, hasSearched: true });
 
         try {
@@ -125,10 +128,8 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
                     if (excludedCity) q += ` -${excludedCity}`;
                     searchQueries.push(q);
                 } else {
-                    // MULTI-CITY SEARCH: If state selected but no city, use major cities
                     const { MAIOR_CIDADES } = await import('@/constants/appConstants');
                     const cities = MAIOR_CIDADES[selectedState] || [];
-
                     if (cities.length > 0) {
                         cities.forEach(city => {
                             searchQueries.push(`${selectedNiche} em ${city}, ${selectedState}, Brasil`);
@@ -138,22 +139,22 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
                     }
                 }
             } else {
+                if (!query) {
+                    setState(prev => ({ ...prev, isSearching: false, error: 'Digite o que deseja buscar.' }));
+                    return;
+                }
                 searchQueries.push(query);
             }
 
-            console.log(`[Busca] Iniciando para: ${searchQueries.length} query(s) | Alvo: ${requestedAmount}`);
-
             for (const currentQuery of searchQueries) {
-                if (allValidResults.length >= requestedAmount) break;
+                if (allValidResults.length >= requestedQuantity) break;
 
                 let currentToken: string | undefined = undefined;
                 let pageCount = 0;
-                const maxPages = 5; // Limite de páginas por nicho/cidade para não esgotar quota atoa
+                const maxPages = 5;
 
-                while (allValidResults.length < requestedAmount && pageCount < maxPages) {
-                    console.log(`[Busca] Paginação ${pageCount + 1}: "${currentQuery}"`);
+                while (allValidResults.length < requestedQuantity && pageCount < maxPages) {
                     const { places: gResults, nextToken } = await googleMapsService.searchBusiness(currentQuery, 20, true, currentToken);
-
                     if (!gResults || gResults.length === 0) break;
 
                     const mappedResults: Lead[] = gResults.map(r => ({
@@ -174,7 +175,6 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
                         filtered = filtered.filter(r => r.phone && r.phone !== 'N/A');
                     }
 
-                    // Strict state filtering for guided mode
                     if (searchMode === 'guided' && selectedState) {
                         const stateCode = selectedState.toUpperCase();
                         filtered = filtered.filter(r => {
@@ -185,32 +185,45 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
 
                     const newUnique = filtered.filter(nl =>
                         !allValidResults.some(el => el.id === nl.id) &&
-                        !globalHistory.includes(nl.id)
+                        !globalHistory.includes(nl.id) &&
+                        !leads.some(el => el.id === nl.id)
                     );
 
                     allValidResults = [...allValidResults, ...newUnique];
                     currentToken = nextToken;
                     pageCount++;
 
-                    if (!nextToken || allValidResults.length >= requestedAmount) break;
-
-                    // Pequeno delay para evitar rate limit da API se estivermos paginando muito rápido
+                    if (!nextToken || allValidResults.length >= requestedQuantity) break;
                     await new Promise(resolve => setTimeout(resolve, 300));
                 }
             }
 
-            const finalResults = allValidResults.slice(0, requestedAmount);
-            setLeads(prev => [...prev, ...finalResults]);
+            const finalResults = allValidResults.slice(0, requestedQuantity);
 
-            // Atualiza uso no banco
             if (finalResults.length > 0) {
+                setLeads(prev => [...prev, ...finalResults]);
                 const newTotal = used + finalResults.length;
+
+                // ATUALIZAR CRÉDITOS NO SUPABASE
                 await supabase
                     .from('user_subscriptions')
                     .update({ leads_used: newTotal })
                     .eq('user_id', user.id);
 
                 if (onCreditsUsed) onCreditsUsed(newTotal);
+
+                // SALVAR NO HISTÓRICO DIÁRIO
+                const historyEntries = finalResults.map(lead => ({
+                    user_id: user.id,
+                    query: searchQueries[0],
+                    search_mode: searchMode,
+                    lead_name: lead.name,
+                    lead_phone: lead.phone,
+                    lead_id: lead.id
+                }));
+                await supabase.from('search_history').insert(historyEntries);
+            } else {
+                setState(prev => ({ ...prev, error: 'Nenhum lead novo encontrado para esta busca.' }));
             }
 
         } catch (err: any) {
@@ -237,20 +250,22 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
             const limit = PLAN_CREDITS[plan as UserPlan] || 60;
             const used = subscriptionData?.leads_used || 0;
 
+            const remainingCredits = limit - used;
+
             if (used >= limit) {
-                throw new Error('Limite de leads atingido para seu plano este mês.');
+                throw new Error('Limite de leads atingido para seu plano este mês. Faça um upgrade para continuar!');
             }
 
-            const remainingCredits = limit - used;
-            const requestedAmount = Math.min(quantity, remainingCredits);
+            if (quantity > remainingCredits) {
+                throw new Error(`Você possui apenas ${remainingCredits} créditos restantes. Por favor, selecione uma carga de ${remainingCredits <= 10 ? '10' : '20'} resultados.`);
+            }
 
+            const requestedAmount = quantity;
             const currentQuery = searchMode === 'free' ? query : `${selectedNiche} em ${selectedCity}, ${selectedState}`;
             let allValidResults: Lead[] = [];
             let currentToken: string | undefined = undefined;
             let attempts = 0;
             const maxAttempts = 10;
-
-            console.log(`[LoadMore] Iniciando | Disponível: ${remainingCredits}`);
 
             while (allValidResults.length < requestedAmount && attempts < maxAttempts) {
                 const { places: gResults, nextToken } = await googleMapsService.searchBusiness(currentQuery, 20, true, currentToken);
@@ -279,16 +294,30 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
             }
 
             const finalResults = allValidResults.slice(0, requestedAmount);
-            setLeads(prev => [...prev, ...finalResults]);
 
             if (finalResults.length > 0) {
+                setLeads(prev => [...prev, ...finalResults]);
                 const newTotal = used + finalResults.length;
+
                 await supabase
                     .from('user_subscriptions')
                     .update({ leads_used: newTotal })
                     .eq('user_id', user.id);
 
                 if (onCreditsUsed) onCreditsUsed(newTotal);
+
+                // SALVAR NO HISTÓRICO DIÁRIO
+                const historyEntries = finalResults.map(lead => ({
+                    user_id: user.id,
+                    query: currentQuery,
+                    search_mode: searchMode,
+                    lead_name: lead.name,
+                    lead_phone: lead.phone,
+                    lead_id: lead.id
+                }));
+                await supabase.from('search_history').insert(historyEntries);
+            } else {
+                throw new Error('Nenhum lead novo encontrado para esta carga.');
             }
 
         } catch (err: any) {
@@ -303,7 +332,6 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Lógica de Reset às 9:00 AM
         const now = new Date();
         const last9AM = new Date();
         last9AM.setHours(9, 0, 0, 0);
@@ -313,9 +341,10 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
 
         const { data, error } = await supabase
             .from('search_history')
-            .select('*')
+            .select('id, lead_name, lead_phone, lead_id, created_at')
             .eq('user_id', user.id)
             .gte('created_at', last9AM.toISOString())
+            .not('lead_name', 'is', null)
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -341,7 +370,7 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
     return {
         query, setQuery,
         leads, setLeads,
-        state, setState, // Exportando setState para o App.tsx
+        state, setState,
         filters, setFilters,
         searchMode, setSearchMode,
         loadingMessageIndex,
@@ -358,6 +387,8 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
         setAppendMode,
         searchHistory,
         loadSearchHistory,
-        clearSearchHistory
+        clearSearchHistory,
+        showHistoryModal,
+        setShowHistoryModal
     };
 };

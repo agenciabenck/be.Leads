@@ -34,7 +34,7 @@ const Settings: React.FC<SettingsProps> = ({
 }) => {
     return (
         <div className="animate-fade-in-up max-w-3xl mx-auto pb-10">
-            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-6">Configurações</h2>
+            <h2 className="text-4xl font-bold text-zinc-900 dark:text-white mb-8 tracking-tighter">Configurações</h2>
 
             <div className="bg-app-cardLight dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
                 <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">

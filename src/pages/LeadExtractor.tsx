@@ -48,11 +48,13 @@ interface LeadExtractorProps {
     hasWhatsAppAccess: boolean;
     loadMoreQuantity: number;
     setLoadMoreQuantity: (v: number) => void;
-    handleLoadMore: () => void;
+    handleLoadMore: (quantity: number) => Promise<void>;
     isLoadingMore: boolean;
     searchHistory: any[];
     loadSearchHistory: () => Promise<void>;
     clearSearchHistory: () => Promise<void>;
+    showHistoryModal: boolean;
+    setShowHistoryModal: (v: boolean) => void;
 }
 
 const LeadExtractor: React.FC<LeadExtractorProps> = ({
@@ -99,15 +101,16 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
     isLoadingMore,
     searchHistory,
     loadSearchHistory,
-    clearSearchHistory
+    clearSearchHistory,
+    showHistoryModal,
+    setShowHistoryModal
 }) => {
-    const [showHistoryModal, setShowHistoryModal] = useState(false);
 
     return (
         <div className="space-y-6 animate-fade-in-up">
             {/* Header com título */}
             <div>
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
+                <h2 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2 tracking-tighter">
                     Buscar Leads
                 </h2>
                 <p className="text-zinc-500 dark:text-zinc-400">
@@ -115,13 +118,13 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                 </p>
             </div>
 
-            <div className="bg-app-cardLight dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+            <div className="bg-app-cardLight dark:bg-zinc-900 p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-zinc-800">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div className="bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl flex gap-1">
-                        <button onClick={() => setSearchMode('free')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${searchMode === 'free' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}>
+                        <button onClick={() => setSearchMode('free')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${searchMode === 'free' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}>
                             <LayoutGrid className="w-4 h-4" /> Livre
                         </button>
-                        <button onClick={() => setSearchMode('guided')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${searchMode === 'guided' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}>
+                        <button onClick={() => setSearchMode('guided')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${searchMode === 'guided' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}>
                             <List className="w-4 h-4" /> Guiada
                         </button>
                     </div>
@@ -133,7 +136,7 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                         )}
                         <button
                             onClick={() => { loadSearchHistory(); setShowHistoryModal(true); }}
-                            className="text-xs font-bold text-primary-600 hover:text-primary-700 transition-colors flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/20 rounded-lg"
+                            className="text-xs font-bold text-primary-600 hover:text-primary-700 transition-colors flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/20 rounded-xl"
                         >
                             <Clock className="w-3.5 h-3.5" /> Histórico diário
                         </button>
@@ -209,7 +212,7 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                 )}
 
                 {state.error && (
-                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 p-4 rounded-xl flex items-start gap-3 mt-4 animate-in fade-in slide-in-from-top-2">
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 p-4 rounded-2xl flex items-start gap-3 mt-4 animate-in fade-in slide-in-from-top-2">
                         <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                         <div>
                             <p className="font-bold text-sm">Ocorreu um erro na busca</p>
@@ -226,12 +229,12 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                         </div>
                         <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700"></div>
                         <div className="flex items-center gap-2">
-                            <select value={filters.maxResults} onChange={e => setFilters(prev => ({ ...prev, maxResults: parseInt(e.target.value) }))} className="py-1.5 px-2 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                            <select value={filters.maxResults} onChange={e => setFilters(prev => ({ ...prev, maxResults: parseInt(e.target.value) }))} className="py-1.5 px-2 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none">
                                 <option value="10">10 resultados</option>
                                 <option value="20">20 resultados</option>
                             </select>
                         </div>
-                        <label className="flex items-center gap-2 cursor-pointer bg-zinc-50 dark:bg-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-primary-300 transition-colors">
+                        <label className="flex items-center gap-2 cursor-pointer bg-zinc-50 dark:bg-zinc-800 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:border-primary-300 transition-colors">
                             <input type="checkbox" checked={filters.requirePhone} onChange={e => setFilters(prev => ({ ...prev, requirePhone: e.target.checked }))} className="rounded text-primary-600 focus:ring-primary-500" />
                             <Phone className="w-3.5 h-3.5 text-zinc-500" />
                             <span className="text-sm text-zinc-600 dark:text-zinc-300 whitespace-nowrap">Com telefone</span>
@@ -265,14 +268,14 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                         <div className="flex gap-2">
                             <button
                                 onClick={handleExportCSV}
-                                className={`px-3 py-1.5 text-sm font-medium border rounded-lg flex items-center gap-2 transition-colors shadow-sm ${hasExportAccess ? 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200' : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400 cursor-not-allowed opacity-70'}`}
+                                className={`px-3 py-1.5 text-sm font-medium border rounded-xl flex items-center gap-2 transition-colors shadow-sm ${hasExportAccess ? 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200' : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400 cursor-not-allowed opacity-70'}`}
                                 title={!hasExportAccess ? "Disponível a partir do plano Start" : ""}
                             >
                                 {hasExportAccess ? <Download className="w-4 h-4 text-green-600" /> : <X className="w-3.5 h-3.5" />} Excel/CSV
                             </button>
                             <button
                                 onClick={handleExportGoogleSheets}
-                                className={`px-3 py-1.5 text-sm font-medium border rounded-lg flex items-center gap-2 transition-colors shadow-sm ${hasExportAccess ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/20 text-green-700 dark:text-green-300' : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400 cursor-not-allowed opacity-70'}`}
+                                className={`px-3 py-1.5 text-sm font-medium border rounded-xl flex items-center gap-2 transition-colors shadow-sm ${hasExportAccess ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/20 text-green-700 dark:text-green-300' : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400 cursor-not-allowed opacity-70'}`}
                                 title={!hasExportAccess ? "Disponível a partir do plano Start" : ""}
                             >
                                 {hasExportAccess ? <FileSpreadsheet className="w-4 h-4" /> : <X className="w-3.5 h-3.5" />} Google Sheets
@@ -294,19 +297,19 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                 />
 
                 {leads.length > 0 && (
-                    <div className="mt-6 flex flex-col items-center gap-4 bg-app-cardLight dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
+                    <div className="mt-6 flex flex-col items-center gap-4 bg-app-cardLight dark:bg-zinc-900 p-4 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
                         <div className="flex items-center gap-3">
                             <select
                                 value={loadMoreQuantity}
                                 onChange={(e) => setLoadMoreQuantity(parseInt(e.target.value) || 10)}
-                                className="py-2 px-4 text-sm font-bold bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
+                                className="py-2 px-4 text-sm font-bold bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
                             >
                                 <option value="10">10 resultados</option>
                                 <option value="20">20 resultados</option>
                             </select>
                         </div>
                         <button
-                            onClick={handleLoadMore}
+                            onClick={() => handleLoadMore(loadMoreQuantity)}
                             disabled={isLoadingMore}
                             className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-lg shadow-primary-500/20 transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
@@ -317,62 +320,6 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                 )}
             </div>
 
-            {/* Modal de Histórico Refinado */}
-            {showHistoryModal && (
-                <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300 overflow-hidden">
-                    <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[32px] shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-300">
-                        {/* Modal Header */}
-                        <div className="w-full p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
-                            <div className="flex items-center gap-3 text-left">
-                                <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
-                                    <Clock className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white leading-tight">Histórico diário</h3>
-                                    <p className="text-[11px] text-zinc-400 font-medium tracking-tight">Buscas realizadas desde as 09:00 AM</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setShowHistoryModal(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-400 hover:text-zinc-600">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        {/* Modal Body - Centralized */}
-                        <div className="p-10 flex flex-col items-center justify-center w-full">
-                            <div className="w-20 h-20 bg-primary-50 dark:bg-primary-900/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
-                                <Sparkles className="w-10 h-10 text-primary-500" />
-                            </div>
-                            <h4 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">Novidades em breve!</h4>
-                            <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-[300px] leading-relaxed mx-auto">
-                                Esta função será atualizada em breve para você ter controle total sobre seus leads. Estamos preparando algo incrível!
-                            </p>
-
-                            {/* Visual dummy elements for "premium" feel */}
-                            <div className="mt-8 w-full max-w-[320px] space-y-3 opacity-20 pointer-events-none filter blur-[2px] mx-auto">
-                                {[1, 2].map(i => (
-                                    <div key={i} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-700 flex justify-between items-center">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-700 rounded-lg"></div>
-                                            <div className="h-3 w-24 bg-zinc-200 dark:bg-zinc-700 rounded-md"></div>
-                                        </div>
-                                        <div className="h-3 w-10 bg-zinc-200 dark:bg-zinc-700 rounded-md"></div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Modal Footer - Centralized Action */}
-                        <div className="w-full p-6 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex justify-center">
-                            <button
-                                onClick={() => setShowHistoryModal(false)}
-                                className="w-full max-w-[200px] py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl font-bold text-sm shadow-xl hover:opacity-90 transition-all active:scale-95"
-                            >
-                                Entendi
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

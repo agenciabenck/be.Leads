@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Lead, SortField, SortOrder } from '@/types/types';
-import { Star, Globe, Phone, MapPin, SearchX, ArrowUpDown, ArrowUp, ArrowDown, ExternalLink, MessageCircle, Instagram, Copy, Check, Plus, Lock } from 'lucide-react';
+import { Star, Globe, Phone, MapPin, SearchX, ArrowUpDown, ArrowUp, ArrowDown, ExternalLink, MessageCircle, Instagram, Copy, Check, Plus, PlusCircle, Lock } from 'lucide-react';
 
 interface LeadTableProps {
   leads: Lead[];
@@ -257,7 +257,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, sortField, sortOrde
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all border ${isSaved
                               ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border-zinc-200 dark:border-zinc-700 cursor-default'
                               : hasCRMAccess
-                                ? 'bg-success-600 hover:bg-success-700 text-white border-transparent shadow-sm shadow-success-500/20 active:scale-95'
+                                ? 'bg-primary-600 hover:bg-primary-700 text-white border-transparent shadow-sm shadow-primary-500/20 active:scale-95'
                                 : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-transparent cursor-not-allowed hover:bg-zinc-300 dark:hover:bg-zinc-700'
                               }`}
                             title={isSaved ? "Já adicionado ao CRM" : (!hasCRMAccess ? "Exclusivo Planos Pro e Elite" : "Adicionar ao CRM")}
@@ -269,7 +269,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({ leads, sortField, sortOrde
                               </>
                             ) : (
                               <>
-                                {hasCRMAccess ? <Plus className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                                {hasCRMAccess ? <PlusCircle className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                                 <span>CRM</span>
                               </>
                             )}

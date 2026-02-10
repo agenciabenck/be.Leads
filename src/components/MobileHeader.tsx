@@ -14,7 +14,7 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ setIsSidebarOpen, isSidebar
             </div>
             <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="p-2 bg-app-cardLight dark:bg-app-cardDark rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700"
+                className="p-2 bg-app-cardLight dark:bg-app-cardDark rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700"
             >
                 <Menu className="w-6 h-6 text-zinc-800 dark:text-zinc-200" />
             </button>

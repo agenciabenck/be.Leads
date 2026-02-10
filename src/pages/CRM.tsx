@@ -48,7 +48,7 @@ const CRM: React.FC<CRMProps> = ({
                             <Lock className="w-10 h-10 text-primary-500" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Pipeline Bloqueado</h2>
+                            <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">Pipeline Bloqueado</h2>
                             <p className="text-zinc-600 dark:text-zinc-300 font-medium mb-6">Organize suas vendas visualmente com o CRM Kanban. Disponível a partir do plano Pro.</p>
                             <button onClick={() => setActiveTab('subscription')} className="w-full bg-success-600 hover:bg-success-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-transform hover:scale-105 active:scale-95">
                                 Liberar acesso agora
@@ -60,7 +60,7 @@ const CRM: React.FC<CRMProps> = ({
 
             <div className={`flex justify-between items-center mb-6 transition-all duration-500 ${!hasCRMAccess ? 'blur-sm select-none pointer-events-none opacity-50' : ''}`}>
                 <div>
-                    <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">CRM Pipeline</h2>
+                    <h2 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2 tracking-tighter">CRM Pipeline</h2>
                     <p className="text-zinc-500 dark:text-zinc-400">Gerencie seus negócios e vendas.</p>
                 </div>
                 <div className="flex gap-3">

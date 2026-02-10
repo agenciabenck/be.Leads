@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-    RotateCcw, Loader2, CalendarIcon, X, Plus, Copy, ExternalLink, Clock, FileSpreadsheet
+    RotateCcw, Loader2, CalendarIcon, X, Plus, Copy, ExternalLink, Clock, FileSpreadsheet, Sparkles, Phone, PlusCircle, MessageCircle
 } from 'lucide-react';
 import { supabase } from '@/services/supabase';
 import { createCheckoutSession } from '@/services/payment';
@@ -12,6 +12,7 @@ import Sidebar from '@/components/Sidebar';
 import MobileHeader from '@/components/MobileHeader';
 import { getUserData, setUserData } from '@/utils/storageUtils';
 import { formatCurrency, formatPhone } from '@/utils/formatUtils';
+import { Toast, ToastContainer } from '@/components/UXComponents';
 
 // Hooks
 import { useAuth } from '@/hooks/useAuth';
@@ -47,7 +48,8 @@ const App: React.FC = () => {
         loadingMessageIndex, selectedNiche, setSelectedNiche, selectedState, setSelectedState,
         selectedCity, setSelectedCity, excludedCity, setExcludedCity,
         cityList, isLoadingCities, handleSearch, handleLoadMore, isLoadingMore,
-        searchHistory, loadSearchHistory, clearSearchHistory
+        searchHistory, loadSearchHistory, clearSearchHistory,
+        showHistoryModal, setShowHistoryModal
     } = useSearch(globalHistory, (newTotal) => {
         setUserSettings(prev => ({ ...prev, leadsUsed: newTotal }));
     });
@@ -58,7 +60,14 @@ const App: React.FC = () => {
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [locationPermission, setLocationPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
-    const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+    const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(userSettings?.billingCycle || 'monthly');
+
+    // Sync billingCycle with userSettings when it changes
+    useEffect(() => {
+        if (userSettings?.billingCycle && userSettings.billingCycle !== billingCycle) {
+            setBillingCycle(userSettings.billingCycle);
+        }
+    }, [userSettings?.billingCycle]);
 
     // Modals
     const [showNewLeadModal, setShowNewLeadModal] = useState(false);
@@ -102,6 +111,11 @@ const App: React.FC = () => {
     const [sortField, setSortField] = useState<SortField>(SortField.NAME);
     const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.ASC);
 
+    // Toast Logic
+    const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'info' }[]>([]);
+
+    const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
+
     const sortedLeads = useMemo(() => {
         return [...leads].sort((a, b) => {
             let valA: any = a[sortField as keyof Lead] || '';
@@ -120,7 +134,8 @@ const App: React.FC = () => {
 
     // --- Handlers ---
     const showNotification = (msg: string, type: "success" | "error" | "info" = "success") => {
-        alert(`${type.toUpperCase()}: ${msg}`);
+        const id = Math.random().toString(36).substring(2, 9);
+        setToasts(prev => [...prev, { id, message: msg, type }]);
     };
 
     const handleLogout = async () => {
@@ -190,7 +205,7 @@ const App: React.FC = () => {
         setNewEventData({ title: '', description: '', time: '09:00' });
     };
 
-    const handleCheckout = async (planId: keyof typeof STRIPE_PRICES, _isAnnual: boolean) => {
+    const handleCheckout = async (planId: keyof typeof STRIPE_PRICES, isAnnual: boolean) => {
         if (!user) return;
 
         try {
@@ -206,11 +221,20 @@ const App: React.FC = () => {
             if (updateError) throw updateError;
 
             // Update local state
-            setUserSettings(prev => ({ ...prev, plan: planId as UserPlan }));
+            const newCycle = isAnnual ? 'annual' : 'monthly';
+            setUserSettings(prev => ({
+                ...prev,
+                plan: planId as UserPlan,
+                billingCycle: newCycle
+            }));
+
+            // Also update the UI toggle explicitely
+            setBillingCycle(newCycle);
+
             showNotification(`Parabéns! Seu plano agora é ${planId.toUpperCase()}.`, 'success');
 
-            // Go to home
-            setTimeout(() => setActiveTab('home'), 1500);
+            // Removed redirect to Home as requested
+            // setTimeout(() => setActiveTab('home'), 1500);
         } catch (err: any) {
             console.error('[Plano] Erro ao atualizar:', err);
             showNotification('Erro ao atualizar plano. Tente novamente.', 'error');
@@ -392,6 +416,7 @@ const App: React.FC = () => {
                         setCalendarEvents={setCalendarEvents}
                         theme={theme}
                         setTheme={setTheme}
+                        showNotification={showNotification}
                     />
                 )}
 
@@ -453,11 +478,13 @@ const App: React.FC = () => {
                         hasWhatsAppAccess={hasWhatsAppAccess}
                         loadMoreQuantity={loadMoreQuantity}
                         setLoadMoreQuantity={setLoadMoreQuantity}
-                        handleLoadMore={() => handleLoadMore(loadMoreQuantity)}
+                        handleLoadMore={handleLoadMore}
                         isLoadingMore={isLoadingMore}
                         searchHistory={searchHistory}
                         loadSearchHistory={loadSearchHistory}
                         clearSearchHistory={clearSearchHistory}
+                        showHistoryModal={showHistoryModal}
+                        setShowHistoryModal={setShowHistoryModal}
                     />
                 )}
 
@@ -511,10 +538,104 @@ const App: React.FC = () => {
             </main>
 
             {/* Modals are kept in App.tsx for shared access or can be moved to pages */}
+
+            {/* Modal de Histórico Diário */}
+            {showHistoryModal && (
+                <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300 overflow-hidden">
+                    <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[32px] shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-300 overflow-hidden">
+                        {/* Modal Header */}
+                        <div className="w-full p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
+                            <div className="flex items-center gap-3 text-left">
+                                <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
+                                    <Clock className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white leading-tight">Histórico diário</h3>
+                                    <p className="text-[11px] text-zinc-400 font-medium tracking-tight">Buscas realizadas desde as 09:00 AM</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowHistoryModal(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-400 hover:text-zinc-600">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Modal Body - Summarized List */}
+                        <div className="p-4 max-h-[60vh] overflow-y-auto w-full space-y-3 custom-scrollbar">
+                            {searchHistory && searchHistory.length > 0 ? (
+                                searchHistory.map((item: any) => (
+                                    <div key={item.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-700 flex justify-between items-center transition-all hover:border-primary/20 group">
+                                        <div className="flex flex-col gap-0.5 overflow-hidden">
+                                            <span className="font-bold text-zinc-900 dark:text-white text-sm truncate pr-2">
+                                                {item.lead_name || 'Empresa sem nome'}
+                                            </span>
+                                            <span className="text-xs text-zinc-400 font-medium">
+                                                {item.lead_phone || 'Telefone indisponível'}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            {item.lead_phone && item.lead_phone !== 'N/A' && (
+                                                <a
+                                                    href={`https://wa.me/${item.lead_phone.replace(/\D/g, '')}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-2.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-xl hover:bg-green-500/20 transition-all active:scale-90 shadow-sm"
+                                                    title="WhatsApp"
+                                                >
+                                                    <MessageCircle className="w-4 h-4" />
+                                                </a>
+                                            )}
+                                            <button
+                                                onClick={() => {
+                                                    // Buscamos os dados completos do lead via placeId se necessário, 
+                                                    // ou apenas adicionamos os dados básicos que temos.
+                                                    // Para simplicidade e rapidez, adicionamos o que temos.
+                                                    const basicLead: Lead = {
+                                                        id: item.lead_id || item.id,
+                                                        name: item.lead_name || 'Empresa sem nome',
+                                                        phone: item.lead_phone || 'N/A',
+                                                        address: '',
+                                                        category: 'Lead do Histórico',
+                                                        rating: 0,
+                                                        reviews: 0,
+                                                        website: 'N/A'
+                                                    };
+                                                    addToCRM(basicLead);
+                                                    showNotification('Lead adicionado ao CRM com sucesso!', 'success');
+                                                }}
+                                                className="p-2.5 bg-primary-500/10 text-primary-600 dark:text-primary-400 rounded-xl hover:bg-primary-500/20 transition-all active:scale-90 shadow-sm"
+                                                title="Adicionar ao CRM"
+                                            >
+                                                <PlusCircle className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="py-12 flex flex-col items-center justify-center opacity-40">
+                                    <Clock className="w-12 h-12 mb-4 text-zinc-400" />
+                                    <p className="text-sm font-medium">Nenhum lead encontrado hoje.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Footer - Centralized Action */}
+                        <div className="w-full p-6 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex justify-center">
+                            <button
+                                onClick={() => setShowHistoryModal(false)}
+                                className="w-full max-w-[200px] py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl font-bold text-sm shadow-xl hover:opacity-90 transition-all active:scale-95"
+                            >
+                                Entendi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Modal de Novo Evento */}
             {showEventModal && selectedDateEvents && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300 overflow-hidden">
-                    <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[32px] shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-300">
+                    <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[32px] shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-300 overflow-hidden">
                         <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
                             <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-xl">
@@ -848,6 +969,18 @@ const App: React.FC = () => {
                     </div>
                 </div>
             )}
+            {/* Toasts */}
+            <ToastContainer>
+                {toasts.map(toast => (
+                    <Toast
+                        key={toast.id}
+                        id={toast.id}
+                        message={toast.message}
+                        type={toast.type}
+                        onClose={removeToast}
+                    />
+                ))}
+            </ToastContainer>
         </div>
     );
 };
