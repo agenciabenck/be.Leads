@@ -30,12 +30,12 @@ serve(async (req) => {
 
         if (authError || !user) {
             console.error('Auth User Error:', authError);
-            throw new Error('User not authenticated')
+            throw new Error('Usuário não autenticado')
         }
 
         const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
         if (!stripeKey) {
-            throw new Error('STRIPE_SECRET_KEY is missing');
+            throw new Error('Configuração de pagamento ausente (STRIPE_SECRET_KEY)');
         }
 
         const stripe = new Stripe(stripeKey, {
@@ -52,17 +52,17 @@ serve(async (req) => {
         try {
             body = await req.json();
         } catch (e) {
-            throw new Error('Invalid JSON body');
+            throw new Error('Corpo da requisição inválido');
         }
 
         const { priceId } = body;
         if (!priceId) {
-            throw new Error('priceId is required');
+            throw new Error('ID do preço é obrigatório');
         }
 
         const { data: subscriptionData } = await supabaseAdmin
             .from('user_subscriptions')
-            .select('stripe_customer_id')
+            .select('stripe_customer_id, status, plan_id')
             .eq('user_id', user.id)
             .single()
 
@@ -84,7 +84,9 @@ serve(async (req) => {
                 })
         } else {
             // Check if user already has an active subscription to prevent double-billing
-            if (subscriptionData.status === 'active' || subscriptionData.status === 'trialing') {
+            // Allow upgrades if the current plan is 'free'
+            const isFree = subscriptionData.plan_id === 'free';
+            if ((subscriptionData.status === 'active' || subscriptionData.status === 'trialing') && !isFree) {
                 throw new Error('Você já possui uma assinatura ativa. Utilize o portal para gerenciar seu plano.');
             }
         }
@@ -108,7 +110,7 @@ serve(async (req) => {
     } catch (error: any) {
         console.error('EDGE FUNCTION ERROR:', error);
         return new Response(
-            JSON.stringify({ error: error.message || 'Unknown error' }),
+            JSON.stringify({ error: error.message || 'Erro desconhecido' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
     }

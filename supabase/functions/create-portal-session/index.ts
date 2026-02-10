@@ -20,10 +20,10 @@ serve(async (req) => {
         )
 
         const { data: { user } } = await supabaseClient.auth.getUser()
-        if (!user) throw new Error('User not found')
+        if (!user) throw new Error('Usuário não encontrado')
 
         const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
-        if (!stripeKey) throw new Error('STRIPE_SECRET_KEY is missing');
+        if (!stripeKey) throw new Error('Configuração de pagamento ausente (STRIPE_SECRET_KEY)');
 
         const stripe = new Stripe(stripeKey, {
             apiVersion: '2022-11-15',
@@ -35,7 +35,7 @@ serve(async (req) => {
             const body = await req.json();
             returnUrl = body.returnUrl;
         } catch (e) {
-            throw new Error('Invalid JSON body');
+            throw new Error('Corpo da requisição inválido');
         }
 
         const { data: subscriptionData } = await supabaseClient
@@ -45,7 +45,7 @@ serve(async (req) => {
             .single()
 
         if (!subscriptionData?.stripe_customer_id) {
-            throw new Error('No stripe customer found for this user');
+            throw new Error('Nenhum cliente Stripe encontrado para este usuário');
         }
 
         const session = await stripe.billingPortal.sessions.create({
