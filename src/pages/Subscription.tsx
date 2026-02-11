@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { Check, X, BadgeCheck } from 'lucide-react';
 import { UserSettings, UserPlan } from '@/types/types';
 import { PLAN_HIERARCHY, STRIPE_PRICES, STRIPE_PRICES_ANNUAL } from '@/constants/appConstants';
-import { createCheckoutSession, createPortalSession, getSubscriptionStatus, updateSubscription } from '@/services/payment';
-import { UpgradeConfirmationModal } from '@/components/UpgradeConfirmationModal';
+import { createCheckoutSession, createPortalSession, getSubscriptionStatus } from '@/services/payment';
 import { Toast } from '@/components/UXComponents';
 
 interface SubscriptionProps {
@@ -20,8 +19,6 @@ const Subscription: React.FC<SubscriptionProps> = ({
     handleCheckout: parentHandleCheckout, // Renamed to use internal logic
 }) => {
     const [isLoading, setIsLoading] = useState(false);
-    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-    const [upgradeTarget, setUpgradeTarget] = useState<{ priceId: string; planName: string } | null>(null);
     const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'info' }[]>([]);
 
     const addToast = (t: { type: 'success' | 'error' | 'info'; title?: string; message: string }) => {
@@ -30,26 +27,6 @@ const Subscription: React.FC<SubscriptionProps> = ({
         setTimeout(() => setToasts(prev => prev.filter(item => item.id !== id)), 5000);
     };
 
-    const handleConfirmUpgrade = async () => {
-        if (!upgradeTarget) return;
-        setIsLoading(true);
-        try {
-            await updateSubscription(upgradeTarget.priceId);
-            setIsUpgradeModalOpen(false);
-            addToast({
-                type: 'success',
-                message: 'Plano atualizado com sucesso! Aproveite os novos recursos.'
-            });
-            // Reload page to reflect changes after a short delay
-            setTimeout(() => window.location.reload(), 2000);
-        } catch (error: any) {
-            addToast({
-                type: 'error',
-                message: error.message || 'Erro ao atualizar plano.'
-            });
-            setIsLoading(false);
-        }
-    };
 
     const handleCheckout = async (planId: 'start' | 'pro' | 'elite', isAnnual: boolean) => {
         setIsLoading(true);

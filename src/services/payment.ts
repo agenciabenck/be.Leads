@@ -73,24 +73,6 @@ export const createPortalSession = async (flowType?: 'default' | 'subscription_u
     }
 };
 
-export const updateSubscription = async (targetPriceId: string) => {
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Usuário não autenticado.');
-
-        const { data, error } = await supabase.functions.invoke('update-subscription', {
-            body: { targetPriceId }
-        });
-
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-
-        return data;
-    } catch (error: any) {
-        console.error('Erro ao atualizar assinatura:', error);
-        throw new Error(error.message || 'Falha ao atualizar plano.');
-    }
-};
 
 export const getSubscriptionStatus = async () => {
     const { data: { user } } = await supabase.auth.getUser();
