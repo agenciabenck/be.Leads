@@ -33,7 +33,7 @@ import { googleMapsService } from '@/services/googleMapsService';
 import { Lead, CRMLead, CRMStatus, CalendarEvent, SearchState, SearchFilters, SortField, SortOrder, UserSettings, UserPlan, AppTab } from '@/types/types';
 import {
     COMMON_NICHES, BRAZIL_STATES, TIME_OPTIONS, AVATAR_EMOJIS,
-    LOADING_MESSAGES, STRIPE_PRICES, PLAN_HIERARCHY, DEMO_LEADS, PLAN_CREDITS
+    LOADING_MESSAGES, STRIPE_PRICES, STRIPE_PRICES_ANNUAL, PLAN_HIERARCHY, DEMO_LEADS, PLAN_CREDITS
 } from '@/constants/appConstants';
 
 const App: React.FC = () => {
@@ -223,7 +223,11 @@ const App: React.FC = () => {
 
             // Create Checkout Session
             showNotification('Iniciando checkout seguro...', 'info');
-            await createCheckoutSession(STRIPE_PRICES[planId], isAnnual);
+            const priceId = isAnnual
+                ? STRIPE_PRICES_ANNUAL[planId]
+                : STRIPE_PRICES[planId];
+
+            await createCheckoutSession(priceId, isAnnual);
 
         } catch (err: any) {
             console.error('[Plano] Erro ao iniciar checkout:', err);

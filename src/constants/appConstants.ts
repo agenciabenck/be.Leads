@@ -144,14 +144,4 @@ export const PLAN_CREDITS = {
     elite: 3200
 };
 
-export const CONST_STRIPE_PRICES: Record<string, 'start' | 'pro' | 'elite'> = {
-    "price_1QovA7SFY1oG7C21R71N24": 'start',
-    "price_1QovBSSFdF1oG7C2188X922": 'pro',
-    "price_1QovCfSFG1oG7Y21O99m24": 'elite'
-};
 
-export const CONST_STRIPE_PRICES_ANNUAL: Record<string, 'start' | 'pro' | 'elite'> = {
-    "price_1QovA7SFY1oG7C21R71N24": 'start', // Placeholder, verify if annual has different IDs
-    "price_1QovBSSFdF1oG7C2188X922": 'pro',
-    "price_1QovCfSFG1oG7Y21O99m24": 'elite'
-};
