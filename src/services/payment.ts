@@ -93,20 +93,47 @@ export const updateSubscription = async (targetPriceId: string, coupon?: string)
             body: { targetPriceId, coupon }
         });
 
+        // Some versions of invoke return the error in the error object, 
+        // others return a status code and we need to check data.
         if (error) {
             console.error('Erro no invoke update-subscription:', error);
+            // Try to extract body from error if possible (some SDK versions)
             throw error;
         }
 
         if (data?.error) {
+            console.error('Erro retornado pela função update-subscription:', data.error);
             throw new Error(data.error);
         }
 
         return data;
     } catch (error: any) {
         console.error('Erro detalhado upgrade:', error);
-        const detail = error.message || 'Erro desconhecido';
+
+        // If it's a supabase function error, it might have a generic message
+        let detail = error.message || 'Erro desconhecido';
+
+        // Improve "non-2xx" message with potential context if we can find it
+        if (detail.includes('non-2xx')) {
+            detail = 'Erro na validação do pagamento ou cupom inválido. Verifique os dados e tente novamente.';
+        }
+
         throw new Error(`Não foi possível realizar o upgrade: ${detail}`);
+    }
+};
+
+
+export const validateCoupon = async (code: string) => {
+    try {
+        const { data, error } = await supabase.functions.invoke('validate-coupon', {
+            body: { code }
+        });
+
+        if (error) throw error;
+        return data;
+    } catch (error: any) {
+        console.error('Erro ao validar cupom:', error);
+        throw new Error('Não foi possível validar o cupom.');
     }
 };
 

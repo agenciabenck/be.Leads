@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Check, X, BadgeCheck } from 'lucide-react';
 import { UserSettings, UserPlan } from '@/types/types';
 import { PLAN_HIERARCHY, STRIPE_PRICES, STRIPE_PRICES_ANNUAL } from '@/constants/appConstants';
-import { createCheckoutSession, createPortalSession, getSubscriptionStatus, updateSubscription } from '@/services/payment';
+import { createCheckoutSession, createPortalSession, getSubscriptionStatus, updateSubscription, validateCoupon } from '@/services/payment';
 import { Toast } from '@/components/UXComponents';
 
 interface SubscriptionProps {
@@ -22,6 +22,8 @@ const Subscription: React.FC<SubscriptionProps> = ({
     const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'info' }[]>([]);
     const [upgradeModal, setUpgradeModal] = useState<{ show: boolean; planId: string; priceId: string; planName: string; isAnnual: boolean } | null>(null);
     const [couponCode, setCouponCode] = useState('');
+    const [couponDetails, setCouponDetails] = useState<{ valid: boolean; discount?: string; couponId?: string } | null>(null);
+    const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
     const [isUpgrading, setIsUpgrading] = useState(false);
 
     const addToast = (t: { type: 'success' | 'error' | 'info'; title?: string; message: string }) => {
@@ -48,6 +50,8 @@ const Subscription: React.FC<SubscriptionProps> = ({
                     planName: planInfo?.name || planId,
                     isAnnual
                 });
+                setCouponCode('');
+                setCouponDetails(null);
             } else {
                 await createCheckoutSession(priceId, isAnnual);
             }
@@ -61,18 +65,48 @@ const Subscription: React.FC<SubscriptionProps> = ({
         }
     };
 
+    const handleValidateCoupon = async () => {
+        if (!couponCode.trim()) return;
+        setIsValidatingCoupon(true);
+        setCouponDetails(null);
+        try {
+            const result = await validateCoupon(couponCode);
+            if (result.valid) {
+                const discount = result.percent_off
+                    ? `${result.percent_off}% de desconto`
+                    : `R$ ${(result.amount_off / 100).toFixed(2).replace('.', ',')} de desconto`;
+
+                setCouponDetails({
+                    valid: true,
+                    discount,
+                    couponId: result.couponId
+                });
+                addToast({ type: 'success', message: 'Cupom validado com sucesso!' });
+            } else {
+                setCouponDetails({ valid: false });
+                addToast({ type: 'error', message: result.error || 'Cupom inválido.' });
+            }
+        } catch (error) {
+            addToast({ type: 'error', message: 'Erro ao validar cupom.' });
+        } finally {
+            setIsValidatingCoupon(false);
+        }
+    };
+
     const confirmUpgrade = async () => {
         if (!upgradeModal) return;
         setIsUpgrading(true);
         try {
-            await updateSubscription(upgradeModal.priceId, couponCode);
+            // Use the validated couponId if available, otherwise fallback to the raw code
+            const finalCoupon = couponDetails?.valid ? couponDetails.couponId : couponCode.trim();
+            await updateSubscription(upgradeModal.priceId, finalCoupon);
             addToast({
                 type: 'success',
                 message: `Upgrade para ${upgradeModal.planName} realizado com sucesso! Seus créditos serão atualizados em instantes.`
             });
             setUpgradeModal(null);
             setCouponCode('');
-            // Optional: Refresh page or state
+            setCouponDetails(null);
             setTimeout(() => window.location.reload(), 2000);
         } catch (error: any) {
             addToast({
@@ -171,13 +205,30 @@ const Subscription: React.FC<SubscriptionProps> = ({
                                 <label className="block text-xs font-bold text-zinc-400 uppercase mb-2 ml-1">
                                     Cupom de Desconto
                                 </label>
-                                <input
-                                    type="text"
-                                    value={couponCode}
-                                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                                    placeholder="INSIRA SEU CÓDIGO"
-                                    className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-success-500/20 focus:border-success-500 transition-all uppercase placeholder:normal-case"
-                                />
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={couponCode}
+                                        onChange={(e) => {
+                                            setCouponCode(e.target.value.toUpperCase());
+                                            setCouponDetails(null);
+                                        }}
+                                        placeholder="INSIRA SEU CÓDIGO"
+                                        className={`flex-1 bg-zinc-50 dark:bg-zinc-800 border ${couponDetails === null ? 'border-zinc-200 dark:border-zinc-700' : couponDetails.valid ? 'border-success-500/50' : 'border-error-500/50'} rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-success-500/20 focus:border-success-500 transition-all uppercase placeholder:normal-case`}
+                                    />
+                                    <button
+                                        onClick={handleValidateCoupon}
+                                        disabled={isValidatingCoupon || !couponCode.trim() || isUpgrading}
+                                        className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50"
+                                    >
+                                        {isValidatingCoupon ? '...' : 'Validar'}
+                                    </button>
+                                </div>
+                                {couponDetails && (
+                                    <div className={`mt-2 ml-1 text-xs font-bold ${couponDetails.valid ? 'text-success-600' : 'text-error-600'}`}>
+                                        {couponDetails.valid ? `✓ ${couponDetails.discount}` : '✗ Cupom inválido ou expirado'}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex gap-3">
