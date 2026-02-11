@@ -40,21 +40,31 @@ export const createPortalSession = async (flowType?: 'default' | 'subscription_u
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error('Usuário não autenticado.');
 
+        console.log('Iniciando portal session...', { flowType, targetPriceId });
+
         const { data, error } = await supabase.functions.invoke('create-portal-session', {
+            headers: {
+                Authorization: `Bearer ${session.access_token}`
+            },
             body: {
                 returnUrl: window.location.href,
                 flowType,
-                targetPriceId // Optional: Forces the portal to open in "update" mode pre-selected
+                targetPriceId
             }
         });
 
-        if (error) throw error;
-        if (!data?.url) throw new Error('URL do portal não retornada');
+        if (error) {
+            console.error('Erro no invoke create-portal-session:', error);
+            throw error;
+        }
+
+        if (!data?.url) throw new Error('URL do portal não retornada pelo servidor.');
 
         window.location.href = data.url;
     } catch (error: any) {
-        console.error('Erro ao abrir portal:', error);
-        throw new Error('Não foi possível abrir o gerenciamento de assinatura.');
+        console.error('Erro detalhado portal:', error);
+        const detail = error.message || 'Erro desconhecido';
+        throw new Error(`Não foi possível abrir o portal de pagamento: ${detail}`);
     }
 };
 
