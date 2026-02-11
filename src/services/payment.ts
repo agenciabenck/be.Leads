@@ -59,8 +59,10 @@ export const createPortalSession = async (flowType?: 'default' | 'subscription_u
         }
 
         if (data?.error) {
-            console.error('Erro retornado pela função:', data.error);
-            throw new Error(data.error);
+            console.error('Erro retornado pela função:', data);
+            const msg = data.error || 'Erro inesperado';
+            const sug = data.suggestion ? `\n\n📌 ${data.suggestion}` : '';
+            throw new Error(`${msg}${sug}`);
         }
 
         if (!data?.url) throw new Error('URL do portal não retornada pelo servidor.');

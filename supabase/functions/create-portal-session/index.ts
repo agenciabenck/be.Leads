@@ -61,9 +61,13 @@ serve(async (req) => {
         };
 
         if (targetPriceId && subscriptionData.stripe_subscription_id) {
+            console.log('Mode: subscription_update_confirm', { targetPriceId });
+
+            // Get the current subscription item ID (required for update_confirm)
             const subscription = await stripe.subscriptions.retrieve(subscriptionData.stripe_subscription_id);
-            if (!subscription.items.data[0]) throw new Error('Subscription has no items');
-            const itemId = subscription.items.data[0].id;
+            const itemId = subscription.items.data[0]?.id;
+
+            if (!itemId) throw new Error('O item da assinatura atual não foi encontrado.');
 
             portalConfig.flow = {
                 type: 'subscription_update_confirm',
@@ -76,6 +80,7 @@ serve(async (req) => {
                 },
             };
         } else if (flowType === 'subscription_update' && subscriptionData.stripe_subscription_id) {
+            console.log('Mode: subscription_update (menu)');
             portalConfig.flow = {
                 type: 'subscription_update',
                 subscription_update: {
@@ -84,7 +89,22 @@ serve(async (req) => {
             };
         }
 
-        const session = await stripe.billingPortal.sessions.create(portalConfig)
+        console.log('Final Portal Config:', JSON.stringify(portalConfig, null, 2));
+
+        let session;
+        try {
+            session = await stripe.billingPortal.sessions.create(portalConfig);
+        } catch (stripeError: any) {
+            console.error('Stripe Portal Creation Error:', stripeError.message);
+            // Fallback: If specific flow fails, try basic portal
+            if (portalConfig.flow) {
+                console.log('Falling back to basic portal...');
+                delete portalConfig.flow;
+                session = await stripe.billingPortal.sessions.create(portalConfig);
+            } else {
+                throw stripeError;
+            }
+        }
 
         return new Response(
             JSON.stringify({ url: session.url }),
@@ -93,8 +113,23 @@ serve(async (req) => {
 
     } catch (error: any) {
         console.error('PORTAL ERROR:', error.message);
+
+        let message = error.message;
+        let suggestion = null;
+
+        if (message.includes('No such customer')) {
+            message = 'ID de cliente não encontrado no Stripe.';
+            suggestion = 'Como você resetou sua conta Stripe, o ID antigo é inválido. Por favor, realize um novo checkout.';
+        } else if (message.includes('API key')) {
+            message = 'Chave de API do Stripe inválida.';
+            suggestion = 'Verifique se a STRIPE_SECRET_KEY no Supabase está correta para sua nova conta.';
+        }
+
         return new Response(
-            JSON.stringify({ error: error.message, detail: error.raw?.message || null }),
+            JSON.stringify({
+                error: message,
+                suggestion: suggestion
+            }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
     }

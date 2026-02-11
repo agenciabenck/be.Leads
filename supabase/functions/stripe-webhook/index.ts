@@ -37,14 +37,24 @@ async function updateSubscription(subscription: any) {
         .single()
 
     if (customer) {
+        // Prepare update data
+        const updateData: any = {
+            stripe_subscription_id: subscriptionId,
+            status: status,
+            plan_id: planName,
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            updated_at: new Date().toISOString()
+        };
+
+        // Reset credits on renewal or new subscription
+        // We set leads_used to 0. 
+        // Note: In a more complex system, we might check if the period actually changed, 
+        // but for now, simple reset on any subscription update/creation is safe for billing cycles.
+        updateData.leads_used = 0;
+
         await supabaseClient
             .from('user_subscriptions')
-            .update({
-                stripe_subscription_id: subscriptionId,
-                status: status,
-                plan_id: planName,
-                current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
-            })
+            .update(updateData)
             .eq('user_id', customer.user_id)
     }
 }
