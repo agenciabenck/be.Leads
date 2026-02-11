@@ -22,7 +22,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
         const errorTranslations: Record<string, string> = {
             'Invalid login credentials': 'Email ou senha incorretos',
             'User already registered': 'Este email já está cadastrado',
-            'Email not confirmed': 'Email não confirmado. Verifique sua caixa de entrada',
+            'Email not confirmed': 'Email não confirmado. Verifique sua caixa de entrada ou spam.',
             'Invalid email': 'Email inválido',
             'Password should be at least 6 characters': 'A senha deve ter no mínimo 6 caracteres',
             'Email rate limit exceeded': 'Muitas tentativas. Aguarde alguns minutos',
@@ -139,7 +139,9 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
 
                 if (signUpError) throw signUpError;
 
-                if (data.user) {
+                if (data.user && !data.session) {
+                    setIsRegistrationSuccess(true);
+                } else if (data.user) {
                     setMessage('Conta criada com sucesso! Você já pode fazer login.');
                     setTimeout(() => {
                         setMode('login');
@@ -159,6 +161,62 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
 
     const [showTerms, setShowTerms] = useState(false);
     const [showPrivacy, setShowPrivacy] = useState(false);
+    const [isRegistrationSuccess, setIsRegistrationSuccess] = useState(false);
+
+    if (isRegistrationSuccess) {
+        return (
+            <div className="min-h-screen w-full bg-[#030712] flex flex-col items-center justify-center p-4 relative py-12">
+                {/* Mesh Gradients Background */}
+                <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+                    <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary-600/20 blur-[120px] rounded-full opacity-60"></div>
+                    <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[120px] rounded-full opacity-60"></div>
+                    <div className="absolute top-[20%] left-[10%] w-[30%] h-[30%] bg-indigo-600/10 blur-[100px] rounded-full opacity-60"></div>
+                </div>
+
+                <div className="relative z-10 w-full max-w-[440px] text-center animate-fade-in-up">
+                    <div className="inline-flex items-center justify-center p-4 mb-6 bg-white/5 rounded-full backdrop-blur-sm border border-white/10 shadow-2xl">
+                        <Mail className="w-12 h-12 text-blue-500" />
+                    </div>
+
+                    <h1 className="text-3xl font-black text-white tracking-tight mb-4">
+                        Verifique seu e-mail! 📨
+                    </h1>
+
+                    <p className="text-zinc-400 text-lg font-medium leading-relaxed mb-8">
+                        Enviamos um link de confirmação para <br />
+                        <span className="text-white font-bold">{email}</span>
+                    </p>
+
+                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-5 mb-8 text-left">
+                        <div className="flex gap-3">
+                            <div className="mt-1">
+                                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">!</div>
+                            </div>
+                            <div>
+                                <h3 className="text-blue-400 font-bold mb-1">Importante:</h3>
+                                <p className="text-blue-300/80 text-sm leading-relaxed">
+                                    Se não encontrar na caixa de entrada, verifique sua pasta de <strong>Spam</strong> ou <strong>Lixo Eletrônico</strong>.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={() => {
+                            setIsRegistrationSuccess(false);
+                            setMode('login');
+                            setPassword('');
+                            setConfirmPassword('');
+                            setMessage('');
+                        }}
+                        className="w-full py-4 px-6 bg-white text-zinc-900 font-bold rounded-2xl hover:bg-zinc-100 transition-all active:scale-[0.98] shadow-xl shadow-white/10"
+                    >
+                        Voltar para o Login
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen w-full bg-[#030712] flex flex-col items-center justify-start p-4 relative py-12">
