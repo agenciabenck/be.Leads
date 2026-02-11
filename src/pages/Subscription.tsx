@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Check, X, BadgeCheck } from 'lucide-react';
 import { UserSettings, UserPlan } from '@/types/types';
-import { PLAN_HIERARCHY, STRIPE_PRICES } from '@/constants/appConstants';
+import { PLAN_HIERARCHY, STRIPE_PRICES, STRIPE_PRICES_ANNUAL } from '@/constants/appConstants';
+import { createCheckoutSession, createPortalSession, getSubscriptionStatus, updateSubscription } from '@/services/payment';
+import { UpgradeConfirmationModal } from '@/components/UpgradeConfirmationModal';
+import { Toast } from '@/components/UXComponents';
 
 interface SubscriptionProps {
     billingCycle: 'monthly' | 'annual';
@@ -14,8 +17,74 @@ const Subscription: React.FC<SubscriptionProps> = ({
     billingCycle,
     setBillingCycle,
     userSettings,
-    handleCheckout,
+    handleCheckout: parentHandleCheckout, // Renamed to use internal logic
 }) => {
+    const [isLoading, setIsLoading] = useState(false);
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+    const [upgradeTarget, setUpgradeTarget] = useState<{ priceId: string; planName: string } | null>(null);
+    const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'info' }[]>([]);
+
+    const addToast = (t: { type: 'success' | 'error' | 'info'; title?: string; message: string }) => {
+        const id = Math.random().toString(36).substring(2, 9);
+        setToasts(prev => [...prev, { id, message: t.message, type: t.type }]);
+        setTimeout(() => setToasts(prev => prev.filter(item => item.id !== id)), 5000);
+    };
+
+    const handleConfirmUpgrade = async () => {
+        if (!upgradeTarget) return;
+        setIsLoading(true);
+        try {
+            await updateSubscription(upgradeTarget.priceId);
+            setIsUpgradeModalOpen(false);
+            addToast({
+                type: 'success',
+                message: 'Plano atualizado com sucesso! Aproveite os novos recursos.'
+            });
+            // Reload page to reflect changes after a short delay
+            setTimeout(() => window.location.reload(), 2000);
+        } catch (error: any) {
+            addToast({
+                type: 'error',
+                message: error.message || 'Erro ao atualizar plano.'
+            });
+            setIsLoading(false);
+        }
+    };
+
+    const handleCheckout = async (planId: 'start' | 'pro' | 'elite', isAnnual: boolean) => {
+        setIsLoading(true);
+        try {
+
+            // Determine if it's an upgrade
+            const subscription = await getSubscriptionStatus();
+            const isUpgrade = subscription && subscription.status === 'active' && subscription.plan_id !== 'free';
+
+            // Calculate Price ID
+            const priceId = isAnnual ? STRIPE_PRICES_ANNUAL[planId] : STRIPE_PRICES[planId];
+
+            // Plan Name for display
+            const planName = planId.charAt(0).toUpperCase() + planId.slice(1);
+
+            if (isUpgrade) {
+                // Open Custom Confirmation Modal
+                setUpgradeTarget({ priceId, planName });
+                setIsUpgradeModalOpen(true);
+            } else {
+                // New Checkout
+                await createCheckoutSession(priceId, isAnnual);
+            }
+        } catch (error: any) {
+            addToast({
+                type: 'error',
+                message: error.message || 'Tente novamente mais tarde.'
+            });
+        } finally {
+            if (!isUpgradeModalOpen) setIsLoading(false);
+        }
+    };
+
+    // ... [Rest of the component code identical to previous content, just updating the return]
+
     const planList = [
         {
             id: 'free',
@@ -61,7 +130,22 @@ const Subscription: React.FC<SubscriptionProps> = ({
     ];
 
     return (
-        <div className="animate-fade-in-up max-w-6xl mx-auto w-full pb-10">
+        <div className="animate-fade-in-up max-w-6xl mx-auto w-full pb-10 relative">
+            {/* Toasts */}
+            <div className="fixed top-4 right-4 z-[500] flex flex-col gap-2">
+                {toasts.map(toast => (
+                    <Toast key={toast.id} id={toast.id} message={toast.message} type={toast.type} onClose={() => setToasts(prev => prev.filter(t => t.id !== toast.id))} />
+                ))}
+            </div>
+
+            <UpgradeConfirmationModal
+                isOpen={isUpgradeModalOpen}
+                onClose={() => setIsUpgradeModalOpen(false)}
+                onConfirm={handleConfirmUpgrade}
+                isLoading={isLoading}
+                newPlanName={upgradeTarget?.planName || ''}
+            />
+
             <div className="mb-10">
                 <h2 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2 tracking-tighter">Planos</h2>
                 <p className="text-zinc-500 dark:text-zinc-400 mb-6">Escolha a melhor ferramenta para escalar suas vendas.</p>

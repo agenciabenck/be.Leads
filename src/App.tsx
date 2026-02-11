@@ -211,21 +211,24 @@ const App: React.FC = () => {
         if (!user) return;
 
         try {
-            // Check if user needs to go to portal
+            // Calculate Price ID first
+            const priceId = isAnnual
+                ? STRIPE_PRICES_ANNUAL[planId]
+                : STRIPE_PRICES[planId];
+
+            // Check if user needs to go to portal (Upgrade/Downgrade/Cross-grade)
             const isFree = userSettings.plan === 'free';
             const isActive = userSettings.subscriptionStatus === 'active' || userSettings.subscriptionStatus === 'trialing';
 
             if (isActive && !isFree) {
                 showNotification('Redirecionando para atualização de plano...', 'info');
-                await createPortalSession('subscription_update');
+                // Pass targetPriceId to pre-select it in the portal update flow
+                await createPortalSession('subscription_update', priceId);
                 return;
             }
 
-            // Create Checkout Session
+            // Create Checkout Session for new subscriptions
             showNotification('Iniciando checkout seguro...', 'info');
-            const priceId = isAnnual
-                ? STRIPE_PRICES_ANNUAL[planId]
-                : STRIPE_PRICES[planId];
 
             await createCheckoutSession(priceId, isAnnual);
 

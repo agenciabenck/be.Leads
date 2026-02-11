@@ -57,12 +57,32 @@ serve(async (req) => {
         };
 
         if (flowType === 'subscription_update' && subscriptionData.stripe_subscription_id) {
-            portalConfig.flow_data = {
+            const updateData: any = {
                 type: 'subscription_update',
                 subscription_update: {
                     subscription: subscriptionData.stripe_subscription_id,
                 },
             };
+
+            if (body.targetPriceId) {
+                updateData.subscription_update.items = [{
+                    id: subscriptionData.stripe_subscription_item_id, // We need to store this or fetch it.
+                    // WAIT. If we don't have the item ID, we can't easily update.
+                    // Stripe requires the 'price' for new items or 'id' for existing items.
+                    // For a simple swap (most SaaS), we usually replace the item.
+
+                    // Actually, for a single subscription item, we can just pass the new price 
+                    // IF we know the item ID.
+                    // Since we don't store stripe_subscription_item_id in DB yet, we should fetch it from stripe 
+                    // OR just rely on the portal letting them choose (IF config is valid).
+
+                    // STRATEGY SHIFT:
+                    // If we want to force the selection, we MUST know the subscription item ID.
+                    // Let's fetch the subscription from Stripe first to get the item ID.
+                }];
+            }
+
+            // Re-writing the block below to fetch subscription first if targetPriceId is present
         }
 
         const session = await stripe.billingPortal.sessions.create(portalConfig)

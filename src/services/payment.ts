@@ -35,7 +35,7 @@ export const createCheckoutSession = async (priceId: string, isAnnual: boolean) 
     }
 };
 
-export const createPortalSession = async (flowType?: 'default' | 'subscription_update') => {
+export const createPortalSession = async (flowType?: 'default' | 'subscription_update', targetPriceId?: string) => {
     try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error('Usuário não autenticado.');
@@ -46,7 +46,8 @@ export const createPortalSession = async (flowType?: 'default' | 'subscription_u
             },
             body: {
                 returnUrl: window.location.href,
-                flowType
+                flowType,
+                targetPriceId // Optional: Forces the portal to open in "update" mode pre-selected
             }
         });
 
@@ -57,6 +58,28 @@ export const createPortalSession = async (flowType?: 'default' | 'subscription_u
     } catch (error: any) {
         console.error('Erro ao abrir portal:', error);
         throw new Error('Não foi possível abrir o gerenciamento de assinatura.');
+    }
+};
+
+export const updateSubscription = async (targetPriceId: string) => {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Usuário não autenticado.');
+
+        const { data, error } = await supabase.functions.invoke('update-subscription', {
+            headers: {
+                Authorization: `Bearer ${session.access_token}`
+            },
+            body: { targetPriceId }
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        return data;
+    } catch (error: any) {
+        console.error('Erro ao atualizar assinatura:', error);
+        throw new Error(error.message || 'Falha ao atualizar plano.');
     }
 };
 
