@@ -49,29 +49,37 @@ serve(async (req) => {
         const itemId = subscription.items.data[0].id;
 
         // 3. Update Subscription
-        // proration_behavior: 'always_invoice' -> Calculate and charge immediately
-        const updatedSubscription = await stripe.subscriptions.update(subscriptionData.stripe_subscription_id, {
-            items: [{
-                id: itemId,
-                price: targetPriceId,
-            }],
-            proration_behavior: 'always_invoice',
-            pending_invoice_item_interval: {
-                interval: 'month',
-                interval_count: 1, // Reset billing cycle anchor? No, usually we keep anchor or reset it.
-                // Actually, for immediate charge, we don't need this.
-                // Just 'always_invoice' attempts to pay the diff now.
-            },
-            payment_behavior: 'pending_if_incomplete', // If payment fails, don't update yet (or use 'allow_incomplete')
-        });
+        try {
+            const updatedSubscription = await stripe.subscriptions.update(subscriptionData.stripe_subscription_id, {
+                items: [{
+                    id: itemId,
+                    price: targetPriceId,
+                }],
+                proration_behavior: 'always_invoice',
+                payment_behavior: 'allow_incomplete', // Better for handling 3DS if ever needed
+                expand: ['latest_invoice.payment_intent'],
+            });
 
-        return new Response(
-            JSON.stringify({ success: true, subscription: updatedSubscription }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-        )
+            console.log('SUCCESS: Subscription updated', updatedSubscription.id);
+
+            return new Response(
+                JSON.stringify({ success: true, subscription: updatedSubscription }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+            )
+        } catch (stripeError: any) {
+            console.error('STRIPE ERROR:', stripeError);
+            return new Response(
+                JSON.stringify({
+                    error: stripeError.message,
+                    code: stripeError.code,
+                    decline_code: stripeError.decline_code
+                }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            )
+        }
 
     } catch (error: any) {
-        console.error('UPDATE SUB ERROR:', error);
+        console.error('SERVER ERROR:', error);
         return new Response(
             JSON.stringify({ error: error.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }

@@ -8,6 +8,7 @@ interface UpgradeConfirmationModalProps {
     onConfirm: () => void;
     isLoading: boolean;
     newPlanName: string;
+    userName: string;
 }
 
 export const UpgradeConfirmationModal: React.FC<UpgradeConfirmationModalProps> = ({
@@ -15,7 +16,8 @@ export const UpgradeConfirmationModal: React.FC<UpgradeConfirmationModalProps> =
     onClose,
     onConfirm,
     isLoading,
-    newPlanName
+    newPlanName,
+    userName
 }) => {
     const [mounted, setMounted] = useState(false);
 
@@ -53,10 +55,10 @@ export const UpgradeConfirmationModal: React.FC<UpgradeConfirmationModalProps> =
                             🚀
                         </div>
                         <h4 className="text-2xl font-bold text-zinc-900 dark:text-white mb-3">
-                            Escalar meus resultados com o {newPlanName}!
+                            Excelente escolha, {userName}!
                         </h4>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-xs mx-auto">
-                            Acesse recursos exclusivos e leve sua prospecção para o próximo nível agora mesmo.
+                            Acesse os recursos exclusivos do <strong>{newPlanName}</strong> e leve sua prospecção para o próximo nível agora mesmo.
                         </p>
                     </div>
 
@@ -78,9 +80,9 @@ export const UpgradeConfirmationModal: React.FC<UpgradeConfirmationModalProps> =
                         className="w-full py-4 bg-success-600 hover:bg-success-700 text-white rounded-2xl font-bold text-sm shadow-xl shadow-success-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {isLoading ? (
-                            <>Processando Upgrade...</>
+                            <>Processando pagamento...</>
                         ) : (
-                            <>Confirmar e Escalar Resultados <ArrowRight className="w-4 h-4 ml-1" /></>
+                            <>Confirmar alteração de plano <ArrowRight className="w-4 h-4 ml-1" /></>
                         )}
                     </button>
 

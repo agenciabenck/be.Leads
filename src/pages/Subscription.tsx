@@ -144,6 +144,7 @@ const Subscription: React.FC<SubscriptionProps> = ({
                 onConfirm={handleConfirmUpgrade}
                 isLoading={isLoading}
                 newPlanName={upgradeTarget?.planName || ''}
+                userName={userSettings.name}
             />
 
             <div className="mb-10">
