@@ -53,10 +53,10 @@ export const UpgradeConfirmationModal: React.FC<UpgradeConfirmationModalProps> =
                             🚀
                         </div>
                         <h4 className="text-2xl font-bold text-zinc-900 dark:text-white mb-3">
-                            Desbloquear o {newPlanName}!
+                            Escalar meus resultados com o {newPlanName}!
                         </h4>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-xs mx-auto">
-                            Tudo pronto para turbinar sua operação. Seu acesso aos novos recursos será liberado <strong>imediatamente</strong>.
+                            Acesse recursos exclusivos e leve sua prospecção para o próximo nível agora mesmo.
                         </p>
                     </div>
 
@@ -64,7 +64,7 @@ export const UpgradeConfirmationModal: React.FC<UpgradeConfirmationModalProps> =
                         <div className="flex gap-3">
                             <ShieldCheck className="w-5 h-5 text-success-600 dark:text-success-400 shrink-0 mt-0.5" />
                             <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed text-left">
-                                Fique tranquilo: sua fatura será ajustada automaticamente apenas com a diferença proporcional do valor.
+                                Fique tranquilo: sua assinatura será atualizada automaticamente e o valor será ajustado proporcionalmente.
                             </p>
                         </div>
                     </div>
@@ -75,12 +75,12 @@ export const UpgradeConfirmationModal: React.FC<UpgradeConfirmationModalProps> =
                     <button
                         onClick={onConfirm}
                         disabled={isLoading}
-                        className="w-full py-4 bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 text-white rounded-2xl font-bold text-sm shadow-xl shadow-zinc-900/10 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="w-full py-4 bg-success-600 hover:bg-success-700 text-white rounded-2xl font-bold text-sm shadow-xl shadow-success-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {isLoading ? (
                             <>Processando Upgrade...</>
                         ) : (
-                            <>Confirmar Upgrade <ArrowRight className="w-4 h-4 ml-1" /></>
+                            <>Confirmar e Escalar Resultados <ArrowRight className="w-4 h-4 ml-1" /></>
                         )}
                     </button>
 
