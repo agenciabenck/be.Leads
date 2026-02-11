@@ -31,16 +31,19 @@ serve(async (req) => {
         })
 
         let returnUrl: string;
+        let flowType: 'default' | 'subscription_update' = 'default';
+
         try {
             const body = await req.json();
             returnUrl = body.returnUrl;
+            if (body.flowType) flowType = body.flowType;
         } catch (e) {
             throw new Error('Corpo da requisição inválido');
         }
 
         const { data: subscriptionData } = await supabaseClient
             .from('user_subscriptions')
-            .select('stripe_customer_id')
+            .select('stripe_customer_id, stripe_subscription_id')
             .eq('user_id', user.id)
             .single()
 
@@ -48,10 +51,21 @@ serve(async (req) => {
             throw new Error('Nenhum cliente Stripe encontrado para este usuário');
         }
 
-        const session = await stripe.billingPortal.sessions.create({
+        const portalConfig: any = {
             customer: subscriptionData.stripe_customer_id,
             return_url: returnUrl || req.headers.get('origin') || '',
-        })
+        };
+
+        if (flowType === 'subscription_update' && subscriptionData.stripe_subscription_id) {
+            portalConfig.flow_data = {
+                type: 'subscription_update',
+                subscription_update: {
+                    subscription: subscriptionData.stripe_subscription_id,
+                },
+            };
+        }
+
+        const session = await stripe.billingPortal.sessions.create(portalConfig)
 
         return new Response(
             JSON.stringify({ url: session.url }),

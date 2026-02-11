@@ -216,8 +216,8 @@ const App: React.FC = () => {
             const isActive = userSettings.subscriptionStatus === 'active' || userSettings.subscriptionStatus === 'trialing';
 
             if (isActive && !isFree) {
-                showNotification('Redirecionando para o portal para gerenciar sua assinatura...', 'info');
-                await createPortalSession();
+                showNotification('Redirecionando para atualização de plano...', 'info');
+                await createPortalSession('subscription_update');
                 return;
             }
 

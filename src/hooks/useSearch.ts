@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { normalizeString } from '@/utils/formatUtils';
 import { supabase } from '@/services/supabase';
 import { googleMapsService } from '@/services/googleMapsService';
 import { Lead, SearchState, SearchFilters, UserPlan, SearchHistoryItem } from '@/types/types';
 import { LOADING_MESSAGES, PLAN_CREDITS } from '@/constants/appConstants';
+
 
 export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: number) => void) => {
     const [query, setQuery] = useState('');
@@ -167,6 +169,11 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
                         });
                     }
 
+                    if (searchMode === 'guided' && excludedCity) { // [FIX] Client-side exclusion
+                        const excludedNorm = normalizeString(excludedCity);
+                        filtered = filtered.filter(r => !normalizeString(r.address).includes(excludedNorm));
+                    }
+
                     const newUnique = filtered.filter(nl =>
                         !allValidResults.some(el => el.id === nl.id) &&
                         !globalHistory.includes(nl.id) &&
@@ -268,6 +275,11 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
 
                 let filtered = mappedResults;
                 if (filters.requirePhone) filtered = filtered.filter(r => r.phone && r.phone !== 'N/A');
+
+                if (searchMode === 'guided' && excludedCity) { // [FIX] Client-side exclusion for load more
+                    const excludedNorm = normalizeString(excludedCity);
+                    filtered = filtered.filter(r => !normalizeString(r.address).includes(excludedNorm));
+                }
 
                 const newUnique = filtered.filter(nl =>
                     !leads.some(el => el.id === nl.id) &&

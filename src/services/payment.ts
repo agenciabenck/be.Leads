@@ -35,7 +35,7 @@ export const createCheckoutSession = async (priceId: string, isAnnual: boolean) 
     }
 };
 
-export const createPortalSession = async () => {
+export const createPortalSession = async (flowType?: 'default' | 'subscription_update') => {
     try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error('Usuário não autenticado.');
@@ -44,7 +44,10 @@ export const createPortalSession = async () => {
             headers: {
                 Authorization: `Bearer ${session.access_token}`
             },
-            body: { returnUrl: window.location.href }
+            body: {
+                returnUrl: window.location.href,
+                flowType
+            }
         });
 
         if (error) throw error;

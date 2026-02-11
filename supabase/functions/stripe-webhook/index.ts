@@ -42,13 +42,12 @@ serve(async (req) => {
 
     switch (event.type) {
         case 'checkout.session.completed':
-            // Logic for checkout completion if needed
+            const session = event.data.object;
+            await updateSubscriptionFromSession(session);
             break
 
+        case 'customer.subscription.created':
         case 'customer.subscription.updated':
-            await updateSubscription(event.data.object as StripeSubscription)
-            break
-
         case 'customer.subscription.deleted':
             await updateSubscription(event.data.object as StripeSubscription)
             break
@@ -66,10 +65,27 @@ const PRICE_MAP: Record<string, string> = {
     "price_1SzdJi3fc3cZuklGhjinw5av": 'elite'
 };
 
+async function updateSubscriptionFromSession(session: any) {
+    const customerId = session.customer;
+    const subscriptionId = session.subscription;
+
+    // Retrieve subscription details to get the price/plan
+    // We can't trust session.line_items without expanding, so better to rely on sub ID update later 
+    // OR just save the sub ID and let the 'customer.subscription.created' event handle the plan details.
+    // BUT 'customer.subscription.created' might arrive BEFORE 'checkout.session.completed'.
+    // The critical part here is linking stripe_subscription_id if it's missing.
+
+    // Actually, asking Stripe for the subscription details is safer
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    await updateSubscription(subscription);
+}
+
 async function updateSubscription(subscription: any) {
     const customerId = subscription.customer
     const priceId = subscription.items?.data[0]?.price?.id;
     const planName = PRICE_MAP[priceId] || 'free';
+    const status = subscription.status;
+    const subscriptionId = subscription.id;
 
     const { data: customer } = await supabaseClient
         .from('user_subscriptions')
@@ -78,17 +94,16 @@ async function updateSubscription(subscription: any) {
         .single()
 
     if (customer) {
-        // If status is active, we update the plan. 
-        // We also reset leads if the plan CHANGED or if it's a renewal (handled by simple update here, 
-        // though ideal regular reset is by date/invoice event. For now, plan consistency is P0).
-
         await supabaseClient
             .from('user_subscriptions')
             .update({
-                status: subscription.status,
+                stripe_subscription_id: subscriptionId, // Ensure this is saved
+                status: status,
                 plan_id: planName,
                 current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
             })
             .eq('user_id', customer.user_id)
+    } else {
+        console.error(`User not found for Stripe Customer: ${customerId}`);
     }
 }

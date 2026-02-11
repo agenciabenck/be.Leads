@@ -18,3 +18,10 @@ export const formatPhone = (val: string) => {
     if (clean.length > 2) return `(${clean.slice(0, 2)}) ${clean.slice(2)}`;
     return clean;
 };
+
+/**
+ * Normalizes a string by removing accents and converting to lowercase.
+ */
+export const normalizeString = (str: string) => {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+};
