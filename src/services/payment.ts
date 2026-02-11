@@ -58,6 +58,11 @@ export const createPortalSession = async (flowType?: 'default' | 'subscription_u
             throw error;
         }
 
+        if (data?.error) {
+            console.error('Erro retornado pela função:', data.error);
+            throw new Error(data.error);
+        }
+
         if (!data?.url) throw new Error('URL do portal não retornada pelo servidor.');
 
         window.location.href = data.url;
