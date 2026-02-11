@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-    RotateCcw, Loader2, CalendarIcon, X, Plus, Copy, ExternalLink, Clock, FileSpreadsheet, Sparkles, Phone, PlusCircle, MessageCircle
+    RotateCcw, Loader2, CalendarIcon, X, Plus, Copy, ExternalLink, Clock, FileSpreadsheet, Sparkles, Phone, PlusCircle, MessageCircle, BadgeCheck
 } from 'lucide-react';
 import { supabase } from '@/services/supabase';
-import { createCheckoutSession, createPortalSession } from '@/services/payment';
+import { createCheckoutSession, createPortalSession, updateSubscription, validateCoupon } from '@/services/payment';
 import { ResetPassword } from '@/components/ResetPassword';
 import { Auth } from '@/components/Auth';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -87,6 +87,13 @@ const App: React.FC = () => {
 
     const [showExportModal, setShowExportModal] = useState(false);
     const [loadMoreQuantity, setLoadMoreQuantity] = useState(10);
+
+    // Upgrade Modal State
+    const [upgradeModal, setUpgradeModal] = useState<{ show: boolean; planId: string; priceId: string; planName: string; isAnnual: boolean } | null>(null);
+    const [couponCode, setCouponCode] = useState('');
+    const [couponDetails, setCouponDetails] = useState<{ valid: boolean; discount?: string; couponId?: string } | null>(null);
+    const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+    const [isUpgrading, setIsUpgrading] = useState(false);
 
     // Refs
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -318,6 +325,51 @@ const App: React.FC = () => {
         }
     };
 
+    const handleValidateCoupon = async () => {
+        if (!couponCode.trim()) return;
+        setIsValidatingCoupon(true);
+        setCouponDetails(null);
+        try {
+            const result = await validateCoupon(couponCode);
+            if (result.valid) {
+                const discount = result.percent_off
+                    ? `${result.percent_off}% de desconto`
+                    : `R$ ${(result.amount_off / 100).toFixed(2).replace('.', ',')} de desconto`;
+
+                setCouponDetails({
+                    valid: true,
+                    discount,
+                    couponId: result.couponId
+                });
+                showNotification('Cupom validado com sucesso!', 'success');
+            } else {
+                setCouponDetails({ valid: false });
+                showNotification(result.error || 'Cupom inválido.', 'error');
+            }
+        } catch (error) {
+            showNotification('Erro ao validar cupom.', 'error');
+        } finally {
+            setIsValidatingCoupon(false);
+        }
+    };
+
+    const confirmUpgrade = async () => {
+        if (!upgradeModal) return;
+        setIsUpgrading(true);
+        try {
+            const finalCoupon = couponDetails?.valid ? couponDetails.couponId : couponCode.trim();
+            await updateSubscription(upgradeModal.priceId, finalCoupon);
+            showNotification(`Upgrade para ${upgradeModal.planName} realizado com sucesso!`, 'success');
+            setUpgradeModal(null);
+            // Credits will be updated via webhook
+        } catch (err: any) {
+            console.error('[App] Erro no upgrade:', err);
+            showNotification(err.message || 'Erro ao realizar upgrade.', 'error');
+        } finally {
+            setIsUpgrading(false);
+        }
+    };
+
     // --- Helpers ---
     const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
@@ -516,6 +568,9 @@ const App: React.FC = () => {
                         setBillingCycle={setBillingCycle}
                         userSettings={userSettings}
                         handleCheckout={handleCheckout}
+                        setUpgradeModal={setUpgradeModal}
+                        setCouponCode={setCouponCode}
+                        setCouponDetails={setCouponDetails}
                     />
                 )}
 
@@ -981,6 +1036,97 @@ const App: React.FC = () => {
                     />
                 ))}
             </ToastContainer>
+            {/* Upgrade Modal - Definitive Fix for Global Blur */}
+            {upgradeModal?.show && (
+                <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-zinc-950/40 backdrop-blur-md transition-opacity animate-in fade-in duration-300"
+                        onClick={() => !isUpgrading && setUpgradeModal(null)}
+                    />
+                    <div className="relative bg-white dark:bg-zinc-900 w-full max-w-md rounded-[32px] border border-zinc-200 dark:border-zinc-800 shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+                        {/* Modal Header - Novo Padrão */}
+                        <div className="w-full p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
+                            <div className="flex items-center gap-3 text-left">
+                                <div className="p-2 bg-success-100 dark:bg-success-900/30 rounded-xl">
+                                    <BadgeCheck className="w-5 h-5 text-success-600 dark:text-success-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white leading-tight">Confirmar Upgrade</h3>
+                                    <p className="text-[11px] text-zinc-400 font-medium tracking-tight">Mudança para o plano {upgradeModal.planName} {upgradeModal.isAnnual ? '(Anual)' : '(Mensal)'}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => !isUpgrading && setUpgradeModal(null)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-400 hover:text-zinc-600">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6 space-y-4">
+                            <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 w-full">
+                                <p className="text-[10px] uppercase font-bold text-zinc-400 mb-2">Sobre os valores</p>
+                                <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                                    O Stripe calculará a diferença proporcional entre o seu plano atual e o novo.
+                                    A cobrança será feita no cartão já cadastrado.
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-400 uppercase mb-2 ml-1">
+                                    Cupom de Desconto
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={couponCode}
+                                        onChange={(e) => {
+                                            setCouponCode(e.target.value.toUpperCase());
+                                            setCouponDetails(null);
+                                        }}
+                                        placeholder="INSIRA SEU CÓDIGO"
+                                        className={`flex-1 bg-zinc-50 dark:bg-zinc-800 border ${couponDetails === null ? 'border-zinc-200 dark:border-zinc-700' : couponDetails.valid ? 'border-success-500/50' : 'border-error-500/50'} rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-success-500/20 focus:border-success-500 transition-all uppercase placeholder:normal-case`}
+                                    />
+                                    <button
+                                        onClick={handleValidateCoupon}
+                                        disabled={isValidatingCoupon || !couponCode.trim() || isUpgrading}
+                                        className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 min-w-[80px]"
+                                    >
+                                        {isValidatingCoupon ? '...' : 'Validar'}
+                                    </button>
+                                </div>
+                                {couponDetails && (
+                                    <div className={`mt-2 ml-1 text-xs font-bold ${couponDetails.valid ? 'text-success-600' : 'text-error-600'}`}>
+                                        {couponDetails.valid ? `✓ ${couponDetails.discount}` : '✗ Cupom inválido ou expirado'}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={() => setUpgradeModal(null)}
+                                    disabled={isUpgrading}
+                                    className="flex-1 py-3.5 rounded-xl font-bold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-all text-sm"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmUpgrade}
+                                    disabled={isUpgrading}
+                                    className="flex-[2] py-3.5 bg-success-600 text-white rounded-xl font-bold hover:bg-success-700 shadow-lg shadow-success-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
+                                >
+                                    {isUpgrading ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Processando...
+                                        </>
+                                    ) : (
+                                        'Confirmar Mudança'
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
