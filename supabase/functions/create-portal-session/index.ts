@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import Stripe from "https://esm.sh/stripe@12.0.0?target=deno"
+import Stripe from "https://esm.sh/stripe@14.25.0?target=deno"
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -13,44 +13,46 @@ serve(async (req) => {
     }
 
     try {
+        console.log('--- START PORTAL SESSION CREATION ---');
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) throw new Error('Authorization header is missing');
+
         const supabaseClient = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-            { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+            { global: { headers: { Authorization: authHeader } } }
         )
 
-        const { data: { user } } = await supabaseClient.auth.getUser()
-        if (!user) throw new Error('Usuário não encontrado')
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+        if (userError || !user) throw new Error(`Auth Error: ${userError?.message || 'User not found'}`);
 
         const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
-        if (!stripeKey) throw new Error('Configuração de pagamento ausente (STRIPE_SECRET_KEY)');
+        if (!stripeKey) throw new Error('STRIPE_SECRET_KEY is missing');
 
+        // Explicitly setting the API version to support the 'flow' parameter
         const stripe = new Stripe(stripeKey, {
-            apiVersion: '2022-11-15',
+            apiVersion: '2023-10-16',
             httpClient: Stripe.createFetchHttpClient(),
         })
 
-        let returnUrl: string;
-        let flowType: 'default' | 'subscription_update' = 'default';
-        let targetPriceId: string | null = null;
-
+        let body;
         try {
-            const body = await req.json();
-            returnUrl = body.returnUrl;
-            if (body.flowType) flowType = body.flowType;
-            if (body.targetPriceId) targetPriceId = body.targetPriceId;
+            body = await req.json();
         } catch (e) {
-            throw new Error('Corpo da requisição inválido');
+            throw new Error('Req body is not valid JSON');
         }
 
-        const { data: subscriptionData } = await supabaseClient
+        const { returnUrl, flowType = 'default', targetPriceId } = body;
+
+        const { data: subscriptionData, error: dbError } = await supabaseClient
             .from('user_subscriptions')
             .select('stripe_customer_id, stripe_subscription_id')
             .eq('user_id', user.id)
             .single()
 
+        if (dbError) throw new Error(`Database Error: ${dbError.message}`);
         if (!subscriptionData?.stripe_customer_id) {
-            throw new Error('Nenhum cliente Stripe encontrado para este usuário');
+            throw new Error(`Customer not found for user ${user.id}`);
         }
 
         const portalConfig: any = {
@@ -58,10 +60,9 @@ serve(async (req) => {
             return_url: returnUrl || req.headers.get('origin') || '',
         };
 
-        // If it's an upgrade flow, we target the specific price and confirmation screen
         if (targetPriceId && subscriptionData.stripe_subscription_id) {
-            // We need to fetch the subscription to get the correct subscription item ID
             const subscription = await stripe.subscriptions.retrieve(subscriptionData.stripe_subscription_id);
+            if (!subscription.items.data[0]) throw new Error('Subscription has no items');
             const itemId = subscription.items.data[0].id;
 
             portalConfig.flow = {
@@ -75,7 +76,6 @@ serve(async (req) => {
                 },
             };
         } else if (flowType === 'subscription_update' && subscriptionData.stripe_subscription_id) {
-            // Generic management portal flow
             portalConfig.flow = {
                 type: 'subscription_update',
                 subscription_update: {
@@ -92,10 +92,10 @@ serve(async (req) => {
         )
 
     } catch (error: any) {
-        console.error('PORTAL ERROR:', error);
+        console.error('PORTAL ERROR:', error.message);
         return new Response(
-            JSON.stringify({ error: error.message }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            JSON.stringify({ error: error.message, detail: error.raw?.message || null }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
     }
 })

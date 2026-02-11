@@ -1,15 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import Stripe from "https://esm.sh/stripe@12.0.0?target=deno"
+import Stripe from "https://esm.sh/stripe@14.25.0?target=deno"
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-interface CheckoutRequestBody {
-    priceId: string;
-    isAnnual?: boolean;
 }
 
 serve(async (req) => {
@@ -18,28 +13,23 @@ serve(async (req) => {
     }
 
     try {
-        console.log('Received create-checkout-session request');
+        const authHeader = req.headers.get('Authorization')
+        if (!authHeader) throw new Error('Authorization header is missing')
 
         const supabaseClient = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-            { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+            { global: { headers: { Authorization: authHeader } } }
         )
 
         const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
-
-        if (authError || !user) {
-            console.error('Auth User Error:', authError);
-            throw new Error('Usuário não autenticado')
-        }
+        if (authError || !user) throw new Error('Usuário não autenticado')
 
         const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
-        if (!stripeKey) {
-            throw new Error('Configuração de pagamento ausente (STRIPE_SECRET_KEY)');
-        }
+        if (!stripeKey) throw new Error('STRIPE_SECRET_KEY is missing');
 
         const stripe = new Stripe(stripeKey, {
-            apiVersion: '2022-11-15',
+            apiVersion: '2023-10-16',
             httpClient: Stripe.createFetchHttpClient(),
         })
 
@@ -48,17 +38,8 @@ serve(async (req) => {
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         )
 
-        let body: CheckoutRequestBody;
-        try {
-            body = await req.json();
-        } catch (e) {
-            throw new Error('Corpo da requisição inválido');
-        }
-
-        const { priceId } = body;
-        if (!priceId) {
-            throw new Error('ID do preço é obrigatório');
-        }
+        const { priceId } = await req.json();
+        if (!priceId) throw new Error('ID do preço é obrigatório');
 
         const { data: subscriptionData } = await supabaseAdmin
             .from('user_subscriptions')
@@ -83,15 +64,13 @@ serve(async (req) => {
                     status: 'incomplete'
                 })
         } else {
-            // Check if user already has an active subscription to prevent double-billing
-            // Allow upgrades if the current plan is 'free'
             const isFree = subscriptionData.plan_id === 'free';
             if ((subscriptionData.status === 'active' || subscriptionData.status === 'trialing') && !isFree) {
                 throw new Error('Você já possui uma assinatura ativa. Utilize o portal para gerenciar seu plano.');
             }
         }
 
-        const origin = req.headers.get('origin') || 'http://localhost:5173';
+        const origin = req.headers.get('origin') || '';
 
         const session = await stripe.checkout.sessions.create({
             customer: customerId,
@@ -108,9 +87,9 @@ serve(async (req) => {
         )
 
     } catch (error: any) {
-        console.error('EDGE FUNCTION ERROR:', error);
+        console.error('ERROR:', error.message);
         return new Response(
-            JSON.stringify({ error: error.message || 'Erro desconhecido' }),
+            JSON.stringify({ error: error.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
     }
