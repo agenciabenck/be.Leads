@@ -24,15 +24,26 @@ export const useAuth = () => {
         subscriptionStatus: 'active'
     });
 
+    const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false);
+
     useEffect(() => {
         const initializeSession = async () => {
+            // Check for hash containing type=recovery
+            const isRecovery = window.location.hash.includes('type=recovery');
+            if (isRecovery) {
+                setPasswordRecoveryMode(true);
+            }
+
             const { data: { session } } = await supabase.auth.getSession();
             handleUserSession(session?.user);
         };
 
         initializeSession();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                setPasswordRecoveryMode(true);
+            }
             handleUserSession(session?.user);
         });
 
@@ -154,6 +165,7 @@ export const useAuth = () => {
         user,
         authLoading,
         userSettings,
+        passwordRecoveryMode,
         setUserSettings: updateUserSettings
     };
 };

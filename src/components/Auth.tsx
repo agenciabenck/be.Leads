@@ -7,7 +7,7 @@ interface AuthProps {
 }
 
 export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
-    const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password'>('signup');
+    const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password'>('login');
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

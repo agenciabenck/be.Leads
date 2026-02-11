@@ -4,40 +4,12 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/services/supabase';
 import { createCheckoutSession, createPortalSession } from '@/services/payment';
-import { Auth } from '@/components/Auth';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { LeadTable } from '@/components/LeadTable';
-import { KanbanBoard } from '@/components/KanbanBoard';
-import Sidebar from '@/components/Sidebar';
-import MobileHeader from '@/components/MobileHeader';
-import { getUserData, setUserData } from '@/utils/storageUtils';
-import { formatCurrency, formatPhone } from '@/utils/formatUtils';
-import { Toast, ToastContainer } from '@/components/UXComponents';
-
-// Hooks
-import { useAuth } from '@/hooks/useAuth';
-import { useSearch } from '@/hooks/useSearch';
-import { useCRM } from '@/hooks/useCRM';
-import { useCalendar } from '@/hooks/useCalendar';
-
-// Pages
-import Home from '@/pages/Home';
-import LeadExtractor from '@/pages/LeadExtractor';
-import CRM from '@/pages/CRM';
-import Subscription from '@/pages/Subscription';
-import Settings from '@/pages/Settings';
-
-// Types & Constants
-import { googleMapsService } from '@/services/googleMapsService';
-import { Lead, CRMLead, CRMStatus, CalendarEvent, SearchState, SearchFilters, SortField, SortOrder, UserSettings, UserPlan, AppTab } from '@/types/types';
-import {
-    COMMON_NICHES, BRAZIL_STATES, TIME_OPTIONS, AVATAR_EMOJIS,
-    LOADING_MESSAGES, STRIPE_PRICES, PLAN_HIERARCHY, DEMO_LEADS, PLAN_CREDITS
-} from '@/constants/appConstants';
+import { ResetPassword } from '@/components/ResetPassword';
 
 const App: React.FC = () => {
     // --- Custom Hooks ---
-    const { user, authLoading, userSettings, setUserSettings } = useAuth();
+    const { user, authLoading, userSettings, setUserSettings, passwordRecoveryMode } = useAuth();
+
     const {
         crmLeads, setCrmLeads, crmSearchQuery, setCrmSearchQuery,
         globalHistory, setGlobalHistory, addToCRM, updateLeadStatus, updateLead, deleteLead,
@@ -348,7 +320,10 @@ const App: React.FC = () => {
         );
     }
 
-    // --- Auth Protection ---
+    if (passwordRecoveryMode) {
+        return <ResetPassword />;
+    }
+
     if (!user || !user.email) {
         return <Auth onAuthSuccess={() => { }} />;
     }
