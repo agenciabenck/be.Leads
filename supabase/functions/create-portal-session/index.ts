@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import Stripe from "https://esm.sh/stripe@14.25.0?target=deno"
+import Stripe from "https://esm.sh/stripe@16.12.0?target=deno"
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -31,7 +31,7 @@ serve(async (req) => {
 
         // Explicitly setting the API version to support the 'flow' parameter
         const stripe = new Stripe(stripeKey, {
-            apiVersion: '2023-10-16',
+            apiVersion: '2024-06-20',
             httpClient: Stripe.createFetchHttpClient(),
         })
 
@@ -93,10 +93,20 @@ serve(async (req) => {
 
         let session;
         try {
-            session = await stripe.billingPortal.sessions.create(portalConfig);
+            // Explicitly pass the version here too, sometimes required in edge environments
+            session = await stripe.billingPortal.sessions.create(portalConfig, {
+                apiVersion: '2024-06-20' as any
+            });
         } catch (stripeError: any) {
             console.error('Stripe Portal Creation Error:', stripeError.message);
-            // Fallback: If specific flow fails, try basic portal
+
+            // For debugging: Do not fallback silently if targetPriceId was provided
+            if (targetPriceId) {
+                console.error('Target Price ID was provided but Portal creation failed. Error:', stripeError.message);
+                throw new Error(`Stripe Portal Error: ${stripeError.message}. Verifique se o preço ${targetPriceId} está habilitado no Portal.`);
+            }
+
+            // Fallback for general usage
             if (portalConfig.flow) {
                 console.log('Falling back to basic portal...');
                 delete portalConfig.flow;
@@ -107,7 +117,13 @@ serve(async (req) => {
         }
 
         return new Response(
-            JSON.stringify({ url: session.url }),
+            JSON.stringify({
+                url: session.url,
+                debug: {
+                    flow_used: portalConfig.flow?.type || 'default',
+                    targetPriceId: targetPriceId || null
+                }
+            }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
 

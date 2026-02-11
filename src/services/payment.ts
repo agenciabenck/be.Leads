@@ -42,15 +42,18 @@ export const createPortalSession = async (flowType?: 'default' | 'subscription_u
 
         console.log('Iniciando portal session...', { flowType, targetPriceId });
 
+        const payload = {
+            returnUrl: window.location.href,
+            flowType,
+            targetPriceId
+        };
+        console.log('Enviando payload para Portal Session:', payload);
+
         const { data, error } = await supabase.functions.invoke('create-portal-session', {
             headers: {
                 Authorization: `Bearer ${session.access_token}`
             },
-            body: {
-                returnUrl: window.location.href,
-                flowType,
-                targetPriceId
-            }
+            body: payload
         });
 
         if (error) {
@@ -72,6 +75,38 @@ export const createPortalSession = async (flowType?: 'default' | 'subscription_u
         console.error('Erro detalhado portal:', error);
         const detail = error.message || 'Erro desconhecido';
         throw new Error(`Não foi possível abrir o portal de pagamento: ${detail}`);
+    }
+};
+
+
+export const updateSubscription = async (targetPriceId: string, coupon?: string) => {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Usuário não autenticado.');
+
+        console.log('Iniciando upgrade direto...', { targetPriceId, coupon });
+
+        const { data, error } = await supabase.functions.invoke('update-subscription', {
+            headers: {
+                Authorization: `Bearer ${session.access_token}`
+            },
+            body: { targetPriceId, coupon }
+        });
+
+        if (error) {
+            console.error('Erro no invoke update-subscription:', error);
+            throw error;
+        }
+
+        if (data?.error) {
+            throw new Error(data.error);
+        }
+
+        return data;
+    } catch (error: any) {
+        console.error('Erro detalhado upgrade:', error);
+        const detail = error.message || 'Erro desconhecido';
+        throw new Error(`Não foi possível realizar o upgrade: ${detail}`);
     }
 };
 

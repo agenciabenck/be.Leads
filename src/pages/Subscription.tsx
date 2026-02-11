@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Check, X, BadgeCheck } from 'lucide-react';
 import { UserSettings, UserPlan } from '@/types/types';
 import { PLAN_HIERARCHY, STRIPE_PRICES, STRIPE_PRICES_ANNUAL } from '@/constants/appConstants';
-import { createCheckoutSession, createPortalSession, getSubscriptionStatus } from '@/services/payment';
+import { createCheckoutSession, createPortalSession, getSubscriptionStatus, updateSubscription } from '@/services/payment';
 import { Toast } from '@/components/UXComponents';
 
 interface SubscriptionProps {
@@ -20,6 +20,9 @@ const Subscription: React.FC<SubscriptionProps> = ({
 }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'info' }[]>([]);
+    const [upgradeModal, setUpgradeModal] = useState<{ show: boolean; planId: string; priceId: string; planName: string; isAnnual: boolean } | null>(null);
+    const [couponCode, setCouponCode] = useState('');
+    const [isUpgrading, setIsUpgrading] = useState(false);
 
     const addToast = (t: { type: 'success' | 'error' | 'info'; title?: string; message: string }) => {
         const id = Math.random().toString(36).substring(2, 9);
@@ -31,18 +34,21 @@ const Subscription: React.FC<SubscriptionProps> = ({
     const handleCheckout = async (planId: 'start' | 'pro' | 'elite', isAnnual: boolean) => {
         setIsLoading(true);
         try {
-            // Determine if it's an upgrade
             const subscription = await getSubscriptionStatus();
             const isUpgrade = subscription && subscription.status === 'active' && subscription.plan_id !== 'free';
-
-            // Calculate Price ID
             const priceId = isAnnual ? STRIPE_PRICES_ANNUAL[planId] : STRIPE_PRICES[planId];
 
             if (isUpgrade) {
-                // Redirect to Stripe Portal for Update Confirmation
-                await createPortalSession('subscription_update', priceId);
+                // Find plan name for modal
+                const planInfo = planList.find(p => p.id === planId);
+                setUpgradeModal({
+                    show: true,
+                    planId,
+                    priceId,
+                    planName: planInfo?.name || planId,
+                    isAnnual
+                });
             } else {
-                // New Checkout
                 await createCheckoutSession(priceId, isAnnual);
             }
         } catch (error: any) {
@@ -52,6 +58,29 @@ const Subscription: React.FC<SubscriptionProps> = ({
             });
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const confirmUpgrade = async () => {
+        if (!upgradeModal) return;
+        setIsUpgrading(true);
+        try {
+            await updateSubscription(upgradeModal.priceId, couponCode);
+            addToast({
+                type: 'success',
+                message: `Upgrade para ${upgradeModal.planName} realizado com sucesso! Seus créditos serão atualizados em instantes.`
+            });
+            setUpgradeModal(null);
+            setCouponCode('');
+            // Optional: Refresh page or state
+            setTimeout(() => window.location.reload(), 2000);
+        } catch (error: any) {
+            addToast({
+                type: 'error',
+                message: error.message || 'Erro ao realizar upgrade.'
+            });
+        } finally {
+            setIsUpgrading(false);
         }
     };
 
@@ -109,6 +138,75 @@ const Subscription: React.FC<SubscriptionProps> = ({
                     <Toast key={toast.id} id={toast.id} message={toast.message} type={toast.type} onClose={() => setToasts(prev => prev.filter(t => t.id !== toast.id))} />
                 ))}
             </div>
+
+            {/* Upgrade Modal */}
+            {upgradeModal?.show && (
+                <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-zinc-950/40 backdrop-blur-md transition-opacity animate-in fade-in"
+                        onClick={() => !isUpgrading && setUpgradeModal(null)}
+                    />
+                    <div className="relative bg-white dark:bg-zinc-900 w-full max-w-md rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-6 animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col items-center text-center mb-6">
+                            <div className="w-16 h-16 rounded-full bg-success-50 dark:bg-success-900/30 text-success-600 dark:text-success-400 flex items-center justify-center mb-4">
+                                <BadgeCheck className="w-8 h-8" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2 tracking-tighter">
+                                Confirmar Upgrade
+                            </h3>
+                            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                                Você está mudando para o plano <span className="font-bold text-zinc-900 dark:text-white">{upgradeModal.planName} {upgradeModal.isAnnual ? '(Anual)' : '(Mensal)'}</span>.
+                            </p>
+                            <div className="mt-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 w-full">
+                                <p className="text-[10px] uppercase font-bold text-zinc-400 mb-2">Sobre os valores</p>
+                                <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                                    O Stripe calculará a diferença proporcional entre o seu plano atual e o novo.
+                                    A cobrança será feita no cartão já cadastrado.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-400 uppercase mb-2 ml-1">
+                                    Cupom de Desconto
+                                </label>
+                                <input
+                                    type="text"
+                                    value={couponCode}
+                                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                    placeholder="INSIRA SEU CÓDIGO"
+                                    className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-success-500/20 focus:border-success-500 transition-all uppercase placeholder:normal-case"
+                                />
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setUpgradeModal(null)}
+                                    disabled={isUpgrading}
+                                    className="flex-1 py-3.5 rounded-xl font-bold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-all text-sm"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmUpgrade}
+                                    disabled={isUpgrading}
+                                    className="flex-[2] py-3.5 bg-success-600 text-white rounded-xl font-bold hover:bg-success-700 shadow-lg shadow-success-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
+                                >
+                                    {isUpgrading ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Processando...
+                                        </>
+                                    ) : (
+                                        'Confirmar Mudança'
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
 
             <div className="mb-10">
