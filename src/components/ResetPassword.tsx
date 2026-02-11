@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '@/services/supabase';
 import { Lock, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react';
+import { translateAuthError } from '@/utils/authUtils';
 
 export const ResetPassword: React.FC = () => {
     const [password, setPassword] = useState('');
@@ -44,7 +45,7 @@ export const ResetPassword: React.FC = () => {
 
         } catch (err: any) {
             console.error('Password reset error:', err);
-            setError(err.message || 'Erro ao redefinir senha.');
+            setError(translateAuthError(err.message));
         } finally {
             setLoading(false);
         }

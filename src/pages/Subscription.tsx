@@ -7,7 +7,7 @@ interface SubscriptionProps {
     billingCycle: 'monthly' | 'annual';
     setBillingCycle: (v: 'monthly' | 'annual') => void;
     userSettings: UserSettings;
-    handleCheckout: (planId: keyof typeof STRIPE_PRICES, isAnnual: boolean) => Promise<void>;
+    handleCheckout: (planId: 'start' | 'pro' | 'elite', isAnnual: boolean) => Promise<void>;
 }
 
 const Subscription: React.FC<SubscriptionProps> = ({

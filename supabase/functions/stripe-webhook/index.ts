@@ -58,9 +58,12 @@ serve(async (req) => {
 })
 
 const PRICE_MAP: Record<string, string> = {
-    "price_1QovA7SFY1oG7C21R71N24": 'start',
-    "price_1QovBSSFdF1oG7C2188X922": 'pro',
-    "price_1QovCfSFG1oG7Y21O99m24": 'elite'
+    "price_1SzdGU3fc3cZuklGVPzlU4Fi": 'start',
+    "price_1SzdGu3fc3cZuklGDHAMMsBR": 'start',
+    "price_1SzdHi3fc3cZuklG5rtVblVa": 'pro',
+    "price_1SzdI83fc3cZuklGDBe9TJVy": 'pro',
+    "price_1SzdJQ3fc3cZuklGzmncl1Oh": 'elite',
+    "price_1SzdJi3fc3cZuklGhjinw5av": 'elite'
 };
 
 async function updateSubscription(subscription: any) {

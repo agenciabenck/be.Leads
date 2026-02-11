@@ -83,10 +83,17 @@ export const LOADING_MESSAGES = [
 ];
 
 export const STRIPE_PRICES = {
-    start: "price_1QovA7SFY1oG7C21R71N24",
-    pro: "price_1QovBSSFdF1oG7C2188X922",
-    elite: "price_1QovCfSFG1oG7Y21O99m24"
+    start: "price_1SzdGU3fc3cZuklGVPzlU4Fi",
+    pro: "price_1SzdHi3fc3cZuklG5rtVblVa",
+    elite: "price_1SzdJQ3fc3cZuklGzmncl1Oh"
 };
+
+export const STRIPE_PRICES_ANNUAL = {
+    start: "price_1SzdGu3fc3cZuklGDHAMMsBR",
+    pro: "price_1SzdI83fc3cZuklGDBe9TJVy",
+    elite: "price_1SzdJi3fc3cZuklGhjinw5av"
+};
+
 
 export const PLAN_HIERARCHY = {
     free: 0,

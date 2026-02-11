@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '@/services/supabase';
 import { LogIn, UserPlus, Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, User, X } from 'lucide-react';
+import { translateAuthError } from '@/utils/authUtils';
 
 interface AuthProps {
     onAuthSuccess: () => void;
@@ -17,29 +18,9 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
 
-    // Tradutor de erros do Supabase para Português
-    const translateAuthError = (errorMessage: string): string => {
-        const errorTranslations: Record<string, string> = {
-            'Invalid login credentials': 'Email ou senha incorretos',
-            'User already registered': 'Este email já está cadastrado',
-            'Email not confirmed': 'Email não confirmado. Verifique sua caixa de entrada ou spam.',
-            'Invalid email': 'Email inválido',
-            'Password should be at least 6 characters': 'A senha deve ter no mínimo 6 caracteres',
-            'Email rate limit exceeded': 'Muitas tentativas. Aguarde alguns minutos',
-            'Signup disabled': 'Cadastro temporariamente desabilitado',
-            'User not found': 'Usuário não encontrado',
-            'Invalid credentials': 'Credenciais inválidas',
-            'Email link is invalid or has expired': 'Link de email inválido ou expirado',
-        };
+    // Tradutor de erros importado de utils
+    // const translateAuthError = (errorMessage: string): string => { ... } 
 
-        if (errorTranslations[errorMessage]) return errorTranslations[errorMessage];
-
-        for (const [key, value] of Object.entries(errorTranslations)) {
-            if (errorMessage.toLowerCase().includes(key.toLowerCase())) return value;
-        }
-
-        return 'Erro ao processar sua solicitação. Tente novamente';
-    };
 
     const handleGoogleLogin = async () => {
         setLoading(true);
