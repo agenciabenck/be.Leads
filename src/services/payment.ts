@@ -8,9 +8,6 @@ export const createCheckoutSession = async (priceId: string, isAnnual: boolean) 
         }
 
         const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-            headers: {
-                Authorization: `Bearer ${session.access_token}`
-            },
             body: { priceId, isAnnual }
         });
 
