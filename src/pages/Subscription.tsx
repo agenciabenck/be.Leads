@@ -54,7 +54,6 @@ const Subscription: React.FC<SubscriptionProps> = ({
     const handleCheckout = async (planId: 'start' | 'pro' | 'elite', isAnnual: boolean) => {
         setIsLoading(true);
         try {
-
             // Determine if it's an upgrade
             const subscription = await getSubscriptionStatus();
             const isUpgrade = subscription && subscription.status === 'active' && subscription.plan_id !== 'free';
@@ -62,13 +61,9 @@ const Subscription: React.FC<SubscriptionProps> = ({
             // Calculate Price ID
             const priceId = isAnnual ? STRIPE_PRICES_ANNUAL[planId] : STRIPE_PRICES[planId];
 
-            // Plan Name for display
-            const planName = planId.charAt(0).toUpperCase() + planId.slice(1);
-
             if (isUpgrade) {
-                // Open Custom Confirmation Modal
-                setUpgradeTarget({ priceId, planName });
-                setIsUpgradeModalOpen(true);
+                // Redirect to Stripe Portal for Update Confirmation
+                await createPortalSession('subscription_update', priceId);
             } else {
                 // New Checkout
                 await createCheckoutSession(priceId, isAnnual);
@@ -76,10 +71,10 @@ const Subscription: React.FC<SubscriptionProps> = ({
         } catch (error: any) {
             addToast({
                 type: 'error',
-                message: error.message || 'Tente novamente mais tarde.'
+                message: error.message || 'Erro ao processar solicitação.'
             });
         } finally {
-            if (!isUpgradeModalOpen) setIsLoading(false);
+            setIsLoading(false);
         }
     };
 
@@ -138,14 +133,6 @@ const Subscription: React.FC<SubscriptionProps> = ({
                 ))}
             </div>
 
-            <UpgradeConfirmationModal
-                isOpen={isUpgradeModalOpen}
-                onClose={() => setIsUpgradeModalOpen(false)}
-                onConfirm={handleConfirmUpgrade}
-                isLoading={isLoading}
-                newPlanName={upgradeTarget?.planName || ''}
-                userName={userSettings.name}
-            />
 
             <div className="mb-10">
                 <h2 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2 tracking-tighter">Planos</h2>
