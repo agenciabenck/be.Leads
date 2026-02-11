@@ -41,9 +41,6 @@ export const createPortalSession = async (flowType?: 'default' | 'subscription_u
         if (!session) throw new Error('Usuário não autenticado.');
 
         const { data, error } = await supabase.functions.invoke('create-portal-session', {
-            headers: {
-                Authorization: `Bearer ${session.access_token}`
-            },
             body: {
                 returnUrl: window.location.href,
                 flowType,
@@ -67,9 +64,6 @@ export const updateSubscription = async (targetPriceId: string) => {
         if (!session) throw new Error('Usuário não autenticado.');
 
         const { data, error } = await supabase.functions.invoke('update-subscription', {
-            headers: {
-                Authorization: `Bearer ${session.access_token}`
-            },
             body: { targetPriceId }
         });
 
