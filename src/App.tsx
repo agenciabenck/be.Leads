@@ -139,6 +139,12 @@ const App: React.FC = () => {
 
     const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
+    // --- Sync Billing Cycle with User Settings ---
+    useEffect(() => {
+        if (userSettings.billingCycle === 'annual') {
+            setBillingCycle('annual');
+        }
+    }, [userSettings.billingCycle]);
     const sortedLeads = useMemo(() => {
         return [...leads].sort((a, b) => {
             let valA: any = a[sortField as keyof Lead] || '';
