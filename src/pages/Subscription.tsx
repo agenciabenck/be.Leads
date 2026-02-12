@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, X, BadgeCheck } from 'lucide-react';
+import { Check, X, BadgeCheck, Info } from 'lucide-react';
 import { UserSettings, UserPlan } from '@/types/types';
 import { PLAN_HIERARCHY, STRIPE_PRICES, STRIPE_PRICES_ANNUAL } from '@/constants/appConstants';
 import { createCheckoutSession, getSubscriptionStatus } from '@/services/payment';
@@ -77,8 +77,8 @@ const Subscription: React.FC<SubscriptionProps> = ({
             priceMonthly: 0,
             priceAnnual: 0,
             credits: 50,
-            features: ['50 buscas/mês', 'visualização básica'],
-            missing: ['whatsapp click', 'exportar excel/sheets', 'crm completo', 'ia avançada'],
+            features: ['50 créditos/mês', 'Visualização básica'],
+            missing: ['WhatsApp click', 'Exportar excel/sheets', 'CRM completo', 'IA avançada'],
         },
         {
             id: 'start',
@@ -87,8 +87,8 @@ const Subscription: React.FC<SubscriptionProps> = ({
             priceMonthly: 57,
             priceAnnual: 547.20,
             credits: 500,
-            features: ['500 créditos/mês', 'whatsapp click', 'exportar excel'],
-            missing: ['exportar sheets', 'crm completo', 'ia avançada'],
+            features: ['500 créditos/mês', 'WhatsApp click', 'Exportar excel'],
+            missing: ['Exportar sheets', 'CRM completo', 'IA avançada'],
         },
         {
             id: 'pro',
@@ -97,8 +97,8 @@ const Subscription: React.FC<SubscriptionProps> = ({
             priceMonthly: 87,
             priceAnnual: 835.20,
             credits: 1100,
-            features: ['1.100 créditos/mês', 'whatsapp click', 'exportar excel', 'exportar sheets', 'crm completo'],
-            missing: ['ia avançada'],
+            features: ['1.100 créditos/mês', 'WhatsApp click', 'Exportar excel', 'Exportar sheets', 'CRM completo'],
+            missing: ['IA avançada'],
             popular: true,
         },
         {
@@ -108,7 +108,7 @@ const Subscription: React.FC<SubscriptionProps> = ({
             priceMonthly: 197,
             priceAnnual: 1891.20,
             credits: 3200,
-            features: ['3.200 buscas/mês', 'whatsapp click', 'exportar excel', 'exportar sheets', 'crm completo', 'ia avançada', 'suporte prioritário'],
+            features: ['3.200 créditos/mês', 'WhatsApp click', 'Exportar excel', 'Exportar sheets', 'CRM completo', 'Suporte prioritário'],
             missing: [],
         }
     ];
@@ -331,13 +331,24 @@ const Subscription: React.FC<SubscriptionProps> = ({
 
                                 <ul className="space-y-1.5 mb-5 flex-1">
                                     {plan.features.map(f => (
-                                        <li key={f} className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400 lowercase">
+                                        <li key={f} className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
                                             <Check className="w-3.5 h-3.5 text-success-500 flex-shrink-0" />
-                                            {f}
+                                            <span className="flex items-center">
+                                                {f}
+                                                {f.includes('créditos/mês') && (
+                                                    <div className="group relative ml-1.5 inline-flex cursor-help">
+                                                        <Info className="w-3 h-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors" />
+                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-zinc-900 text-white text-[10px] leading-relaxed rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center shadow-xl border border-zinc-700/50">
+                                                            Cada crédito libera um lead com contato validado. O consumo ocorre apenas na entrega dos dados.
+                                                            <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-zinc-900 rotate-45 border-r border-b border-zinc-700/50"></div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </span>
                                         </li>
                                     ))}
                                     {plan.missing?.map(f => (
-                                        <li key={f} className="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-600 lowercase line-through">
+                                        <li key={f} className="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-600 line-through">
                                             <X className="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-700 flex-shrink-0" />
                                             {f}
                                         </li>

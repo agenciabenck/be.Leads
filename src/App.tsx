@@ -763,46 +763,46 @@ const App: React.FC = () => {
                             </button>
                         </div>
 
-                        <form onSubmit={handleAddEvent} className="p-8 space-y-6">
+                        <form onSubmit={handleAddEvent} className="p-5 space-y-4">
                             {/* Selected Date Highlight */}
-                            <div className="bg-primary/5 dark:bg-primary/10 rounded-2xl p-4 flex items-center gap-4 border border-primary/10 dark:border-primary/20">
-                                <div className="w-14 h-14 bg-white dark:bg-zinc-800 rounded-xl flex flex-col items-center justify-center shadow-sm border border-zinc-100 dark:border-zinc-700 shrink-0">
-                                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">
+                            <div className="bg-primary/5 dark:bg-primary/10 rounded-2xl p-3 flex items-center gap-4 border border-primary/10 dark:border-primary/20">
+                                <div className="w-12 h-12 bg-white dark:bg-zinc-800 rounded-xl flex flex-col items-center justify-center shadow-sm border border-zinc-100 dark:border-zinc-700 shrink-0">
+                                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">
                                         {selectedDateEvents.toLocaleString('pt-BR', { month: 'short' }).replace('.', '')}
                                     </span>
-                                    <span className="text-[20px] font-bold text-zinc-900 dark:text-white -mt-1">
+                                    <span className="text-[18px] font-bold text-zinc-900 dark:text-white -mt-1">
                                         {selectedDateEvents.getDate()}
                                     </span>
                                 </div>
                                 <div className="text-left">
-                                    <h4 className="text-[14px] font-bold text-primary mb-0.5">Data selecionada</h4>
-                                    <p className="text-[13px] text-primary/60 font-medium capitalize">
-                                        {selectedDateEvents.toLocaleString('pt-BR', { weekday: 'long' })}
+                                    <h4 className="text-[13px] font-bold text-primary mb-0.5">Data selecionada</h4>
+                                    <p className="text-[13px] text-primary/60 font-medium">
+                                        {selectedDateEvents.toLocaleString('pt-BR', { weekday: 'long' }).charAt(0).toUpperCase() + selectedDateEvents.toLocaleString('pt-BR', { weekday: 'long' }).slice(1)}
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">TÍTULO DO EVENTO</label>
                                 <input
                                     autoFocus
                                     required
                                     value={newEventData.title}
                                     onChange={e => setNewEventData({ ...newEventData, title: e.target.value })}
-                                    className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium"
+                                    className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[14px] font-medium"
                                     placeholder="Ex: Reunião com Cliente"
                                 />
                             </div>
 
-                            <div className="space-y-2 relative">
+                            <div className="space-y-1.5 relative">
                                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">HORÁRIO</label>
                                 <button
                                     type="button"
                                     onClick={() => setIsTimePickerOpen(!isTimePickerOpen)}
-                                    className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 text-left flex justify-between items-center text-zinc-900 dark:text-white transition-all hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                    className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 text-left flex justify-between items-center text-zinc-900 dark:text-white transition-all hover:bg-zinc-100 dark:hover:bg-zinc-700"
                                 >
-                                    <span className="font-medium">{newEventData.time || '09:00'}</span>
-                                    <Clock className="w-5 h-5 text-zinc-400" />
+                                    <span className="font-medium text-[14px]">{newEventData.time || '09:00'}</span>
+                                    <Clock className="w-4 h-4 text-zinc-400" />
                                 </button>
                                 {isTimePickerOpen && (
                                     <div className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-zinc-800 rounded-[24px] border border-zinc-100 dark:border-zinc-700 shadow-2xl max-h-48 overflow-y-auto z-[210] p-2 animate-in slide-in-from-bottom-2">
@@ -826,27 +826,27 @@ const App: React.FC = () => {
                                 )}
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">DESCRIÇÃO (OPCIONAL)</label>
                                 <textarea
                                     value={newEventData.description}
                                     onChange={e => setNewEventData({ ...newEventData, description: e.target.value })}
-                                    className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white h-24 text-[15px] font-medium resize-none"
+                                    className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white h-20 text-[14px] font-medium resize-none"
                                     placeholder="Detalhes do compromisso..."
                                 ></textarea>
                             </div>
 
-                            <div className="flex items-center justify-between pt-2">
+                            <div className="flex items-center justify-between pt-1">
                                 <button
                                     type="button"
                                     onClick={() => setShowEventModal(false)}
-                                    className="px-6 py-2 text-zinc-500 dark:text-zinc-400 font-bold hover:text-zinc-900 dark:hover:text-white transition-colors"
+                                    className="px-6 py-2 text-zinc-500 dark:text-zinc-400 font-bold hover:text-zinc-900 dark:hover:text-white transition-colors text-sm"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-10 py-4 bg-primary hover:opacity-90 text-white font-bold rounded-2xl shadow-xl shadow-primary/30 transition-all active:scale-95"
+                                    className="px-8 py-3 bg-primary hover:opacity-90 text-white font-bold rounded-2xl shadow-xl shadow-primary/30 transition-all active:scale-95 text-sm"
                                 >
                                     Agendar
                                 </button>
@@ -860,32 +860,32 @@ const App: React.FC = () => {
             {showNewLeadModal && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm animate-in fade-in duration-300 overflow-hidden">
                     <div className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-[32px] shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
-                        <div className="p-8 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-start">
-                            <div className="flex gap-4">
-                                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0">
-                                    <Plus className="w-6 h-6 text-primary" />
+                        <div className="p-5 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-start">
+                            <div className="flex gap-3">
+                                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                                    <Plus className="w-5 h-5 text-primary" />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Novo Negócio</h3>
-                                    <p className="text-sm text-zinc-500 mt-0.5">Adicione um lead manualmente ao seu CRM.</p>
+                                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Novo Negócio</h3>
+                                    <p className="text-xs text-zinc-500 mt-0.5">Adicione um lead manualmente ao seu CRM.</p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => setShowNewLeadModal(false)}
                                 className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-400"
                             >
-                                <X className="w-5 h-5" />
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <form id="manual-lead-form" onSubmit={handleManualAddLead} className="p-8 space-y-6 overflow-y-auto">
+                        <form id="manual-lead-form" onSubmit={handleManualAddLead} className="p-5 space-y-3 overflow-y-auto custom-scrollbar">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">NOME DA EMPRESA *</label>
                                 <input
                                     name="name"
                                     required
                                     autoFocus
-                                    className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium"
+                                    className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-sm font-medium"
                                     placeholder="Ex: Padaria do João"
                                 />
                             </div>
@@ -895,7 +895,7 @@ const App: React.FC = () => {
                                 <select
                                     value={newLeadNiche}
                                     onChange={e => setNewLeadNiche(e.target.value)}
-                                    className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium appearance-none"
+                                    className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-sm font-medium appearance-none"
                                 >
                                     <option value="">Selecione um nicho...</option>
                                     {COMMON_NICHES.map(niche => (
@@ -908,11 +908,11 @@ const App: React.FC = () => {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">VALOR POTENCIAL</label>
                                     <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-sm">R$</span>
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-sm">R$</span>
                                         <input
                                             value={newLeadValue}
                                             onChange={(e) => setNewLeadValue(formatCurrency(e.target.value))}
-                                            className="w-full p-4 pl-11 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium"
+                                            className="w-full p-2.5 pl-9 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-sm font-medium"
                                             placeholder="0,00"
                                         />
                                     </div>
@@ -923,7 +923,7 @@ const App: React.FC = () => {
                                         value={newLeadPhone}
                                         maxLength={15}
                                         onChange={(e) => setNewLeadPhone(formatPhone(e.target.value))}
-                                        className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium"
+                                        className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-sm font-medium"
                                         placeholder="(00) 00000-0000"
                                     />
                                 </div>
@@ -935,7 +935,7 @@ const App: React.FC = () => {
                                     <input
                                         value={newLeadCity}
                                         onChange={e => setNewLeadCity(e.target.value)}
-                                        className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium"
+                                        className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-sm font-medium"
                                         placeholder="Ex: São Paulo"
                                     />
                                 </div>
@@ -945,7 +945,7 @@ const App: React.FC = () => {
                                         value={newLeadUF}
                                         onChange={e => setNewLeadUF(e.target.value.toUpperCase())}
                                         maxLength={2}
-                                        className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium text-center"
+                                        className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-sm font-medium text-center"
                                         placeholder="SP"
                                     />
                                 </div>
@@ -956,26 +956,26 @@ const App: React.FC = () => {
                                 <textarea
                                     name="notes"
                                     rows={4}
-                                    className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-[15px] font-medium resize-none"
+                                    className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-sm font-medium resize-none"
                                     placeholder="Detalhes do negócio..."
                                 ></textarea>
                             </div>
                         </form>
 
-                        <div className="p-8 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900 rounded-b-[32px]">
+                        <div className="p-5 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900 rounded-b-[32px]">
                             <button
                                 type="button"
                                 onClick={() => setShowNewLeadModal(false)}
-                                className="px-8 py-3 text-zinc-500 dark:text-zinc-400 font-bold hover:text-zinc-900 dark:hover:text-white transition-colors"
+                                className="px-6 py-2.5 text-zinc-500 dark:text-zinc-400 font-bold hover:text-zinc-900 dark:hover:text-white transition-colors text-sm"
                             >
                                 Cancelar
                             </button>
                             <button
                                 type="submit"
                                 form="manual-lead-form"
-                                className="px-10 py-4 bg-primary hover:opacity-90 text-white font-bold rounded-2xl shadow-xl shadow-primary/30 transition-all active:scale-95 flex items-center gap-2"
+                                className="px-8 py-2.5 bg-primary hover:opacity-90 text-white font-bold rounded-xl shadow-xl shadow-primary/30 transition-all active:scale-95 flex items-center gap-2 text-sm"
                             >
-                                <Plus className="w-5 h-5" /> Adicionar
+                                <Plus className="w-4 h-4" /> Adicionar
                             </button>
                         </div>
                     </div>

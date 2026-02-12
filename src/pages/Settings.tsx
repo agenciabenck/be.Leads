@@ -133,7 +133,7 @@ const Settings: React.FC<SettingsProps> = ({
 
             <div className="bg-app-cardLight dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
                 <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
-                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2"><Database className="w-5 h-5 text-red-500" /> Gerenciamento de Dados</h3>
+                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2"><Database className="w-5 h-5 text-red-500" /> Gerenciamento de dados</h3>
                 </div>
                 <div className="p-6 space-y-4">
                     <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900/30 rounded-xl border border-zinc-100 dark:border-zinc-800">
@@ -151,7 +151,7 @@ const Settings: React.FC<SettingsProps> = ({
                             <p className="text-xs text-zinc-500 mt-1">Apaga todos os leads e recomeça do zero.</p>
                         </div>
                         <button onClick={() => { setCrmLeads([]); }} disabled={crmLeads.length === 0} className="px-4 py-2 text-xs font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                            Apagar Tudo ({crmLeads.length})
+                            Apagar tudo ({crmLeads.length})
                         </button>
                     </div>
                 </div>

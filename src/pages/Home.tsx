@@ -95,9 +95,20 @@ const Home: React.FC<HomeProps> = ({
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [selectedTask, setSelectedTask] = useState<CalendarEvent | null>(null);
 
-    // Determine daily quote
-    const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-    const quote = motivationalQuotes[dayOfYear % motivationalQuotes.length];
+    // Rotating motivational quotes
+    const quotes = [
+        "Se você pode sonhar, pode fazer. – Walt Disney",
+        "O sucesso é a soma de pequenos esforços repetidos dia após dia. – Robert Collier",
+        "Acredite que você pode, e você já está no meio do caminho. – Theodore Roosevelt",
+        "O futuro pertence àqueles que acreditam na beleza de seus sonhos. – Eleanor Roosevelt",
+        "Não espere por oportunidades, crie-as. – George Bernard Shaw",
+        "O único lugar onde o sucesso vem antes do trabalho é no dicionário. – Vidal Sassoon",
+        "A persistência é o caminho do êxito. – Charles Chaplin"
+    ];
+
+    // Simple daily rotation based on day of year
+    const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
+    const dailyQuoteText = quotes[dayOfYear % quotes.length];
 
     return (
         <div className="font-sans relative">
@@ -109,7 +120,7 @@ const Home: React.FC<HomeProps> = ({
                             Olá, {userSettings.name || 'Usuário'}!
                         </h2>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                            {quote}
+                            {dailyQuoteText}
                         </p>
                     </div>
                     <div className="flex items-center gap-6 mt-4">
@@ -118,7 +129,7 @@ const Home: React.FC<HomeProps> = ({
                             className="flex items-center gap-3 group"
                         >
                             <span className="text-[13px] font-medium text-text-secondary">
-                                {theme === 'light' ? 'Modo light ativo.' : 'Modo dark ativo.'}
+                                {theme === 'light' ? 'Modo light ativo' : 'Modo dark ativo'}
                             </span>
                             <div className="w-10 h-10 bg-zinc-100 dark:bg-white/5 rounded-xl flex items-center justify-center text-zinc-600 dark:text-zinc-400 group-hover:bg-zinc-200 dark:group-hover:bg-white/10 transition-all border dark:border-white/5">
                                 {theme === 'light' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
