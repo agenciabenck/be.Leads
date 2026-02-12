@@ -43,6 +43,9 @@ export const ResetPassword: React.FC = () => {
                 window.location.reload();
             }, 3000);
 
+            // TODO: Trigger 'Password Changed' email here
+            // Example: await supabase.functions.invoke('send-email', { body: { template: 'password-changed', email: user.email } })
+
         } catch (err: any) {
             console.error('Password reset error:', err);
             setError(translateAuthError(err.message));
@@ -85,7 +88,7 @@ export const ResetPassword: React.FC = () => {
                 <div className="text-center mb-8 animate-fade-in-up">
                     <div className="inline-flex items-center justify-center p-2 mb-4">
                         <img
-                            src="https://i.postimg.cc/0jF5PGV8/logo-beleads-h1-1.png"
+                            src="/logo.png"
                             alt="be.leads"
                             className="h-8 w-auto drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]"
                         />

@@ -32,7 +32,12 @@ const Sidebar: React.FC<SidebarProps> = ({
         <aside className={`flex-shrink-0 h-full w-64 bg-sidebar text-text-light flex flex-col transition-all duration-300 ${isSidebarOpen ? 'translate-x-0' : '-ml-64'} z-50 rounded-tr-[40px] overflow-hidden font-sans`}>
             {/* Logo Section */}
             <div className="pt-10 pb-8 px-6 flex flex-col items-center">
-                <img src="https://i.postimg.cc/0jF5PGV8/logo-beleads-h1-1.png" alt="be.leads" className="h-10 w-auto object-contain mb-2" />
+                <img
+                    src="/logo.png"
+                    alt="be.leads"
+                    className="h-10 w-auto object-contain mb-2 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => setActiveTab('home')}
+                />
                 <span className="text-[11px] font-medium text-text-secondary">Criado por Agência Benck</span>
                 <div className="w-full h-[1px] bg-white/10 mt-8"></div>
             </div>
