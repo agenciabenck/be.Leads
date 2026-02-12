@@ -3,7 +3,7 @@ import {
     Shield, Lock, Calendar as CalendarIcon,
     ChevronLeft, ChevronRight, Clock, Search as SearchIcon,
     ArrowRight, ListTodo, TrendingUp, BadgeCheck, Share2, Sun, Moon, DollarSign, Users,
-    LayoutList, Trash2, X, Gift, UserPlus, Zap, Edit3, Copy, MessageCircle, Mail
+    LayoutList, Trash2, X, Gift, UserPlus, Zap, Edit3, Copy, MessageCircle, Mail, Eye
 } from 'lucide-react';
 import { UserSettings, CalendarEvent, CRMLead, AppTab } from '@/types/types';
 import { PLAN_HIERARCHY } from '@/constants/appConstants';
@@ -93,6 +93,7 @@ const Home: React.FC<HomeProps> = ({
 
     const [showShareModal, setShowShareModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [selectedTask, setSelectedTask] = useState<CalendarEvent | null>(null);
 
     // Determine daily quote
     const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
@@ -394,7 +395,7 @@ const Home: React.FC<HomeProps> = ({
                                                         <span className="text-white text-[14px] font-bold">{d}</span>
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <h4 className="text-white text-[14px] font-bold truncate group-hover:text-primary transition-colors">{evt.title}</h4>
+                                                        <h4 className="text-white text-[14px] font-bold truncate transition-colors">{evt.title}</h4>
                                                         <div className="flex items-center gap-3 mt-0.5">
                                                             <div className="flex items-center gap-1.5">
                                                                 <div className="w-3.5 h-3.5 bg-primary/20 rounded-full flex items-center justify-center">
@@ -408,14 +409,28 @@ const Home: React.FC<HomeProps> = ({
                                                             </span>
                                                         </div>
                                                     </div>
-                                                    <button
-                                                        onClick={() => {
-                                                            setCalendarEvents(prev => prev.filter(e => e.id !== evt.id));
-                                                        }}
-                                                        className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-full transition-all text-white/20 hover:text-red-400"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
+                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedTask(evt);
+                                                            }}
+                                                            className="p-2 hover:bg-white/10 rounded-full transition-all text-white/20 hover:text-white"
+                                                            title="Ver detalhes"
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setCalendarEvents(prev => prev.filter(e => e.id !== evt.id));
+                                                            }}
+                                                            className="p-2 hover:bg-white/10 rounded-full transition-all text-white/20 hover:text-red-400"
+                                                            title="Excluir tarefa"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             );
                                         })}
@@ -576,6 +591,57 @@ const Home: React.FC<HomeProps> = ({
                                     Não, manter itens
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Task Details Modal */}
+            {selectedTask && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 overflow-hidden">
+                    <div
+                        className="absolute inset-0 bg-zinc-950/60 backdrop-blur-md animate-in fade-in duration-300"
+                        onClick={() => setSelectedTask(null)}
+                    />
+                    <div className="relative bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-md shadow-2xl p-8 animate-in zoom-in-95 fade-in duration-400 border dark:border-zinc-800">
+                        <button
+                            onClick={() => setSelectedTask(null)}
+                            className="absolute top-6 right-6 p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center ring-1 ring-primary/20">
+                                    <CalendarIcon className="w-7 h-7 text-primary" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-primary uppercase tracking-widest mb-1">Detalhes da tarefa</p>
+                                    <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 text-sm font-medium">
+                                        <span>{new Date(selectedTask.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                                        <div className="w-1 h-1 bg-zinc-300 dark:bg-zinc-600 rounded-full"></div>
+                                        <span>{selectedTask.time || 'Sem horário'}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h3 className="text-[22px] font-bold text-zinc-900 dark:text-white mb-4 leading-tight">
+                                {selectedTask.title}
+                            </h3>
+
+                            <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-4 border border-zinc-100 dark:border-zinc-800 mb-6">
+                                <p className="text-zinc-600 dark:text-zinc-300 text-sm leading-relaxed whitespace-pre-line">
+                                    {selectedTask.description || 'Nenhuma anotação adicional para esta tarefa.'}
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => setSelectedTask(null)}
+                                className="w-full py-3.5 bg-zinc-900 dark:bg-white hover:opacity-90 text-white dark:text-zinc-900 font-bold rounded-xl transition-all active:scale-[0.98]"
+                            >
+                                Fechar
+                            </button>
                         </div>
                     </div>
                 </div>
