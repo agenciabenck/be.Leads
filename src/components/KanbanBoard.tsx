@@ -82,9 +82,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
     // --- Drag & Drop Logic ---
     const handleDragStart = (e: React.DragEvent, leadId: string) => {
         if (readOnly) return;
-        setDraggedLeadId(leadId);
+        // Defer state update to avoid interrupting drag initialization
+        setTimeout(() => setDraggedLeadId(leadId), 0);
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('application/json', JSON.stringify({ id: leadId })); // Using more specific format
+        e.dataTransfer.setData('text/plain', leadId);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedLeadId(null);
+        setDragTargetColumn(null);
     };
 
     const handleDragOver = (e: React.DragEvent, columnId: CRMStatus) => {
@@ -106,20 +112,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
         e.preventDefault();
         if (readOnly) return;
 
-        try {
-            const data = e.dataTransfer.getData('application/json');
-            if (data) {
-                const { id } = JSON.parse(data);
-                if (id) {
-                    onStatusChange(id, targetStatus);
-                }
-            }
-        } catch (err) {
-            console.error('Drag drop error:', err);
-        } finally {
-            setDraggedLeadId(null);
-            setDragTargetColumn(null);
+        const id = e.dataTransfer.getData('text/plain');
+        if (id) {
+            onStatusChange(id, targetStatus);
         }
+
+        // Cleanup state
+        setDraggedLeadId(null);
+        setDragTargetColumn(null);
     };
 
     // --- Quick Edit Logic ---
@@ -375,6 +375,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
                                         key={lead.id}
                                         draggable={!readOnly}
                                         onDragStart={(e) => handleDragStart(e, lead.id)}
+                                        onDragEnd={handleDragEnd}
                                         onClick={() => !readOnly && setEditingLead(lead)}
                                         className={`group bg-white dark:bg-zinc-800 p-2.5 rounded-xl shadow-sm border-t-2 ${lead.priority === 'high' ? 'border-t-red-500' : lead.priority === 'medium' ? 'border-t-amber-500' : 'border-t-blue-500'} border-x border-b border-zinc-200 dark:border-zinc-700 relative transition-all duration-300 ${!readOnly ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''} ${draggedLeadId === lead.id ? 'opacity-40 border-dashed ring-2 ring-primary-400 rotate-2 scale-95' : ''}`}
                                     >
