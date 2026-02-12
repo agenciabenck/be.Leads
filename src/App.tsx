@@ -275,8 +275,9 @@ const App: React.FC = () => {
         const escapeCSVField = (field: any): string => {
             if (field === null || field === undefined) return '';
             const str = String(field);
-            // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
-            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            // If field contains delimiter, quote, or newline, wrap in quotes and escape internal quotes
+            // Using semicolon as delimiter for better compatibility with Excel in Brazil/Europe
+            if (str.includes(';') || str.includes('"') || str.includes('\n')) {
                 return `"${str.replace(/"/g, '""')}"`;
             }
             return str;
@@ -295,7 +296,7 @@ const App: React.FC = () => {
             escapeCSVField(l.googleMapsLink)
         ]);
 
-        const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+        const csvContent = [headers, ...rows].map(row => row.join(';')).join('\n');
         const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
@@ -316,8 +317,10 @@ const App: React.FC = () => {
             setActiveTab('subscription');
             return;
         }
-        const text = leads.map(l => `${l.name}\t${l.category}\t${l.phone}\t${l.address}\t${l.rating}`).join('\n');
-        navigator.clipboard.writeText(text);
+        // Adicionando cabeçalho e formatando telefone para evitar erro de fórmula com '
+        const header = "Empresa\tNicho\tTelefone\tEndereço\tAvaliação\tGoogle Maps";
+        const text = leads.map(l => `${l.name}\t${l.category}\t'${l.phone}\t${l.address}\t${l.rating}\t${l.googleMapsLink}`).join('\n');
+        navigator.clipboard.writeText(header + '\n' + text);
         if (userSettings.hideSheetsModal) {
             window.open('https://sheets.new', '_blank');
         } else {
