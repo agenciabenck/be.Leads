@@ -140,7 +140,7 @@ export const MAIOR_CIDADES: Record<string, string[]> = {
 export const PLAN_CREDITS = {
     free: 60,
     start: 500,
-    pro: 1200,
+    pro: 1100,
     elite: 3200
 };
 

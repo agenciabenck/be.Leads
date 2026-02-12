@@ -96,7 +96,7 @@ const Subscription: React.FC<SubscriptionProps> = ({
             headline: 'Para quem quer escalar vendas com organização.',
             priceMonthly: 87,
             priceAnnual: 835.20,
-            credits: 1200,
+            credits: 1100,
             features: ['1.100 créditos/mês', 'whatsapp click', 'exportar excel', 'exportar sheets', 'crm completo'],
             missing: ['ia avançada'],
             popular: true,
