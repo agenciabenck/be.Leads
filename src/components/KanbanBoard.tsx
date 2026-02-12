@@ -84,27 +84,39 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onStatusChange,
         if (readOnly) return;
         setDraggedLeadId(leadId);
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', leadId);
+        e.dataTransfer.setData('application/json', JSON.stringify({ id: leadId })); // Using more specific format
     };
 
     const handleDragOver = (e: React.DragEvent, columnId: CRMStatus) => {
         if (readOnly) return;
-        e.preventDefault();
+        e.preventDefault(); // Essential for drop to work
         e.dataTransfer.dropEffect = 'move';
+
+        // Only update if changed to avoid excessive re-renders
         if (dragTargetColumn !== columnId) {
             setDragTargetColumn(columnId);
         }
     };
 
     const handleDragLeave = (e: React.DragEvent) => {
+        // Optional: clear target if leaving board area, but usually handled by drop/end
     };
 
     const handleDrop = (e: React.DragEvent, targetStatus: CRMStatus) => {
         e.preventDefault();
         if (readOnly) return;
-        const id = e.dataTransfer.getData('text/plain');
-        if (id) {
-            onStatusChange(id, targetStatus);
+
+        try {
+            const data = e.dataTransfer.getData('application/json');
+            if (data) {
+                const { id } = JSON.parse(data);
+                if (id) {
+                    onStatusChange(id, targetStatus);
+                }
+            }
+        } catch (err) {
+            console.error('Drag drop error:', err);
+        } finally {
             setDraggedLeadId(null);
             setDragTargetColumn(null);
         }
