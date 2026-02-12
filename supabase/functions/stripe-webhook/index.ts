@@ -15,12 +15,12 @@ const supabaseClient = createClient(
 )
 
 const PRICE_MAP: Record<string, string> = {
-    "price_1SzdGU3fc3cZuklGVPzlU4Fi": 'start',
-    "price_1SzdGu3fc3cZuklGDHAMMsBR": 'start',
-    "price_1SzdHi3fc3cZuklG5rtVblVa": 'pro',
-    "price_1SzdI83fc3cZuklGDBe9TJVy": 'pro',
-    "price_1SzdJQ3fc3cZuklGzmncl1Oh": 'elite',
-    "price_1SzdJi3fc3cZuklGhjinw5av": 'elite'
+    "price_1QpsR1U3fc3cZuklG88m4U3b": 'start',
+    "price_1QpsR1U3fc3cZuklGNyYd4F2": 'start',
+    "price_1QpsRZU3fc3cZuklGtL4GvVz": 'pro',
+    "price_1QpsRZU3fc3cZuklGY0eS7H6": 'pro',
+    "price_1QpsRrU3fc3cZuklG38v6J4u": 'elite',
+    "price_1QpsRrU3fc3cZuklG3N1nU7J": 'elite'
 };
 
 async function updateSubscription(subscription: any) {
@@ -30,32 +30,51 @@ async function updateSubscription(subscription: any) {
     const status = subscription.status;
     const subscriptionId = subscription.id;
 
-    const { data: customer } = await supabaseClient
+    console.log(`[updateSubscription] Customer: ${customerId}, Price: ${priceId}, Plan: ${planName}, Status: ${status}`);
+
+    if (!customerId) {
+        console.error('[updateSubscription] Missing customer ID');
+        return;
+    }
+
+    const { data: customer, error: fetchError } = await supabaseClient
         .from('user_subscriptions')
         .select('user_id')
         .eq('stripe_customer_id', customerId)
-        .single()
+        .maybeSingle()
+
+    if (fetchError) {
+        console.error('[updateSubscription] Error fetching customer:', fetchError.message);
+        throw fetchError;
+    }
 
     if (customer) {
-        // Prepare update data
         const updateData: any = {
             stripe_subscription_id: subscriptionId,
             status: status,
             plan_id: planName,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            current_period_end: subscription.current_period_end
+                ? new Date(subscription.current_period_end * 1000).toISOString()
+                : null,
             updated_at: new Date().toISOString()
         };
 
         // Reset credits on renewal or new subscription
-        // We set leads_used to 0. 
-        // Note: In a more complex system, we might check if the period actually changed, 
-        // but for now, simple reset on any subscription update/creation is safe for billing cycles.
         updateData.leads_used = 0;
 
-        await supabaseClient
+        const { error: updateError } = await supabaseClient
             .from('user_subscriptions')
             .update(updateData)
             .eq('user_id', customer.user_id)
+
+        if (updateError) {
+            console.error('[updateSubscription] Error updating subscription:', updateError.message);
+            throw updateError;
+        }
+
+        console.log(`[updateSubscription] Successfully updated user: ${customer.user_id}`);
+    } else {
+        console.warn(`[updateSubscription] No user found for customer ID: ${customerId}`);
     }
 }
 
