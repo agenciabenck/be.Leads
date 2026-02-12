@@ -144,8 +144,9 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                             onClick={() => { if (globalHistory.length > 0) setGlobalHistory([]) }}
                             disabled={globalHistory.length === 0}
                             className={`text-xs font-medium flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 pl-3 transition-colors ${globalHistory.length === 0 ? 'text-zinc-300 dark:text-zinc-700 cursor-not-allowed' : 'text-zinc-400 hover:text-red-500'}`}
+                            title="Limpar lista de leads já vistos (permite buscar novamente)"
                         >
-                            <X className="w-3.5 h-3.5" /> Limpar histórico ({globalHistory.length})
+                            <X className="w-3.5 h-3.5" /> Limpar ignorados ({globalHistory.length})
                         </button>
                     </div>
                 </div>

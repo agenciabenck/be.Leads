@@ -632,9 +632,24 @@ const App: React.FC = () => {
                                     <p className="text-[11px] text-zinc-400 font-medium tracking-tight">Buscas realizadas desde as 09:00 AM</p>
                                 </div>
                             </div>
-                            <button onClick={() => setShowHistoryModal(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-400 hover:text-zinc-600">
-                                <X className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {searchHistory.length > 0 && (
+                                    <button
+                                        onClick={async () => {
+                                            if (confirm('Tem certeza? Isso apagará o histórico visualizado aqui.')) {
+                                                await clearSearchHistory();
+                                                showNotification('Histórico limpo com sucesso!', 'success');
+                                            }
+                                        }}
+                                        className="text-xs text-red-500 hover:text-red-600 font-medium underline"
+                                    >
+                                        Limpar tudo
+                                    </button>
+                                )}
+                                <button onClick={() => setShowHistoryModal(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-400 hover:text-zinc-600">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Modal Body - Summarized List */}
