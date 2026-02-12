@@ -15,12 +15,12 @@ const supabaseClient = createClient(
 )
 
 const PRICE_MAP: Record<string, string> = {
-    "price_1QpsR1U3fc3cZuklG88m4U3b": 'start',
-    "price_1QpsR1U3fc3cZuklGNyYd4F2": 'start',
-    "price_1QpsRZU3fc3cZuklGtL4GvVz": 'pro',
-    "price_1QpsRZU3fc3cZuklGY0eS7H6": 'pro',
-    "price_1QpsRrU3fc3cZuklG38v6J4u": 'elite',
-    "price_1QpsRrU3fc3cZuklG3N1nU7J": 'elite'
+    "price_1SzdGU3fc3cZuklGVPzlU4Fi": 'start',
+    "price_1SzdGu3fc3cZuklGDHAMMsBR": 'start',
+    "price_1SzdHi3fc3cZuklG5rtVblVa": 'pro',
+    "price_1SzdI83fc3cZuklGDBe9TJVy": 'pro',
+    "price_1SzdJQ3fc3cZuklGzmncl1Oh": 'elite',
+    "price_1SzdJi3fc3cZuklGhjinw5av": 'elite'
 };
 
 async function updateSubscription(subscription: any) {
@@ -53,6 +53,7 @@ async function updateSubscription(subscription: any) {
             stripe_subscription_id: subscriptionId,
             status: status,
             plan_id: planName,
+            billing_cycle: subscription.plan?.interval || 'monthly',
             current_period_end: subscription.current_period_end
                 ? new Date(subscription.current_period_end * 1000).toISOString()
                 : null,

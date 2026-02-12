@@ -101,6 +101,20 @@ const App: React.FC = () => {
     // --- Side Effects ---
     useEffect(() => {
         document.documentElement.classList.toggle('dark', theme === 'dark');
+
+        // --- Post-Checkout Feedback Handle ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session_id');
+        const canceled = urlParams.get('canceled');
+
+        if (sessionId) {
+            showNotification('Pagamento confirmado! Sincronizando seu novo plano...', 'info');
+            // Cleanup URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } else if (canceled) {
+            showNotification('O checkout foi cancelado.', 'info');
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
     }, [theme]);
 
     // --- Derived State ---

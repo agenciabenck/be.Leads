@@ -47,8 +47,45 @@ export const useAuth = () => {
             handleUserSession(session?.user);
         });
 
-        return () => subscription.unsubscribe();
-    }, []);
+        // --- Realtime Subscription Listener ---
+        let realtimeSubscription: any = null;
+
+        if (user?.id) {
+            console.log('[Auth] Starting Realtime listener for user:', user.id);
+            realtimeSubscription = supabase
+                .channel(`subscription_sync_${user.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'user_subscriptions',
+                        filter: `user_id=eq.${user.id}`
+                    },
+                    (payload) => {
+                        console.log('[Auth] Realtime update received:', payload);
+                        const newData = payload.new as any;
+                        if (newData) {
+                            setUserSettings(prev => ({
+                                ...prev,
+                                plan: newData.plan_id || 'free',
+                                leadsUsed: newData.leads_used || 0,
+                                subscriptionStatus: newData.status || 'active',
+                                billingCycle: newData.billing_cycle || 'monthly'
+                            }));
+                        }
+                    }
+                )
+                .subscribe();
+        }
+
+        return () => {
+            subscription.unsubscribe();
+            if (realtimeSubscription) {
+                supabase.removeChannel(realtimeSubscription);
+            }
+        };
+    }, [user?.id]);
 
     const handleUserSession = async (currentUser: any) => {
         // Only accept user if they have an email (prevent anonymous/ghost sessions)
@@ -94,7 +131,7 @@ export const useAuth = () => {
             try {
                 const { data: sub, error: subError } = await supabase
                     .from('user_subscriptions')
-                    .select('plan_id, leads_used, last_credit_reset, status')
+                    .select('plan_id, leads_used, last_credit_reset, status, billing_cycle')
                     .eq('user_id', currentUser.id)
                     .maybeSingle();
 
@@ -105,6 +142,7 @@ export const useAuth = () => {
                     loadedSettings.plan = (sub.plan_id as UserPlan) || 'free';
                     loadedSettings.leadsUsed = sub.leads_used || 0;
                     loadedSettings.subscriptionStatus = sub.status;
+                    loadedSettings.billingCycle = sub.billing_cycle || 'monthly';
                 } else {
                     // SILENT INITIALIZATION: If user exists but no subscription record
                     await supabase.rpc('ensure_free_plan');
