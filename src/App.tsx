@@ -93,6 +93,8 @@ const App: React.FC = () => {
     const [couponCode, setCouponCode] = useState('');
     const [couponDetails, setCouponDetails] = useState<{ valid: boolean; discount?: string; couponId?: string } | null>(null);
     const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+    // State for History Confirmation
+    const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
     const [isUpgrading, setIsUpgrading] = useState(false);
 
     // Refs
@@ -634,17 +636,34 @@ const App: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-2">
                                 {searchHistory.length > 0 && (
-                                    <button
-                                        onClick={async () => {
-                                            if (confirm('Tem certeza? Isso apagará o histórico visualizado aqui.')) {
-                                                await clearSearchHistory();
-                                                showNotification('Histórico limpo com sucesso!', 'success');
-                                            }
-                                        }}
-                                        className="text-xs text-red-500 hover:text-red-600 font-medium underline"
-                                    >
-                                        Limpar tudo
-                                    </button>
+                                    showClearHistoryConfirm ? (
+                                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
+                                            <span className="text-xs text-zinc-500 font-medium">Confirmar?</span>
+                                            <button
+                                                onClick={async () => {
+                                                    await clearSearchHistory();
+                                                    setShowClearHistoryConfirm(false);
+                                                    showNotification('Histórico limpo com sucesso!', 'success');
+                                                }}
+                                                className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                                            >
+                                                Sim
+                                            </button>
+                                            <button
+                                                onClick={() => setShowClearHistoryConfirm(false)}
+                                                className="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-bold rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                                            >
+                                                Não
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => setShowClearHistoryConfirm(true)}
+                                            className="text-xs text-red-500 hover:text-red-600 font-medium underline"
+                                        >
+                                            Limpar tudo
+                                        </button>
+                                    )
                                 )}
                                 <button onClick={() => setShowHistoryModal(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-400 hover:text-zinc-600">
                                     <X className="w-5 h-5" />
