@@ -64,6 +64,10 @@ serve(async (req) => {
     const body = await req.text()
     let event
 
+    console.log('--- WEBHOOK EVENT RECEIVED ---')
+    console.log('Type:', req.method)
+    console.log('Headers:', JSON.stringify(Object.fromEntries(req.headers.entries())))
+
     try {
         event = await stripe.webhooks.constructEventAsync(
             body,
@@ -72,22 +76,34 @@ serve(async (req) => {
             undefined,
             cryptoProvider
         )
+        console.log('Event verified:', event.type)
     } catch (err: any) {
+        console.error('Signature verification failed:', err.message)
         return new Response(err.message, { status: 400 })
     }
 
-    switch (event.type) {
-        case 'checkout.session.completed':
-            if (event.data.object.subscription) {
-                const subscription = await stripe.subscriptions.retrieve(event.data.object.subscription);
-                await updateSubscription(subscription);
-            }
-            break
-        case 'customer.subscription.created':
-        case 'customer.subscription.updated':
-        case 'customer.subscription.deleted':
-            await updateSubscription(event.data.object)
-            break
+    try {
+        switch (event.type) {
+            case 'checkout.session.completed':
+                if (event.data.object.subscription) {
+                    console.log('Processing checkout.session.completed for subscription:', event.data.object.subscription)
+                    const subscription = await stripe.subscriptions.retrieve(event.data.object.subscription)
+                    await updateSubscription(subscription)
+                }
+                break
+            case 'customer.subscription.created':
+            case 'customer.subscription.updated':
+            case 'customer.subscription.deleted':
+                console.log(`Processing ${event.type} for:`, event.data.object.id)
+                await updateSubscription(event.data.object)
+                break
+            default:
+                console.log('Unhandled event type:', event.type)
+        }
+    } catch (error: any) {
+        console.error('Error processing webhook:', error.message)
+        // Return 500 to trigger Stripe retry
+        return new Response(JSON.stringify({ error: error.message }), { status: 500 })
     }
 
     return new Response(JSON.stringify({ received: true }), { status: 200 })
