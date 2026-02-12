@@ -47,10 +47,47 @@ export const useCRM = (userId: string | undefined) => {
                         potentialValue: Number(l.potential_value) || 0,
                         notes: l.notes || '',
                         googleMapsLink: l.google_maps_link || '',
-                        instagram: l.instagram || ''
+                        instagram: l.instagram || '',
+                        recycleAt: l.recycle_at
                     }));
-                    setCrmLeads(mappedLeads);
-                    setGlobalHistory(mappedLeads.map(l => l.id));
+
+                    // Smart Recycle Logic: Auto-restore leads
+                    const now = new Date();
+                    const leadsToRestore = mappedLeads.filter(l => l.recycleAt && new Date(l.recycleAt) <= now);
+
+                    if (leadsToRestore.length > 0) {
+                        const restoredIds = leadsToRestore.map(l => l.id);
+
+                        // Optimistic update
+                        const updatedLeads = mappedLeads.map(l => {
+                            if (restoredIds.includes(l.id)) {
+                                return {
+                                    ...l,
+                                    status: 'prospecting' as CRMStatus,
+                                    recycleAt: undefined,
+                                    notes: (l.notes || '') + '\n\n[Sistema] ♻️ Lead reciclado automaticamente da lixeira.'
+                                };
+                            }
+                            return l;
+                        });
+
+                        setCrmLeads(updatedLeads);
+                        setGlobalHistory(updatedLeads.map(l => l.id));
+
+                        // Background update
+                        Promise.all(leadsToRestore.map(l =>
+                            supabase.from('crm_leads').update({
+                                status: 'prospecting',
+                                recycle_at: null,
+                                notes: (l.notes || '') + '\n\n[Sistema] ♻️ Lead reciclado automaticamente da lixeira.'
+                            }).eq('id', l.id)
+                        )).then(() => {
+                            console.log(`♻️ Smart Recycle: ${leadsToRestore.length} leads restored.`);
+                        });
+                    } else {
+                        setCrmLeads(mappedLeads);
+                        setGlobalHistory(mappedLeads.map(l => l.id));
+                    }
                 }
             } catch (err) {
                 console.error('Error loading leads from Supabase:', err);
@@ -109,20 +146,44 @@ export const useCRM = (userId: string | undefined) => {
     const updateLeadStatus = async (leadId: string, newStatus: CRMStatus) => {
         if (!userId) return;
 
-        // UI Update
+        // UI Update (Optimistic)
+        const lead = crmLeads.find(l => l.id === leadId);
+        const oldStatus = lead?.status;
+
+        let recycleAt: string | null = null;
+
+        // Schedule recycle if moving to 'lost'
+        if (newStatus === 'lost') {
+            const date = new Date();
+            date.setDate(date.getDate() + 45); // 45 days retention (Smart Recycle)
+            recycleAt = date.toISOString();
+        }
+
         setCrmLeads(prev => prev.map(l =>
-            l.id === leadId ? { ...l, status: newStatus, updatedAt: new Date().toISOString() } : l
+            l.id === leadId ? { ...l, status: newStatus, recycleAt: recycleAt || undefined, updatedAt: new Date().toISOString() } : l
         ));
 
         // DB Update
         try {
-            await supabase
+            const { error } = await supabase
                 .from('crm_leads')
-                .update({ status: newStatus, updated_at: new Date().toISOString() })
+                .update({
+                    status: newStatus,
+                    updated_at: new Date().toISOString(),
+                    recycle_at: recycleAt
+                })
                 .eq('id', leadId)
                 .eq('user_id', userId);
+
+            if (error) throw error;
         } catch (err) {
             console.error('Error updating status in Supabase:', err);
+            // Revert
+            if (oldStatus) {
+                setCrmLeads(prev => prev.map(l =>
+                    l.id === leadId ? { ...l, status: oldStatus, recycleAt: lead?.recycleAt } : l
+                ));
+            }
         }
     };
 

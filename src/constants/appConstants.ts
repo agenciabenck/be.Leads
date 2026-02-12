@@ -5,11 +5,14 @@ export const COMMON_NICHES = [
     "Autoescolas",
     "Buffets e Eventos",
     "Casas de Câmbio",
+    "Clínicas de Estética",
     "Clínicas Médicas",
+    "Concessionárias",
     "Construtoras",
     "Contabilidades",
     "Dentistas",
     "Distribuidoras",
+    "Empresas de Energia Solar",
     "Empresas de TI",
     "Escolas e Cursos",
     "Escritórios de Advocacia",
@@ -21,12 +24,16 @@ export const COMMON_NICHES = [
     "Joalherias",
     "Lavanderias",
     "Lojas de Móveis",
-    "Lojas de Roupas",
+    "Lojas de Roupa Feminina",
+    "Lojas de Roupa Masculina",
+    "Marcenarias / Planejados",
     "Oficinas Mecânicas",
     "Pet Shops",
+    "Pizzarias / Delivery",
     "Restaurantes",
     "Salões de Beleza",
-    "Supermercados"
+    "Supermercados",
+    "Vidraçarias"
 ].sort();
 
 export const BRAZIL_STATES = [

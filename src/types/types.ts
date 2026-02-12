@@ -24,6 +24,7 @@ export interface CRMLead extends Lead {
   tags: string[];
   addedAt: string;
   updatedAt: string;
+  recycleAt?: string;
 }
 
 export interface CalendarEvent {
