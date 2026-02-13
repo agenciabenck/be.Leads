@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Search, Search as SearchIcon, MapPin, LayoutGrid, List, Briefcase,
     ChevronDown, Building2, Trash2, AlertTriangle, X, Filter, Phone,
-    Loader2, Download, FileSpreadsheet, Plus, Sparkles, Clock, EyeOff
+    Loader2, Download, FileSpreadsheet, Plus, Sparkles, Clock, EyeOff, Globe
 } from 'lucide-react';
 import { Lead, SearchState, SearchFilters, SortField, SortOrder, CRMLead, AppTab } from '@/types/types';
 import { COMMON_NICHES, BRAZIL_STATES, LOADING_MESSAGES } from '@/constants/appConstants';
@@ -130,7 +130,7 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div className="bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl flex gap-1">
                         <button onClick={() => setSearchMode('free')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${searchMode === 'free' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}>
-                            <LayoutGrid className="w-4 h-4" /> Livre
+                            <Globe className="w-4 h-4" /> Livre
                         </button>
                         <button onClick={() => setSearchMode('guided')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${searchMode === 'guided' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}>
                             <List className="w-4 h-4" /> Guiada
@@ -231,6 +231,15 @@ const LeadExtractor: React.FC<LeadExtractorProps> = ({
                         <div>
                             <p className="font-bold text-sm">Ocorreu um erro na busca</p>
                             <p className="text-sm opacity-90">{state.error}</p>
+                        </div>
+                    </div>
+                )}
+
+                {state.warning && (
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 p-4 rounded-2xl flex items-start gap-3 mt-4 animate-in fade-in slide-in-from-top-2">
+                        <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-sm font-medium">{state.warning}</p>
                         </div>
                     </div>
                 )}

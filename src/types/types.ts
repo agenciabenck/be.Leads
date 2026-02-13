@@ -39,6 +39,7 @@ export interface CalendarEvent {
 export interface SearchState {
   isSearching: boolean;
   error: string | null;
+  warning?: string | null;
   hasSearched: boolean;
 }
 

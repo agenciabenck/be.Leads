@@ -97,7 +97,7 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
         }
 
         if (shouldClear) setLeads([]);
-        setState({ isSearching: true, error: null, hasSearched: true });
+        setState({ isSearching: true, error: null, warning: null, hasSearched: true });
 
         try {
             let allValidResults: Lead[] = [];
@@ -137,7 +137,8 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
 
                 let currentToken: string | undefined = undefined;
                 let pageCount = 0;
-                const maxPages = 5;
+                // AUMENTO DE TENTATIVAS DE PÁGINAS PARA ENCONTRAR RESULTADOS VÁLIDOS
+                const maxPages = 10;
 
                 while (allValidResults.length < requestedQuantity && pageCount < maxPages) {
                     const { places: gResults, nextToken } = await googleMapsService.searchBusiness(currentQuery, 20, true, currentToken);
@@ -184,7 +185,12 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
                     currentToken = nextToken;
                     pageCount++;
 
-                    if (!nextToken || allValidResults.length >= requestedQuantity) break;
+                    // Se não houver mais token, paramos mesmo sem atingir a meta
+                    if (!nextToken) break;
+
+                    // Se já atingimos a meta, paramos
+                    if (allValidResults.length >= requestedQuantity) break;
+
                     await new Promise(resolve => setTimeout(resolve, 300));
                 }
             }
@@ -192,6 +198,13 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
             const finalResults = allValidResults.slice(0, requestedQuantity);
 
             if (finalResults.length > 0) {
+
+                // WARNING SE ENCONTROU MENOS QUE O SOLICITADO
+                if (finalResults.length < requestedQuantity) {
+                    const msg = `Encontramos apenas ${finalResults.length} leads disponíveis nesta região/nicho. Tente expandir a busca para novos resultados.`;
+                    setState(prev => ({ ...prev, warning: msg }));
+                }
+
                 setLeads(prev => [...prev, ...finalResults]);
                 const newTotal = used + finalResults.length;
 
@@ -218,7 +231,7 @@ export const useSearch = (globalHistory: string[], onCreditsUsed?: (newUsed: num
                 }));
                 await supabase.from('search_history').insert(historyEntries);
             } else {
-                setState(prev => ({ ...prev, error: 'Nenhum lead novo encontrado para esta busca.' }));
+                setState(prev => ({ ...prev, error: 'Nenhum lead novo encontrado para esta busca com os filtros selecionados (ex: com telefone). Tente um termo mais amplo.' }));
             }
 
         } catch (err: any) {
