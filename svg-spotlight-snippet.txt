@@ -1,0 +1,30 @@
+                  {/* Animated Neon Border - SVG Spotlight */}
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ filter: 'blur(1px)' }}>
+                    <defs>
+                      <linearGradient id="borderGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="transparent" />
+                        <stop offset="40%" stopColor="transparent" />
+                        <stop offset="45%" stopColor="#2563eb" />
+                        <stop offset="50%" stopColor="#ffffff" />
+                        <stop offset="55%" stopColor="#2563eb" />
+                        <stop offset="60%" stopColor="transparent" />
+                        <stop offset="100%" stopColor="transparent" />
+                      </linearGradient>
+                    </defs>
+                    <rect
+                      x="1"
+                      y="1"
+                      width="calc(100% - 2px)"
+                      height="calc(100% - 2px)"
+                      rx="31"
+                      fill="none"
+                      stroke="url(#borderGradient)"
+                      strokeWidth="2"
+                      style={{ strokeDasharray: '1000', strokeDashoffset: '0', animation: 'dash 3s linear infinite' }}
+                    />
+                  </svg>
+                  <style>{`
+                    @keyframes dash {
+                      to { stroke-dashoffset: -1000; }
+                    }
+                  `}</style>

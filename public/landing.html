@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Be.Leads - Transforme o Google Maps em Máquina de Vendas</title>
+    <meta name="description"
+        content="Extraia leads qualificados do Google Maps, organize em um CRM Kanban visual e aumente suas vendas com automação inteligente.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['DM Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#0068ff',
+                        secondary: '#7c3aed',
+                        background: '#050508',
+                        surface: 'rgba(255, 255, 255, 0.03)',
+                        border: 'rgba(255, 255, 255, 0.08)',
+                        textLight: '#faffff',
+                        textDim: '#94a3b8',
+                    },
+                    backgroundImage: {
+                        'grid-pattern': "linear-gradient(to right, #ffffff05 1px, transparent 1px), linear-gradient(to bottom, #ffffff05 1px, transparent 1px)",
+                        'shimmer': 'linear-gradient(45deg, rgba(255,255,255,0) 40%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 60%)',
+                    },
+                    animation: {
+                        'shimmer': 'shimmer 2.5s infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-glow': 'pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'marquee': 'marquee 25s linear infinite',
+                    },
+                    keyframes: {
+                        shimmer: {
+                            '0%': { backgroundPosition: '200% 50%' },
+                            '100%': { backgroundPosition: '-200% 50%' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        'pulse-glow': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: .5 },
+                        },
+                        marquee: {
+                            '0%': { transform: 'translateX(0%)' },
+                            '100%': { transform: 'translateX(-50%)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050508;
+            color: #faffff;
+            overflow-x: hidden;
+        }
+
+        /* Grid Pattern Background */
+        .bg-grid {
+            background-size: 40px 40px;
+            mask-image: radial-gradient(circle at center, black, transparent 80%);
+            -webkit-mask-image: radial-gradient(circle at center, black, transparent 80%);
+        }
+
+        /* Glassmorphism Utilities */
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .glass-hover:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 20px rgba(0, 104, 255, 0.15);
+        }
+
+        /* Glowing Orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.4;
+        }
+
+        /* Gradient Text */
+        .text-gradient {
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .text-gradient-primary {
+            background: linear-gradient(135deg, #2998ff 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #050508;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+
+        /* Toggle Checkbox */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #0068ff;
+        }
+
+        .toggle-checkbox:checked+.toggle-label {
+            background-color: #0068ff;
+        }
+    </style>
+</head>
+
+<body class="antialiased selection:bg-primary selection:text-white relative">
+
+    <!-- Background Elements -->
+    <div class="fixed inset-0 bg-grid pointer-events-none z-0"></div>
+    <div class="orb w-[500px] h-[500px] bg-primary top-[-100px] left-[-100px] animate-pulse-glow"></div>
+    <div class="orb w-[600px] h-[600px] bg-secondary top-[40%] right-[-200px] animate-pulse-glow"
+        style="animation-delay: 2s;"></div>
+
+    <!-- Navbar -->
+    <header class="fixed top-0 w-full z-50 transition-all duration-300 border-b border-transparent" id="header">
+        <div class="glass border-t-0 border-x-0 !rounded-none">
+            <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                <!-- Logo -->
+                <a href="#" class="flex items-center gap-2 group">
+                    <div
+                        class="relative w-8 h-8 flex items-center justify-center bg-gradient-to-br from-primary to-secondary rounded-lg shadow-lg group-hover:shadow-primary/50 transition-all duration-300">
+                        <i data-lucide="rocket" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span
+                        class="text-xl font-bold tracking-tight text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-gray-400 transition-all">Be.Leads</span>
+                </a>
+
+                <!-- Desktop Menu -->
+                <nav class="hidden md:flex items-center gap-8">
+                    <a href="#features"
+                        class="text-sm font-medium text-textDim hover:text-white transition-colors relative group">
+                        Funcionalidades
+                        <span
+                            class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+                    </a>
+                    <a href="#how-it-works"
+                        class="text-sm font-medium text-textDim hover:text-white transition-colors relative group">
+                        Como Funciona
+                        <span
+                            class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+                    </a>
+                    <a href="#pricing"
+                        class="text-sm font-medium text-textDim hover:text-white transition-colors relative group">
+                        Preços
+                        <span
+                            class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
+                    </a>
+                </nav>
+
+                <!-- CTAs -->
+                <div class="flex items-center gap-4">
+                    <a href="/login"
+                        class="hidden md:block text-sm font-medium text-textDim hover:text-white transition-colors">Entrar</a>
+                    <a href="#pricing"
+                        class="relative overflow-hidden group bg-primary hover:bg-blue-600 text-white px-5 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5">
+                        <div class="absolute inset-0 bg-shimmer bg-[length:200%_100%] animate-shimmer"></div>
+                        <span class="relative z-10">Começar Grátis</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 overflow-hidden">
+        <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
+            <!-- Left Column: Content -->
+            <div
+                class="flex flex-col items-start text-left bg-black/50 p-6 rounded-3xl backdrop-blur-sm lg:bg-transparent lg:p-0">
+                <!-- Badge -->
+                <div
+                    class="gsap-hero opacity-0 translate-y-10 mb-8 inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border-primary/20 hover:border-primary/40 transition-colors cursor-default">
+                    <span class="relative flex h-2 w-2">
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    <span class="text-xs font-semibold tracking-wide text-green-400">MAIS DE 10.000 LEADS GERADOS ESTA
+                        SEMANA</span>
+                </div>
+
+                <!-- Headline -->
+                <h1
+                    class="gsap-hero opacity-0 translate-y-10 text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-6 tracking-tight">
+                    Transforme o <br>
+                    <span class="text-gradient-primary">Google Maps</span> em <br>
+                    uma máquina de <br>
+                    leads automática.
+                </h1>
+
+                <!-- Subheadline -->
+                <p
+                    class="gsap-hero opacity-0 translate-y-10 text-lg md:text-xl text-textDim max-w-xl mb-10 leading-relaxed font-light">
+                    Encontre milhares de clientes qualificados em segundos, extraia contatos valiosos e gerencie tudo em
+                    um
+                    CRM integrado. Pare de procurar, comece a vender.
+                </p>
+
+                <!-- Buttons -->
+                <div
+                    class="gsap-hero opacity-0 translate-y-10 flex flex-col sm:flex-row items-center gap-4 mb-16 w-full sm:w-auto">
+                    <a href="#pricing"
+                        class="w-full sm:w-auto group relative px-8 py-4 bg-primary rounded-full font-bold text-white shadow-[0_0_40px_-5px_rgba(0,104,255,0.5)] hover:shadow-[0_0_60px_-5px_rgba(0,104,255,0.7)] transition-all hover:scale-105 overflow-hidden text-center">
+                        <div class="absolute inset-0 bg-shimmer bg-[length:200%_100%] animate-shimmer"></div>
+                        <span class="relative flex items-center justify-center gap-2">
+                            <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
+                            Gerar Leads Grátis
+                        </span>
+                    </a>
+
+                    <a href="#how-it-works"
+                        class="w-full sm:w-auto px-8 py-4 glass hover:bg-white/5 rounded-full font-medium text-white transition-all flex items-center justify-center gap-2 hover:scale-105 group text-center">
+                        Como Funciona
+                        <i data-lucide="arrow-down" class="w-4 h-4 group-hover:translate-y-1 transition-transform"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right Column: Mockup/Illustration -->
+            <div
+                class="gsap-hero opacity-0 translate-y-20 relative w-full perspective-1000 group max-w-lg lg:max-w-none mx-auto lg:mx-0">
+                <!-- Glow Effect Behind -->
+                <div
+                    class="absolute -inset-1 bg-gradient-to-r from-primary via-secondary to-primary rounded-xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-1000 animate-pulse-glow">
+                </div>
+
+                <div
+                    class="relative glass rounded-xl border border-white/10 overflow-hidden shadow-2xl aspect-[4/3] bg-[#0d1016] flex items-center justify-center animate-float group-hover:scale-[1.01] transition-transform duration-500">
+                    <!-- Abstract UI representation since we are not using an image -->
+                    <div class="w-full h-full flex flex-col p-4 opacity-90">
+                        <!-- Top Bar -->
+                        <div class="h-10 w-full border-b border-white/10 flex items-center px-4 gap-2 mb-4">
+                            <div class="flex gap-1.5">
+                                <div class="w-3 h-3 rounded-full bg-red-500/50"></div>
+                                <div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+                                <div class="w-3 h-3 rounded-full bg-green-500/50"></div>
+                            </div>
+                            <div class="ml-4 h-5 w-3/4 bg-white/5 rounded-full"></div>
+                        </div>
+                        <div class="flex flex-1 gap-4 overflow-hidden">
+                            <!-- Sidebar -->
+                            <div class="w-12 border-r border-white/10 hidden sm:flex flex-col gap-3 p-2 items-center">
+                                <div class="h-8 w-8 bg-primary/20 rounded-md mb-2"></div>
+                                <div class="h-6 w-6 bg-white/5 rounded-full"></div>
+                                <div class="h-6 w-6 bg-white/5 rounded-full"></div>
+                            </div>
+                            <!-- Main Content -->
+                            <div class="flex-1 flex gap-3 flex-col sm:flex-row">
+                                <!-- Map Area -->
+                                <div
+                                    class="flex-1 bg-[#1a1d24] rounded-lg relative overflow-hidden hidden sm:block border border-white/5 min-h-[150px]">
+                                    <div
+                                        class="absolute top-[20%] left-[30%] w-3 h-3 bg-red-500 rounded-full shadow-[0_0_10px_red]">
+                                    </div>
+                                    <div
+                                        class="absolute top-[50%] left-[60%] w-3 h-3 bg-red-500 rounded-full shadow-[0_0_10px_red]">
+                                    </div>
+                                    <!-- Search overlay -->
+                                    <div
+                                        class="absolute top-3 left-3 right-3 h-8 bg-black/80 backdrop-blur rounded-md border border-white/10 flex items-center px-2">
+                                        <div class="w-3 h-3 bg-white/20 rounded-full mr-2"></div>
+                                        <div class="h-1.5 w-20 bg-white/20 rounded-full"></div>
+                                    </div>
+                                </div>
+                                <!-- List Area -->
+                                <div class="w-full sm:w-1/2 flex flex-col gap-2">
+                                    <div class="h-16 bg-white/5 rounded-lg border-l-4 border-l-primary p-2">
+                                        <div class="h-3 w-20 bg-white/20 rounded mb-1"></div>
+                                        <div class="h-2 w-16 bg-white/10 rounded"></div>
+                                    </div>
+                                    <div class="h-16 bg-white/5 rounded-lg border-l-4 border-l-secondary p-2">
+                                        <div class="h-3 w-24 bg-white/20 rounded mb-1"></div>
+                                        <div class="h-2 w-12 bg-white/10 rounded"></div>
+                                    </div>
+                                    <div class="h-16 bg-white/5 rounded-lg border-l-4 border-l-green-500 p-2">
+                                        <div class="h-3 w-16 bg-white/20 rounded mb-1"></div>
+                                        <div class="h-2 w-10 bg-white/10 rounded"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Floating Notifications (Simulated) -->
+                <div
+                    class="absolute top-[10%] right-[-10%] bg-[#0d1016]/90 backdrop-blur border border-green-500/30 rounded-lg p-3 shadow-xl animate-[float_4s_ease-in-out_1s_infinite] hidden md:block">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
+                            <i data-lucide="check" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-textDim">Status</p>
+                            <p class="text-sm font-bold text-white">+1 Lead Encontrado</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="absolute bottom-[20%] left-[-10%] bg-[#0d1016]/90 backdrop-blur border border-primary/30 rounded-lg p-3 shadow-xl animate-[float_5s_ease-in-out_2s_infinite] hidden md:block">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                            <i data-lucide="mail" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-textDim">Extração</p>
+                            <p class="text-sm font-bold text-white">Email Validado</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Marquee Section -->
+    <div class="w-full bg-white/[0.02] border-y border-white/5 py-6 overflow-hidden relative">
+        <div class="flex w-max animate-marquee gap-12 items-center">
+            <!-- Set 1 -->
+            <div class="flex gap-12 items-center">
+                <span class="text-textDim font-medium text-lg flex items-center gap-3"><i data-lucide="dumbbell"
+                        class="text-primary w-5 h-5"></i> Academias</span>
+                <span class="text-textDim font-medium text-lg flex items-center gap-3"><i data-lucide="utensils"
+                        class="text-primary w-5 h-5"></i> Restaurantes</span>
+                <span class="text-textDim font-medium text-lg flex items-center gap-3"><i data-lucide="stethoscope"
+                        class="text-primary w-5 h-5"></i> Clínicas</span>
+                <span class="text-textDim font-medium text-lg flex items-center gap-3"><i data-lucide="home"
+                        class="text-primary w-5 h-5"></i> Imobiliárias</span>
+                <span class="text-textDim font-medium text-lg flex items-center gap-3"><i data-lucide="megaphone"
+                        class="text-primary w-5 h-5"></i> Agências de Marketing</span>
+                <span class="text-textDim font-medium text-lg flex items-center gap-3"><i data-lucide="car"
+                        class="text-primary w-5 h-5"></i> Concessionárias</span>
+                <span class="text-textDim font-medium text-lg flex items-center gap-3"><i data-lucide="briefcase"
+                        class="text-primary w-5 h-5"></i> Consultorias</span>
+            </div>
+
+            <!-- Set 2 (Identical for loop) -->
+            <div class="flex gap-12 items-center">
+                <span class="text-textDim font-medium text-lg flex items-center gap-3"><i data-lucide="dumbbell"
+                        class="text-primary w-5 h-5"></i> Academias</span>
+                <span class="text-textDim font-medium text-lg flex items-center gap-3"><i data-lucide="utensils"
+                        class="text-primary w-5 h-5"></i> Restaurantes</span>
+                <span class="text-textDim font-medium text-lg flex items-center gap-3"><i data-lucide="stethoscope"
+                        class="text-primary w-5 h-5"></i> Clínicas</span>
+                <span class="text-textDim font-medium text-lg flex items-center gap-3"><i data-lucide="home"
+                        class="text-primary w-5 h-5"></i> Imobiliárias</span>
+                <span class="text-textDim font-medium text-lg flex items-center gap-3"><i data-lucide="megaphone"
+                        class="text-primary w-5 h-5"></i> Agências de Marketing</span>
+                <span class="text-textDim font-medium text-lg flex items-center gap-3"><i data-lucide="car"
+                        class="text-primary w-5 h-5"></i> Concessionárias</span>
+                <span class="text-textDim font-medium text-lg flex items-center gap-3"><i data-lucide="briefcase"
+                        class="text-primary w-5 h-5"></i> Consultorias</span>
+            </div>
+        </div>
+        <!-- Fade edges -->
+        <div class="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#050607] to-transparent pointer-events-none">
+        </div>
+        <div class="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[#050607] to-transparent pointer-events-none">
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <section id="features" class="py-24 px-6 relative">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4">Tudo o que você precisa</h2>
+                <p class="text-textDim text-lg max-w-2xl mx-auto">Tecnologia de ponta simplificada para resultados
+                    imediatos.</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Card 1 -->
+                <div class="glass glass-hover p-8 rounded-2xl transition-all duration-300 group gsap-fade-up">
+                    <div
+                        class="w-14 h-14 bg-blue-500/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <i data-lucide="search" class="w-7 h-7 text-primary"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Extração Inteligente</h3>
+                    <p class="text-textDim leading-relaxed">
+                        Nossa IA simula navegação humana para extrair dados que outras ferramentas não encontram. Filtre
+                        por nicho e cidade em qualquer lugar do mundo.
+                    </p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="glass glass-hover p-8 rounded-2xl transition-all duration-300 group gsap-fade-up">
+                    <div
+                        class="w-14 h-14 bg-purple-500/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <i data-lucide="kanban" class="w-7 h-7 text-purple-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">CRM Kanban Visual</h3>
+                    <p class="text-textDim leading-relaxed">
+                        Esqueça planilhas. Mova seus leads visualmente pelo funil de vendas. De "Novo Contato" até
+                        "Venda Fechada" com um simples arrastar e soltar.
+                    </p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="glass glass-hover p-8 rounded-2xl transition-all duration-300 group gsap-fade-up">
+                    <div
+                        class="w-14 h-14 bg-green-500/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <i data-lucide="download" class="w-7 h-7 text-green-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Exportação Instantânea</h3>
+                    <p class="text-textDim leading-relaxed">
+                        Precisa dos dados no Excel? Sem problemas. Gere arquivos CSV compatíveis com qualquer CRM ou
+                        planilha com apenas um clique.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="py-24 px-6 relative bg-white/[0.01]">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-20">
+                <h2 class="text-3xl md:text-5xl font-bold mb-6">Como Funciona</h2>
+                <div class="h-1 w-20 bg-primary mx-auto rounded-full"></div>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-12 relative">
+                <!-- Connecting Line (Desktop) -->
+                <div
+                    class="hidden md:block absolute top-[28px] left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent border-t border-dashed border-white/20 z-0">
+                </div>
+
+                <!-- Step 1 -->
+                <div class="text-center relative z-10 gsap-fade-up">
+                    <div
+                        class="w-16 h-16 bg-[#0d1016] border border-primary/50 text-primary font-bold text-2xl rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary/20 relative">
+                        1
+                        <div class="absolute inset-0 rounded-full animate-ping opacity-20 bg-primary"></div>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">Busque</h3>
+                    <p class="text-textDim">Defina o tipo de negócio (ex: "Advogados") e a cidade alvo.</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="text-center relative z-10 gsap-fade-up" style="animation-delay: 0.2s;">
+                    <div
+                        class="w-16 h-16 bg-[#0d1016] border border-purple-500/50 text-purple-400 font-bold text-2xl rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/20">
+                        2
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">Extraia</h3>
+                    <p class="text-textDim">Nosso sistema varre o Google Maps e valida os contatos em tempo real.</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="text-center relative z-10 gsap-fade-up" style="animation-delay: 0.4s;">
+                    <div
+                        class="w-16 h-16 bg-[#0d1016] border border-green-500/50 text-green-400 font-bold text-2xl rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/20">
+                        3
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">Lucre</h3>
+                    <p class="text-textDim">Entre em contato, feche vendas e veja seu faturamento crescer.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social Proof Section -->
+    <section class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-center text-3xl font-bold mb-16">Quem usa o Be.Leads?</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Testimonial 1 -->
+                <div class="glass p-8 rounded-2xl relative gsap-fade-up">
+                    <div class="flex text-yellow-400 mb-4 gap-1">
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                    </div>
+                    <p class="text-gray-300 italic mb-6">"Simplesmente a melhor ferramenta de ROI que já usei. Em 2 dias
+                        pagou a assinatura anual."</p>
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center font-bold text-white">
+                            RF</div>
+                        <div>
+                            <p class="font-bold text-white text-sm">Ricardo F.</p>
+                            <p class="text-xs text-textDim">Dono de Agência</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testimonial 2 -->
+                <div class="glass p-8 rounded-2xl relative gsap-fade-up" style="animation-delay: 0.2s;">
+                    <div class="flex text-yellow-400 mb-4 gap-1">
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                    </div>
+                    <p class="text-gray-300 italic mb-6">"O Kanban integrado mudou meu jogo. Não preciso mais ficar
+                        copiando e colando dados."</p>
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center font-bold text-white">
+                            AM</div>
+                        <div>
+                            <p class="font-bold text-white text-sm">Ana Maria</p>
+                            <p class="text-xs text-textDim">Corretora de Imóveis</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testimonial 3 -->
+                <div class="glass p-8 rounded-2xl relative gsap-fade-up" style="animation-delay: 0.4s;">
+                    <div class="flex text-yellow-400 mb-4 gap-1">
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                    </div>
+                    <p class="text-gray-300 italic mb-6">"Achei que seria complicado, mas é muito intuitivo. Em 5
+                        minutos já estava extraindo leads."</p>
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center font-bold text-white">
+                            JP</div>
+                        <div>
+                            <p class="font-bold text-white text-sm">João Paulo</p>
+                            <p class="text-xs text-textDim">Representante Comercial</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-24 px-6 relative">
+        <!-- Glow BG -->
+        <div class="orb w-[800px] h-[800px] bg-primary top-[20%] left-[50%] translate-x-[-50%] opacity-10"></div>
+
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <span class="text-primary font-bold tracking-wider text-sm uppercase mb-4 block">INVESTIMENTO
+                    INTELIGENTE</span>
+                <h2 class="text-3xl md:text-5xl font-bold mb-8">Planos feitos para escalar</h2>
+
+                <!-- Toggle Switch -->
+                <div class="flex items-center justify-center gap-4 mb-8">
+                    <span class="text-sm font-medium text-textDim" id="monthly-label">Mensal</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="pricing-toggle" class="sr-only peer">
+                        <div
+                            class="w-14 h-7 bg-white/10 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary">
+                        </div>
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-bold text-white" id="annual-label">Anual</span>
+                        <span
+                            class="bg-green-500/20 text-green-400 text-xs font-bold px-2 py-0.5 rounded-full border border-green-500/30">SAVE
+                            20%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-end">
+                <!-- Start Plan -->
+                <div
+                    class="glass rounded-3xl p-8 border border-white/5 hover:border-white/10 transition-all gsap-price relative group">
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold text-white mb-2">Start</h3>
+                        <p class="text-textDim text-sm h-10">Para freelancers e iniciantes.</p>
+                    </div>
+
+                    <div class="flex items-baseline gap-1 mb-8">
+                        <span class="text-sm text-textDim font-bold relative -top-4">R$</span>
+                        <span class="text-5xl font-extrabold text-white tracking-tight price-amount" data-monthly="97"
+                            data-annual="77">97</span>
+                        <span class="text-textDim font-medium">/mês</span>
+                    </div>
+
+                    <a href="https://buy.stripe.com/test_1" target="_blank"
+                        data-link-monthly="price_1SzdGU3fc3cZuklGVPzlU4Fi"
+                        data-link-annual="price_1SzdGu3fc3cZuklGDHAMMsBR"
+                        class="pricing-link block w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-center transition-all border border-white/10">
+                        Começar Agora
+                    </a>
+
+                    <div class="mt-8 pt-8 border-t border-white/10 space-y-4">
+                        <li class="flex items-center gap-3 text-sm text-gray-300"><i data-lucide="check"
+                                class="w-4 h-4 text-green-400"></i> 500 Leads / mês</li>
+                        <li class="flex items-center gap-3 text-sm text-gray-300"><i data-lucide="check"
+                                class="w-4 h-4 text-green-400"></i> Histórico de 30 dias</li>
+                        <li class="flex items-center gap-3 text-sm text-gray-300"><i data-lucide="check"
+                                class="w-4 h-4 text-green-400"></i> Exportação CSV</li>
+                    </div>
+                </div>
+
+                <!-- Pro Plan -->
+                <div
+                    class="relative bg-[#161b22] rounded-3xl p-8 md:p-10 border-2 border-primary shadow-[0_0_50px_-15px_rgba(0,104,255,0.4)] transform md:scale-105 z-10 gsap-price">
+                    <div
+                        class="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-lg flex items-center gap-2">
+                        <i data-lucide="zap" class="w-3 h-3 fill-white"></i> Mais Popular
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-2xl font-bold text-white mb-2">Pro</h3>
+                        <p class="text-gray-400 text-sm h-10">O equilíbrio perfeito para escalar.</p>
+                    </div>
+
+                    <div class="flex items-baseline gap-1 mb-8">
+                        <span class="text-sm text-gray-400 font-bold relative -top-4">R$</span>
+                        <span class="text-6xl font-extrabold text-white tracking-tight price-amount" data-monthly="197"
+                            data-annual="157">197</span>
+                        <span class="text-gray-400 font-medium">/mês</span>
+                    </div>
+
+                    <a href="https://buy.stripe.com/test_2" target="_blank"
+                        data-link-monthly="price_1SzdHi3fc3cZuklG5rtVblVa"
+                        data-link-annual="price_1SzdI83fc3cZuklGDBe9TJVy"
+                        class="pricing-link w-full relative group overflow-hidden block py-4 rounded-xl bg-primary text-white font-bold text-center shadow-lg shadow-primary/25 transition-transform active:scale-95">
+                        <div class="absolute inset-0 bg-shimmer bg-[length:200%_100%] animate-shimmer"></div>
+                        Quero o Plano Pro
+                    </a>
+
+                    <div class="mt-8 pt-8 border-t border-white/10 space-y-4">
+                        <li class="flex items-center gap-3 text-sm text-white font-medium"><i data-lucide="check"
+                                class="w-4 h-4 text-primary"></i> 1.100 Leads / mês</li>
+                        <li class="flex items-center gap-3 text-sm text-white font-medium"><i data-lucide="check"
+                                class="w-4 h-4 text-primary"></i> CRM Kanban Completo</li>
+                        <li class="flex items-center gap-3 text-sm text-white font-medium"><i data-lucide="check"
+                                class="w-4 h-4 text-primary"></i> Suporte Prioritário</li>
+                        <li class="flex items-center gap-3 text-sm text-white font-medium"><i data-lucide="check"
+                                class="w-4 h-4 text-primary"></i> Tudo do Start</li>
+                    </div>
+                </div>
+
+                <!-- Elite Plan -->
+                <div
+                    class="glass rounded-3xl p-8 border border-white/5 hover:border-white/10 transition-all gsap-price">
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold text-white mb-2">Elite</h3>
+                        <p class="text-textDim text-sm h-10">Para agências e alta demanda.</p>
+                    </div>
+
+                    <div class="flex items-baseline gap-1 mb-8">
+                        <span class="text-sm text-textDim font-bold relative -top-4">R$</span>
+                        <span class="text-5xl font-extrabold text-white tracking-tight price-amount" data-monthly="297"
+                            data-annual="237">297</span>
+                        <span class="text-textDim font-medium">/mês</span>
+                    </div>
+
+                    <a href="https://buy.stripe.com/test_3" target="_blank"
+                        data-link-monthly="price_1SzdJQ3fc3cZuklGzmncl1Oh"
+                        data-link-annual="price_1SzdJi3fc3cZuklGhjinw5av"
+                        class="pricing-link block w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-center transition-all border border-white/10 hover:border-secondary hover:text-secondary hover:bg-secondary/10">
+                        Assinar Elite
+                    </a>
+
+                    <div class="mt-8 pt-8 border-t border-white/10 space-y-4">
+                        <li class="flex items-center gap-3 text-sm text-gray-300"><i data-lucide="check"
+                                class="w-4 h-4 text-green-400"></i> 3.200 Leads / mês</li>
+                        <li class="flex items-center gap-3 text-sm text-gray-300"><i data-lucide="check"
+                                class="w-4 h-4 text-green-400"></i> Múltiplos Usuários</li>
+                        <li class="flex items-center gap-3 text-sm text-gray-300"><i data-lucide="check"
+                                class="w-4 h-4 text-green-400"></i> API (Em breve)</li>
+                        <li class="flex items-center gap-3 text-sm text-gray-300"><i data-lucide="check"
+                                class="w-4 h-4 text-green-400"></i> Acesso Antecipado</li>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="py-24 px-6 relative max-w-3xl mx-auto">
+        <h2 class="text-3xl font-bold text-center mb-12">Perguntas Frequentes</h2>
+
+        <div class="space-y-4">
+            <details class="glass rounded-xl group">
+                <summary class="flex justify-between items-center font-medium cursor-pointer list-none p-6">
+                    <span>Funciona para qualquer cidade?</span>
+                    <span class="transition group-open:rotate-180">
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-gray-400"></i>
+                    </span>
+                </summary>
+                <div class="text-textDim leading-relaxed mt-4 p-6 pt-0">
+                    Sim, o Be.Leads funciona globalmente. Basta digitar a cidade e o país desejados e nossa ferramenta
+                    varre o Google Maps dessa localidade.
+                </div>
+            </details>
+
+            <details class="glass rounded-xl group">
+                <summary class="flex justify-between items-center font-medium cursor-pointer list-none p-6">
+                    <span>Preciso instalar algum programa?</span>
+                    <span class="transition group-open:rotate-180">
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-gray-400"></i>
+                    </span>
+                </summary>
+                <div class="text-textDim leading-relaxed mt-4 p-6 pt-0">
+                    Não. O Be.Leads é 100% online (rodando na nuvem). Você pode acessar de qualquer computador, tablet
+                    ou celular com internet.
+                </div>
+            </details>
+
+            <details class="glass rounded-xl group">
+                <summary class="flex justify-between items-center font-medium cursor-pointer list-none p-6">
+                    <span>Como funciona a garantia?</span>
+                    <span class="transition group-open:rotate-180">
+                        <i data-lucide="chevron-down" class="w-5 h-5 text-gray-400"></i>
+                    </span>
+                </summary>
+                <div class="text-textDim leading-relaxed mt-4 p-6 pt-0">
+                    Oferecemos 7 dias de garantia incondicional. Se você assinar e decidir que não é para você, basta
+                    nos enviar um email e devolvemos 100% do seu dinheiro, sem perguntas.
+                </div>
+            </details>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/5 bg-[#030304] py-12 px-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+            <div class="flex items-center gap-2">
+                <div
+                    class="bg-gradient-to-br from-primary to-secondary w-8 h-8 rounded-lg flex items-center justify-center">
+                    <i data-lucide="rocket" class="w-4 h-4 text-white"></i>
+                </div>
+                <span class="text-xl font-bold text-white">Be.Leads</span>
+            </div>
+
+            <div class="flex gap-6 text-sm text-textDim">
+                <a href="#" class="hover:text-white transition-colors">Termos</a>
+                <a href="#" class="hover:text-white transition-colors">Privacidade</a>
+                <a href="#" class="hover:text-white transition-colors">Contato</a>
+            </div>
+
+            <div class="text-textDim text-sm">
+                &copy; 2024 Be.Leads Tecnologia.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script>
+        // Init Icons
+        lucide.createIcons();
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Header Scroll
+        const header = document.getElementById('header');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                header.classList.add('bg-[#050508]/80', 'backdrop-blur-md');
+            } else {
+                header.classList.remove('bg-[#050508]/80', 'backdrop-blur-md');
+            }
+        });
+
+        // Hero Animation
+        const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+        tl.to(".gsap-hero", { y: 0, opacity: 1, duration: 1, stagger: 0.15 });
+
+        // Fade Up Elements
+        gsap.utils.toArray('.gsap-fade-up').forEach((elem) => {
+            gsap.from(elem, {
+                scrollTrigger: {
+                    trigger: elem,
+                    start: "top 85%",
+                },
+                y: 50,
+                opacity: 0,
+                duration: 0.8,
+                ease: "power2.out"
+            });
+        });
+
+        // Pricing Card - Custom Animation
+        gsap.utils.toArray('.gsap-price').forEach((elem, i) => {
+            gsap.from(elem, {
+                scrollTrigger: {
+                    trigger: elem,
+                    start: "top 85%",
+                },
+                y: 50,
+                opacity: 0,
+                duration: 0.8,
+                delay: i * 0.1,
+                ease: "power2.out"
+            });
+        });
+
+
+        // Pricing Toggle Logic
+        const toggle = document.getElementById('pricing-toggle');
+        const amounts = document.querySelectorAll('.price-amount');
+        const links = document.querySelectorAll('.pricing-link');
+
+        toggle.addEventListener('change', (e) => {
+            const isAnnual = e.target.checked;
+
+            amounts.forEach(amount => {
+                const targetVal = isAnnual ? amount.dataset.annual : amount.dataset.monthly;
+                gsap.to(amount, {
+                    innerHTML: targetVal,
+                    duration: 0.5,
+                    snap: { innerHTML: 1 }
+                });
+            });
+
+            links.forEach(link => {
+                const targetHref = isAnnual ? link.dataset.linkAnnual : link.dataset.linkMonthly;
+                // Update href logic - Assuming using provided keys as href for now or just updating data
+                // In a real scenario, you'd map these IDs to actual Stripe Checkout URLs
+                // link.href = `https://buy.stripe.com/${targetHref}`; 
+                // Since we only have IDs, we just keep the placeholder href for now.
+            });
+        });
+
+    </script>
+</body>
+
+</html>
