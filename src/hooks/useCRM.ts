@@ -90,6 +90,25 @@ export const useCRM = (userId: string | undefined, onCreditsUsed?: (newTotal: nu
         staleTime: 1000 * 60 * 5, // 5 minutos sem refetch automático
     });
 
+    const { data: leadsWithMeetings = new Set<string>() } = useQuery({
+        queryKey: ['leads_meetings', userId],
+        queryFn: async () => {
+            if (!userId) return new Set<string>();
+            const { data, error } = await supabase
+                .from('crm_activities')
+                .select('lead_id')
+                .eq('user_id', userId)
+                .eq('activity_type', 'meeting_scheduled');
+            
+            if (error) {
+                console.error('[CRM] Erro ao buscar reuniões marcadas:', error);
+                return new Set<string>();
+            }
+            return new Set(data.map(d => d.lead_id));
+        },
+        staleTime: 1000 * 60 * 2, // 2 minutos
+    });
+
     // Mock de setCrmLeads para não quebrar componentes legados que o esperavam (como Settings)
     // ATENÇÃO: Nenhum componente deve usar isso para mutar o estado real agora. Use as mutations!
     const setCrmLeads = useCallback((value: any) => {
@@ -612,6 +631,7 @@ export const useCRM = (userId: string | undefined, onCreditsUsed?: (newTotal: nu
         setFailedEnrichmentAttempts,
         filteredLeads,
         monthlyRevenue,
+        leadsWithMeetings,
         isLoading
     };
 };

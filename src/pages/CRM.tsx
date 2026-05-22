@@ -26,6 +26,7 @@ interface CRMProps {
     onEnrichLead?: (leadId: string) => void;
     enrichingLeadIds?: Set<string>;
     failedEnrichmentAttempts?: Record<string, number>;
+    leadsWithMeetings?: Set<string>;
     plan?: UserPlan;
 }
 
@@ -51,6 +52,7 @@ const CRM: React.FC<CRMProps> = ({
     onEnrichLead,
     enrichingLeadIds,
     failedEnrichmentAttempts = {},
+    leadsWithMeetings = new Set<string>(),
     plan
 }) => {
 
@@ -174,6 +176,7 @@ const CRM: React.FC<CRMProps> = ({
                         onEnrichLead={onEnrichLead}
                         enrichingLeadIds={enrichingLeadIds}
                         failedEnrichmentAttempts={failedEnrichmentAttempts}
+                        leadsWithMeetings={leadsWithMeetings}
                         goal={pipelineGoal}
                         onSetGoal={setPipelineGoal}
                         resetDay={pipelineResetDay}

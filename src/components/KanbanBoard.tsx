@@ -22,6 +22,7 @@ interface KanbanBoardProps {
     onEnrichLead?: (leadId: string) => void;
     enrichingLeadIds?: Set<string>;
     failedEnrichmentAttempts?: Record<string, number>;
+    leadsWithMeetings?: Set<string>;
     readOnly?: boolean;
     goal?: number;
     onSetGoal?: (goal: number) => void;
@@ -67,7 +68,7 @@ const getMonthlyPeriodStart = (resetDay: number) => {
     return start;
 };
 
-export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, allLeads, onStatusChange, onDelete, onUpdateLead, onDuplicate, onEnrichLead, enrichingLeadIds, failedEnrichmentAttempts = {}, readOnly = false, goal = 10000, onSetGoal, resetDay = 10, plan, setActiveTab }) => {
+export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, allLeads, onStatusChange, onDelete, onUpdateLead, onDuplicate, onEnrichLead, enrichingLeadIds, failedEnrichmentAttempts = {}, leadsWithMeetings = new Set(), readOnly = false, goal = 10000, onSetGoal, resetDay = 10, plan, setActiveTab }) => {
 
     const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
     const [dragTargetColumn, setDragTargetColumn] = useState<CRMStatus | null>(null);
@@ -552,7 +553,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, allLeads, onSta
                                         onDragLeave={handleCardDragLeave}
                                         onDrop={(e) => handleCardDrop(e, lead.id, column.id)}
                                         onClick={() => !readOnly && setEditingLead(lead)}
-                                        className={`group bg-white dark:bg-zinc-800 p-2.5 rounded-xl shadow-sm border-t-2 ${lead.priority === 'high' ? 'border-t-red-500' : lead.priority === 'medium' ? 'border-t-amber-500' : 'border-t-blue-500'} border-x ${lead.notes?.includes('[Reunião Marcada') ? 'border-b-4 border-b-emerald-500' : 'border-b border-zinc-200 dark:border-zinc-700'} relative transition-all duration-300 ${!readOnly ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''} ${draggedLeadId === lead.id ? 'opacity-40 border-dashed ring-2 ring-primary-400 rotate-2 scale-95' : ''} ${dropIndicator?.id === lead.id ? (dropIndicator.position === 'top' ? 'border-t-4 border-t-primary-500 !mt-2' : 'border-b-4 border-b-primary-500 !mb-2') : ''}`}
+                                        className={`group bg-white dark:bg-zinc-800 p-2.5 rounded-xl shadow-sm border-t-2 ${lead.priority === 'high' ? 'border-t-red-500' : lead.priority === 'medium' ? 'border-t-amber-500' : 'border-t-blue-500'} border-x ${leadsWithMeetings.has(lead.id) || lead.notes?.includes('[Reunião Marcada') ? 'border-b-4 border-b-emerald-500' : 'border-b border-zinc-200 dark:border-zinc-700'} relative transition-all duration-300 ${!readOnly ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''} ${draggedLeadId === lead.id ? 'opacity-40 border-dashed ring-2 ring-primary-400 rotate-2 scale-95' : ''} ${dropIndicator?.id === lead.id ? (dropIndicator.position === 'top' ? 'border-t-4 border-t-primary-500 !mt-2' : 'border-b-4 border-b-primary-500 !mb-2') : ''}`}
                                     >
                                         <div className="flex justify-between items-start mb-1 pr-2">
                                             <div className="flex gap-2">

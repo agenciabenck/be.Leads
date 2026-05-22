@@ -57,7 +57,8 @@ const Dashboard: React.FC = () => {
         globalHistory, setGlobalHistory, addToCRM, addCrmLead, updateLeadStatus, updateLead, deleteLead, resetAllLeads,
         enrichCrmLead, enrichingCrmLeadIds,
         filteredLeads: filteredCrmLeads, monthlyRevenue,
-        failedEnrichmentAttempts, setFailedEnrichmentAttempts
+        failedEnrichmentAttempts, setFailedEnrichmentAttempts,
+        leadsWithMeetings
     } = useCRM(user?.id, onCreditsUsed);
     const {
         query, setQuery, leads, setLeads, state, setState, filters, setFilters, searchMode, setSearchMode,
@@ -806,6 +807,8 @@ const Dashboard: React.FC = () => {
                             enrichCrmLead(leadId);
                         }}
                         enrichingLeadIds={enrichingCrmLeadIds}
+                        failedEnrichmentAttempts={failedEnrichmentAttempts}
+                        leadsWithMeetings={leadsWithMeetings}
                         plan={userSettings.plan}
                     />
 
