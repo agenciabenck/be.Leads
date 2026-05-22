@@ -155,17 +155,30 @@ export const useCRM = (userId: string | undefined, onCreditsUsed?: (newTotal: nu
                     }));
                     
                     console.log(`[CRM] Restaurando ${dbPayloads.length} leads do cache local para o banco...`);
-                    const { error } = await supabase.from('crm_leads').upsert(dbPayloads, { onConflict: 'id,user_id' });
                     
-                    if (!error) {
+                    const BATCH_SIZE = 100;
+                    let hasError = false;
+                    let errorMessage = '';
+
+                    for (let i = 0; i < dbPayloads.length; i += BATCH_SIZE) {
+                        const batch = dbPayloads.slice(i, i + BATCH_SIZE);
+                        const { error } = await supabase.from('crm_leads').upsert(batch, { onConflict: 'id,user_id' });
+                        if (error) {
+                            hasError = true;
+                            errorMessage = error.message;
+                            break;
+                        }
+                    }
+                    
+                    if (!hasError) {
                         console.log('[CRM] Restauração concluída com sucesso!');
                         toast.success(`Restaurados ${dbPayloads.length} leads do cache para o banco de dados.`);
                         localStorage.removeItem('beleadly_crm_leads_anonymous');
                         // Não removemos o cache local do usuário por segurança imediata, mas o React Query já vai ser a source of truth
                         queryClient.invalidateQueries({ queryKey: ['crm_leads', userId] });
                     } else {
-                        console.error('[CRM] Erro ao restaurar leads no banco:', error);
-                        toast.error(`Falha ao restaurar leads antigos: ${error.message}`);
+                        console.error('[CRM] Erro ao restaurar leads no banco:', errorMessage);
+                        toast.error(`Falha ao restaurar leads antigos: ${errorMessage}`);
                     }
                 }
             } catch (e: any) {
