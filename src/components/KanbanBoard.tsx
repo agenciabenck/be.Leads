@@ -505,8 +505,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, allLeads, onSta
                         const idxA = columnOrder.indexOf(a.id);
                         const idxB = columnOrder.indexOf(b.id);
                         if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-                        if (idxA !== -1) return -1;
-                        if (idxB !== -1) return 1;
+                        // Novos leads (idx === -1) devem ir para o TOPO da lista
+                        if (idxA !== -1) return 1;
+                        if (idxB !== -1) return -1;
                         return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
                     });
                     const totalValue = columnLeads.reduce((acc, lead) => acc + (lead.potentialValue || 0), 0);
