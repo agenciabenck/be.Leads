@@ -42,6 +42,54 @@ export const useSearch = (user: any, globalHistory: string[], onCreditsUsed?: (n
     const [chatContext, setChatContext] = useState<any>(null);
     const [chatMessages, setChatMessages] = useState<{ id: string; sender: 'user' | 'assistant'; text: string; timestamp: Date; confirmationData?: { niche: string; city: string; state: string; quantity: number } }[]>([]);
 
+    // --- Persistência de Resultados (Local Storage) ---
+    useEffect(() => {
+        if (!user?.id) return;
+        const savedStr = localStorage.getItem(`beleadly_last_search_state_${user.id}`);
+        if (savedStr) {
+            try {
+                const saved = JSON.parse(savedStr);
+                if (saved && saved.leads && saved.leads.length > 0) {
+                    setLeads(saved.leads);
+                    if (saved.query) setQuery(saved.query);
+                    if (saved.searchSource) setSearchSource(saved.searchSource);
+                    if (saved.searchMode) setSearchMode(saved.searchMode);
+                    if (saved.selectedNiche) setSelectedNiche(saved.selectedNiche);
+                    if (saved.selectedState) setSelectedState(saved.selectedState);
+                    if (saved.selectedCity) setSelectedCity(saved.selectedCity);
+                    if (saved.selectedCities) setSelectedCities(saved.selectedCities);
+                    if (saved.chatMessages) setChatMessages(saved.chatMessages);
+                    setState({ isSearching: false, error: null, hasSearched: true });
+                }
+            } catch (e) {
+                console.error('[Search] Falha ao carregar estado da busca:', e);
+            }
+        }
+    }, [user?.id]); // Executa apenas uma vez quando o usuário loga ou a página recarrega
+
+    useEffect(() => {
+        if (!user?.id) return;
+        if (leads.length === 0 && !state.isSearching && !state.hasSearched) {
+            // Se limpou e não está buscando, não sobrescreve com vazio
+            return;
+        }
+        if (leads.length > 0) {
+            const stateToSave = {
+                leads,
+                query,
+                searchSource,
+                searchMode,
+                selectedNiche,
+                selectedState,
+                selectedCity,
+                selectedCities,
+                chatMessages
+            };
+            localStorage.setItem(`beleadly_last_search_state_${user.id}`, JSON.stringify(stateToSave));
+        }
+    }, [leads, query, searchSource, searchMode, selectedNiche, selectedState, selectedCity, selectedCities, chatMessages, user?.id, state.isSearching, state.hasSearched]);
+    // --------------------------------------------------
+
 
     // Mensagem dinâmica ao abrir a aba de Chat AI
     useEffect(() => {
