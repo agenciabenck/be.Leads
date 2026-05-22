@@ -174,7 +174,7 @@ export const useCRM = (userId: string | undefined, onCreditsUsed?: (newTotal: nu
                         console.log('[CRM] Restauração concluída com sucesso!');
                         toast.success(`Restaurados ${dbPayloads.length} leads do cache para o banco de dados.`);
                         localStorage.removeItem('beleadly_crm_leads_anonymous');
-                        // Não removemos o cache local do usuário por segurança imediata, mas o React Query já vai ser a source of truth
+                        localStorage.removeItem(`beleadly_crm_leads_${userId}`); // Remove para não ficar restaurando em loop infinito
                         queryClient.invalidateQueries({ queryKey: ['crm_leads', userId] });
                     } else {
                         console.error('[CRM] Erro ao restaurar leads no banco:', errorMessage);
