@@ -1,4 +1,4 @@
-import { Home, Search as SearchIcon, KanbanSquare, Wallet, Settings, LogOut, BadgeCheck } from 'lucide-react';
+import { Home, Search as SearchIcon, KanbanSquare, Wallet, Settings, LogOut, BadgeCheck, Handshake, Zap } from 'lucide-react';
 import { AppTab, UserSettings } from '@/types/types';
 
 interface SidebarProps {
@@ -29,16 +29,16 @@ const Sidebar: React.FC<SidebarProps> = ({
     renderAvatar
 }) => {
     return (
-        <aside className={`flex-shrink-0 h-full w-64 bg-sidebar text-text-light flex flex-col transition-all duration-300 ${isSidebarOpen ? 'translate-x-0' : '-ml-64'} z-50 rounded-tr-[40px] overflow-hidden font-sans`}>
+        <aside className={`hidden md:flex flex-shrink-0 h-full w-64 bg-sidebar text-text-light flex-col transition-all duration-300 ${isSidebarOpen ? 'translate-x-0' : '-ml-64'} z-50 rounded-tr-[40px] overflow-hidden font-sans`}>
             {/* Logo Section */}
             <div className="pt-10 pb-8 px-6 flex flex-col items-center">
                 <img
-                    src="/logo.png"
-                    alt="be.leads"
+                    src="/beleadly_logo_h1.png"
+                    alt="beleadly"
                     className="h-10 w-auto object-contain mb-2 cursor-pointer hover:opacity-80 transition-opacity"
                     onClick={() => setActiveTab('home')}
                 />
-                <span className="text-[11px] font-medium text-text-secondary">Criado por Agência Benck</span>
+                <span className="text-[11px] font-medium text-text-secondary">Feito com 🧡 por <a href="https://agenciabenck.com" target="_blank" rel="noopener noreferrer" className="font-bold hover:text-orange-500 transition-colors">Agência Benck.</a></span>
                 <div className="w-full h-[1px] bg-white/10 mt-8"></div>
             </div>
 
@@ -48,8 +48,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                     { id: 'home', icon: Home, label: 'Início' },
                     { id: 'search', icon: SearchIcon, label: 'Buscar leads' },
                     { id: 'crm', icon: KanbanSquare, label: 'CRM' },
-                    { id: 'subscription', icon: Wallet, label: 'Assinatura' },
-                    { id: 'settings', icon: Settings, label: 'Configurações' }
+                    { id: 'extras', icon: Zap, label: 'Material de apoio' },
+                    { id: 'affiliates', icon: Handshake, label: 'Parceiros' },
+                    { id: 'subscription', icon: Wallet, label: 'Assinatura' }
                 ].map(item => (
                     <button
                         key={item.id}
@@ -62,19 +63,18 @@ const Sidebar: React.FC<SidebarProps> = ({
             </nav>
 
             {/* Plan Card */}
-            <div className="mx-4 mb-8 p-4 bg-sidebar-plan rounded-3xl">
-                <div className="mb-3">
-                    <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">SEU PLANO</span>
-                    <h4 className="text-xl font-bold text-text-light mt-1 capitalize">{PLAN.name}</h4>
+            <div className="mx-4 mb-2 p-3 bg-sidebar-plan rounded-2xl">
+                <div className="mb-1">
+                    <h4 className="text-lg font-bold text-text-light capitalize">{PLAN.name}</h4>
                 </div>
 
-                <div className="flex justify-between items-center mb-2">
-                    <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">CRÉDITOS</span>
-                    <span className="text-xs font-bold text-text-light">{USED_CREDITS} / {MAX_CREDITS}</span>
+                <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-[9px] font-bold text-text-secondary uppercase tracking-wider">CRÉDITOS</span>
+                    <span className="text-[10px] font-bold text-text-light">{USED_CREDITS} / {MAX_CREDITS}</span>
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden mb-3">
+                <div className="w-full h-1 bg-black/40 rounded-full overflow-hidden mb-3">
                     <div
                         className="h-full bg-primary transition-all duration-500"
                         style={{ width: `${PLAN_PERCENTAGE}%` }}
@@ -84,29 +84,37 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {(userSettings.plan === 'elite' || userSettings.plan === 'pro') ? (
                     <button
                         onClick={() => setActiveTab('subscription')}
-                        className="w-full py-3 text-[13px] font-bold rounded-xl bg-success/20 hover:bg-success/30 text-success flex items-center justify-center gap-2 border border-success/30 transition-all cursor-pointer"
+                        className="w-full py-2 text-[11px] font-bold rounded-lg bg-success/20 hover:bg-success/30 text-success flex items-center justify-center gap-2 border border-success/30 transition-all cursor-pointer"
                     >
-                        {userSettings.plan === 'elite' ? 'Você está no topo!' : 'Plano Pro ativo'} <BadgeCheck className="w-4 h-4" />
+                        {userSettings.plan === 'elite' ? 'Topo!' : 'Plano Pro'} <BadgeCheck className="w-3 h-3" />
                     </button>
                 ) : (
                     <button
                         onClick={() => setActiveTab('subscription')}
-                        className="w-full py-3 text-[13px] font-bold rounded-xl bg-success hover:bg-success-600 text-white transition-all active:scale-[0.98] shadow-lg shadow-success/20"
+                        className="w-full py-2 text-[11px] font-bold rounded-lg bg-success hover:bg-success-600 text-white transition-all active:scale-[0.98] shadow-lg shadow-success/20"
                     >
-                        Fazer upgrade de plano
+                        Fazer upgrade
                     </button>
                 )}
             </div>
 
             {/* User Section */}
             <div className="px-6 py-4 mb-2">
-                <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setActiveTab('settings')}>
+                <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center overflow-hidden">
                         {renderAvatar(userSettings, 'md')}
                     </div>
-                    <div className="flex-1 overflow-hidden">
-                        <p className="text-[15px] font-bold text-text-light">{userSettings.name || 'Usuário'}</p>
-                        <p className="text-[12px] font-medium text-text-secondary">Ver configurações</p>
+                    <div className="flex-1 flex items-center justify-between overflow-hidden">
+                        <p
+                            className="text-[15px] font-bold text-text-light truncate cursor-pointer hover:text-white transition-colors"
+                            onClick={() => setActiveTab('settings')}
+                        >
+                            {userSettings.name || 'Usuário'}
+                        </p>
+                        <Settings
+                            className="w-5 h-5 text-text-secondary hover:text-white cursor-pointer transition-colors flex-shrink-0 ml-2"
+                            onClick={() => setActiveTab('settings')}
+                        />
                     </div>
                 </div>
             </div>

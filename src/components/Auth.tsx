@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
 import { supabase } from '@/services/supabase';
 import { LogIn, UserPlus, Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, User, X } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { translateAuthError } from '@/utils/authUtils';
+import { isDisposableEmail, getBrowserFingerprint } from '@/utils/antiAbuseUtils';
 
 interface AuthProps {
     onAuthSuccess: () => void;
 }
 
 export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
-    const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password'>('login');
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password'>(
+        searchParams.get('mode') === 'signup' ? 'signup' : 'login'
+    );
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -33,7 +39,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                         access_type: 'offline',
                         prompt: 'consensus',
                     },
-                    redirectTo: window.location.origin
+                    redirectTo: window.location.href
                 }
             });
             if (error) throw error;
@@ -56,7 +62,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
 
         try {
             const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/reset-password`,
+                redirectTo: `${window.location.origin}/update-password`,
             });
             if (resetError) throw resetError;
             setMessage('Email de recuperação enviado! Verifique sua caixa de entrada.');
@@ -104,16 +110,42 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                 if (signInError) throw signInError;
 
                 if (data.user) {
+                    const checkoutPriceId = searchParams.get('checkout');
+                    const isAnnual = searchParams.get('annual') === 'true';
+
+                    if (checkoutPriceId) {
+                        setMessage('Login realizado! Redirecionando para o pagamento seguro...');
+                        try {
+                            const { createCheckoutSession } = await import('@/services/payment');
+                            await createCheckoutSession(checkoutPriceId, isAnnual);
+                        } catch (err: any) {
+                            setError('Erro ao iniciar pagamento. Faça login e tente novamente.');
+                            setLoading(false);
+                        }
+                        return; // DO NOT navigate to /app
+                    }
+
                     setMessage('Login realizado com sucesso!');
-                    setTimeout(() => onAuthSuccess(), 500);
+                    if (onAuthSuccess) onAuthSuccess();
+                    setTimeout(() => navigate('/app'), 500);
                 }
             } else if (mode === 'signup') {
+                if (isDisposableEmail(email)) {
+                    setError('Por favor, use um e-mail profissional ou pessoal válido (emails temporários não são permitidos).');
+                    setLoading(false);
+                    return;
+                }
+
+                const fingerprint = getBrowserFingerprint();
+
                 const { data, error: signUpError } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
+                        emailRedirectTo: `${window.location.origin}/app`,
                         data: {
                             full_name: name,
+                            browser_fingerprint: fingerprint,
                         }
                     }
                 });
@@ -122,13 +154,28 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
 
                 if (data.user && !data.session) {
                     setIsRegistrationSuccess(true);
-                } else if (data.user) {
-                    setMessage('Conta criada com sucesso! Você já pode fazer login.');
-                    setTimeout(() => {
-                        setMode('login');
-                        setPassword('');
-                        setConfirmPassword('');
-                    }, 1500);
+                    return;
+                }
+
+                if (data.user) {
+                    const checkoutPriceId = searchParams.get('checkout');
+                    const isAnnual = searchParams.get('annual') === 'true';
+
+                    if (checkoutPriceId) {
+                        setMessage('Conta criada! Transferindo você para o ambiente de pagamento 🔒...');
+                        try {
+                            const { createCheckoutSession } = await import('@/services/payment');
+                            await createCheckoutSession(checkoutPriceId, isAnnual);
+                        } catch (err: any) {
+                            setError('Erro ao iniciar pagamento. Tente novamente mais tarde.');
+                            setLoading(false);
+                        }
+                        return; // DO NOT navigate to /app
+                    }
+
+                    setMessage('Conta criada com sucesso! Redirecionando para o painel...');
+                    if (onAuthSuccess) onAuthSuccess();
+                    setTimeout(() => navigate('/app'), 1000);
                 }
             }
         } catch (err: any) {
@@ -199,6 +246,10 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
         );
     }
 
+    const planId = searchParams.get('subscribe');
+    const isAnnual = searchParams.get('annual') === 'true';
+    const planName = planId ? planId.charAt(0).toUpperCase() + planId.slice(1) : '';
+
     return (
         <div className="min-h-screen w-full bg-[#030712] flex flex-col items-center justify-start p-4 relative py-12">
             {/* Mesh Gradients Background */}
@@ -213,9 +264,9 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                 <div className="text-center mb-8 animate-fade-in-up">
                     <div className="inline-flex items-center justify-center p-2 mb-4">
                         <img
-                            src="https://i.postimg.cc/0jF5PGV8/logo-beleads-h1-1.png"
-                            alt="be.leads"
-                            className="h-8 w-auto drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                            src="/beleadly_logo_h1.png"
+                            alt="beleadly"
+                            className="h-10 md:h-12 w-auto object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]"
                         />
                     </div>
                 </div>
@@ -225,14 +276,22 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                     <div className="p-5 pb-7">
                         <div className="text-center mb-6">
                             <h1 className="text-2xl font-black text-zinc-900 tracking-tight mb-1">
-                                {mode === 'login' ? 'Bem-vindo de volta!' : mode === 'signup' ? 'Crie sua conta' : 'Recuperar senha'}
+                                {planId ? (
+                                    <>Assinar Plano <span className="text-blue-600">{planName}</span></>
+                                ) : (
+                                    mode === 'login' ? 'Bem-vindo de volta!' : mode === 'signup' ? 'Crie sua conta' : 'Recuperar senha'
+                                )}
                             </h1>
                             <p className="text-zinc-500 text-sm font-medium">
-                                {mode === 'login'
-                                    ? 'Acesse sua conta para continuar'
-                                    : mode === 'signup'
-                                        ? 'Comece a extrair leads inteligentes agora'
-                                        : 'Informe seu e-mail para receber o link'}
+                                {planId ? (
+                                    `Crie sua conta ou faça login para finalizar a assinatura ${isAnnual ? 'Anual' : 'Mensal'}.`
+                                ) : (
+                                    mode === 'login'
+                                        ? 'Acesse sua conta para continuar'
+                                        : mode === 'signup'
+                                            ? 'Comece a extrair leads inteligentes agora'
+                                            : 'Informe seu e-mail para receber o link'
+                                )}
                             </p>
                         </div>
 
@@ -418,10 +477,10 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                 {/* Updated Footer */}
                 <div className="mt-8 text-center space-y-4">
                     <p className="text-[11px] font-bold text-zinc-500 leading-relaxed uppercase tracking-wider">
-                        2026 © Todos os direitos reservados.
+                        © 2026 beleadly Inc. Todos os direitos reservados.
                     </p>
                     <p className="text-[11px] font-medium text-zinc-600">
-                        Feito com 🧡 por <span className="font-bold">Agência Benck.</span>
+                        Feito com 🧡 por <a href="https://agenciabenck.com" target="_blank" rel="noopener noreferrer" className="font-bold hover:text-orange-500 transition-colors">Agência Benck.</a>
                     </p>
                     <div className="flex items-center justify-center gap-4 pt-2">
                         <button onClick={() => setShowTerms(true)} className="text-[10px] font-bold text-zinc-500 hover:text-white transition-colors">TERMOS</button>
@@ -446,11 +505,11 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                         <div className="p-8 overflow-y-auto custom-scrollbar prose prose-sm prose-zinc">
                             {showTerms ? (
                                 <div className="space-y-4 text-zinc-600">
-                                    <p>Ao utilizar os serviços da be.Leads, você concorda com os seguintes termos:</p>
+                                    <p>Ao utilizar os serviços da beleadly, você concorda com os seguintes termos:</p>
                                     <h3 className="text-zinc-900 font-bold">1. Uso do Serviço</h3>
                                     <p>Nossa plataforma é destinada à extração de leads públicos para fins comerciais legítimos. O uso indevido para spam ou atividades ilegais resultará em banimento imediato.</p>
                                     <h3 className="text-zinc-900 font-bold">2. Responsabilidade pelos Dados</h3>
-                                    <p>A be.Leads facilita o acesso a informações públicas. A responsabilidade pelo tratamento desses dados após a extração é inteiramente do usuário.</p>
+                                    <p>A beleadly facilita o acesso a informações públicas. A responsabilidade pelo tratamento desses dados após a extração é inteiramente do usuário.</p>
                                     <h3 className="text-zinc-900 font-bold">3. Assinaturas e Reembolsos</h3>
                                     <p>Todos os planos são recorrentes. O cancelamento pode ser feito a qualquer momento através do painel de configurações.</p>
                                 </div>

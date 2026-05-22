@@ -13,8 +13,10 @@ interface SettingsProps {
     settingsCityList: string[];
     globalHistory: string[];
     setGlobalHistory: React.Dispatch<React.SetStateAction<string[]>>;
+    clearSearchHistory: () => Promise<void>;
     crmLeads: any[];
     setCrmLeads: React.Dispatch<React.SetStateAction<any[]>>;
+    resetAllLeads: () => Promise<void>;
     showNotification: (msg: string, type?: "success" | "error" | "info") => void;
 }
 
@@ -28,22 +30,46 @@ const Settings: React.FC<SettingsProps> = ({
     settingsCityList,
     globalHistory,
     setGlobalHistory,
+    clearSearchHistory,
     crmLeads,
     setCrmLeads,
+    resetAllLeads,
     showNotification
 }) => {
+    const handleResetHistory = async () => {
+        if (window.confirm('Tem certeza que deseja limpar todo o histórico de busca? Essa ação não pode ser desfeita.')) {
+            try {
+                await clearSearchHistory();
+                showNotification('Histórico de busca limpo com sucesso!', 'success');
+            } catch (error) {
+                showNotification('Erro ao limpar histórico.', 'error');
+            }
+        }
+    };
+
+    const handleResetCRM = async () => {
+        if (window.confirm('ATENÇÃO: Isso apagará TODOS os leads do seu CRM permanentemente. Deseja continuar?')) {
+            try {
+                await resetAllLeads();
+                // Notification is handled inside resetAllLeads toast
+            } catch (error) {
+                showNotification('Erro ao resetar CRM.', 'error');
+            }
+        }
+    };
+
     return (
-        <div className="animate-fade-in-up max-w-3xl mx-auto pb-10">
-            <h2 className="text-4xl font-bold text-zinc-900 dark:text-white mb-8 tracking-tighter">Configurações</h2>
+        <div className="animate-fade-in-up max-w-3xl mx-auto pb-10 w-full">
+            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-8 tracking-tighter">Configurações</h2>
 
             <div className="bg-app-cardLight dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
-                <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
+                <div className="p-4 md:p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
                     <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2"><User className="w-5 h-5 text-primary-500" /> Perfil</h3>
                 </div>
-                <div className="p-6 space-y-6 overflow-visible">
+                <div className="p-4 md:p-6 space-y-6 overflow-visible">
                     <div>
                         <label className="block text-sm font-bold text-zinc-500 mb-3">Avatar</label>
-                        <div className="flex items-center gap-6">
+                        <div className="flex flex-wrap items-center gap-4 md:gap-6">
                             <div className="relative group p-1">
                                 {renderAvatar(userSettings, 'lg')}
                                 <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white text-xs font-bold m-1" onClick={() => fileInputRef.current?.click()}>Alterar</div>
@@ -56,7 +82,7 @@ const Settings: React.FC<SettingsProps> = ({
                         </div>
 
                         <div className="mt-4 h-16 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-xl border border-zinc-100 dark:border-zinc-800 flex items-center px-2 transition-all">
-                            <div className="w-full h-full flex items-center gap-2 overflow-x-auto px-1 scrollbar-thin">
+                            <div className="w-full h-full flex items-center gap-2 overflow-x-auto px-1 no-scrollbar">
                                 {AVATAR_EMOJIS.map(emoji => (
                                     <button
                                         key={emoji}
@@ -88,14 +114,44 @@ const Settings: React.FC<SettingsProps> = ({
                             </div>
                         </div>
                     </div>
+
+                    {/* Credit Reset Info */}
+                    <div className="p-4 bg-primary-50/30 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-900/30 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center shadow-sm border border-primary-100 dark:border-primary-800">
+                                <CalendarDays className="w-5 h-5 text-primary-500" />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-bold text-zinc-900 dark:text-white">Renovação de Créditos</h4>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                    Seus créditos de leads são zerados mensalmente.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <span className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest block mb-1">Próxima renovação</span>
+                            <span className="text-sm font-black text-primary-700 dark:text-primary-300 bg-primary-100 dark:bg-primary-900/50 px-3 py-1 rounded-full border border-primary-200 dark:border-primary-800">
+                                {(() => {
+                                    try {
+                                        const lastReset = userSettings.lastCreditReset ? new Date(userSettings.lastCreditReset) : new Date();
+                                        const nextReset = new Date(lastReset);
+                                        nextReset.setMonth(nextReset.getMonth() + 1);
+                                        return nextReset.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                    } catch (e) {
+                                        return 'Sincronizando...';
+                                    }
+                                })()}
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div className="bg-app-cardLight dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
-                <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
+                <div className="p-4 md:p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
                     <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2"><MapPin className="w-5 h-5 text-primary-500" /> Preferências de busca</h3>
                 </div>
-                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-xs font-bold text-zinc-500 uppercase mb-1.5">Estado padrão</label>
                         <select value={userSettings.defaultState} onChange={e => setUserSettings(prev => ({ ...prev, defaultState: e.target.value, defaultCity: '' }))} className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white">
@@ -114,10 +170,10 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
 
             <div className="bg-app-cardLight dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
-                <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
+                <div className="p-4 md:p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
                     <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2"><Target className="w-5 h-5 text-primary-500" /> Metas e CRM</h3>
                 </div>
-                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-xs font-bold text-zinc-500 uppercase mb-1.5">Meta mensal (R$)</label>
                         <div className="relative"><span className="absolute left-3 top-3.5 text-zinc-400 font-bold text-xs">R$</span><input type="number" value={userSettings.pipelineGoal} onChange={e => setUserSettings(prev => ({ ...prev, pipelineGoal: Number(e.target.value) }))} className="w-full pl-9 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-primary-500 dark:text-white" /></div>
@@ -132,25 +188,25 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
 
             <div className="bg-app-cardLight dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
-                <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
+                <div className="p-4 md:p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
                     <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2"><Database className="w-5 h-5 text-red-500" /> Gerenciamento de dados</h3>
                 </div>
-                <div className="p-6 space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900/30 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                <div className="p-4 md:p-6 space-y-4">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 p-4 bg-zinc-50 dark:bg-zinc-900/30 rounded-xl border border-zinc-100 dark:border-zinc-800">
                         <div>
                             <h4 className="font-bold text-sm text-zinc-900 dark:text-white">Histórico de Busca</h4>
                             <p className="text-xs text-zinc-500 mt-1">Limpa a memória de empresas já visitadas pela IA.</p>
                         </div>
-                        <button onClick={() => { setGlobalHistory([]); }} disabled={globalHistory.length === 0} className="px-4 py-2 text-xs font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:text-red-500 hover:border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button onClick={handleResetHistory} disabled={globalHistory.length === 0} className="w-full md:w-auto px-4 py-2 text-xs font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:text-red-500 hover:border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             Limpar ({globalHistory.length})
                         </button>
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900/30 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 p-4 bg-zinc-50 dark:bg-zinc-900/30 rounded-xl border border-zinc-100 dark:border-zinc-800">
                         <div>
                             <h4 className="font-bold text-sm text-zinc-900 dark:text-white">Resetar CRM</h4>
                             <p className="text-xs text-zinc-500 mt-1">Apaga todos os leads e recomeça do zero.</p>
                         </div>
-                        <button onClick={() => { setCrmLeads([]); }} disabled={crmLeads.length === 0} className="px-4 py-2 text-xs font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button onClick={handleResetCRM} disabled={crmLeads.length === 0} className="w-full md:w-auto px-4 py-2 text-xs font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             Apagar tudo ({crmLeads.length})
                         </button>
                     </div>
@@ -158,24 +214,24 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
 
             <div className="bg-app-cardLight dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden mb-6">
-                <div className="p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
+                <div className="p-4 md:p-6 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
                     <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2"><LifeBuoy className="w-5 h-5 text-primary-500" /> Suporte</h3>
                 </div>
-                <div className="p-6">
+                <div className="p-4 md:p-6">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30">
                         <div>
                             <h4 className="font-bold text-sm text-zinc-900 dark:text-white">Precisa de ajuda?</h4>
                             <p className="text-xs text-zinc-500 mt-1">Entre em contato para suporte, dúvidas ou feedback.</p>
                         </div>
-                        <a href="mailto:suporte@agenciabenck.com" className="px-4 py-2 text-xs font-bold bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-800 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors shadow-sm">
+                        <a href="mailto:suporte@agenciabenck.com" className="px-4 py-2 text-xs font-bold bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-800 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors shadow-sm break-all text-center">
                             suporte@agenciabenck.com
                         </a>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-6 flex justify-end">
-                <button onClick={() => { }} className="bg-success-600 hover:bg-success-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-success-500/20 transition-all active:scale-95 flex items-center gap-2"><Check className="w-5 h-5" /> Salvar tudo</button>
+            <div className="mt-6 flex flex-col md:flex-row justify-end">
+                <button onClick={() => { }} className="bg-success-600 hover:bg-success-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-success-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 w-full md:w-auto"><Check className="w-5 h-5" /> Salvar tudo</button>
             </div>
         </div>
     );

@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
-import { Check, X, BadgeCheck, Info } from 'lucide-react';
+import React from 'react';
+import { Check, X, BadgeCheck, Info, Loader2 } from 'lucide-react';
 import { UserSettings, UserPlan } from '@/types/types';
-import { PLAN_HIERARCHY, STRIPE_PRICES, STRIPE_PRICES_ANNUAL } from '@/constants/appConstants';
-import { createCheckoutSession, getSubscriptionStatus } from '@/services/payment';
-import { Toast } from '@/components/UXComponents';
+import { PLAN_HIERARCHY } from '@/constants/appConstants';
 
 interface SubscriptionProps {
     billingCycle: 'monthly' | 'annual';
     setBillingCycle: (v: 'monthly' | 'annual') => void;
     userSettings: UserSettings;
     handleCheckout: (planId: 'start' | 'pro' | 'elite', isAnnual: boolean) => Promise<void>;
+    upgradingPlanId: string | null;
     setUpgradeModal: (modal: { show: boolean; planId: string; priceId: string; planName: string; isAnnual: boolean } | null) => void;
     setCouponCode: (code: string) => void;
     setCouponDetails: (details: any) => void;
@@ -19,52 +18,12 @@ const Subscription: React.FC<SubscriptionProps> = ({
     billingCycle,
     setBillingCycle,
     userSettings,
-    handleCheckout: parentHandleCheckout,
+    handleCheckout,
+    upgradingPlanId,
     setUpgradeModal,
     setCouponCode,
     setCouponDetails
 }) => {
-    const [isLoading, setIsLoading] = useState(false);
-    const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'info' }[]>([]);
-
-    const addToast = (t: { type: 'success' | 'error' | 'info'; title?: string; message: string }) => {
-        const id = Math.random().toString(36).substring(2, 9);
-        setToasts(prev => [...prev, { id, message: t.message, type: t.type }]);
-        setTimeout(() => setToasts(prev => prev.filter(item => item.id !== id)), 5000);
-    };
-
-
-    const handleCheckout = async (planId: 'start' | 'pro' | 'elite', isAnnual: boolean) => {
-        setIsLoading(true);
-        try {
-            const subscription = await getSubscriptionStatus();
-            const isUpgrade = subscription && subscription.status === 'active' && subscription.plan_id !== 'free';
-            const priceId = isAnnual ? STRIPE_PRICES_ANNUAL[planId] : STRIPE_PRICES[planId];
-
-            if (isUpgrade) {
-                // Find plan name for modal
-                const planInfo = planList.find(p => p.id === planId);
-                setUpgradeModal({
-                    show: true,
-                    planId,
-                    priceId,
-                    planName: planInfo?.name || planId,
-                    isAnnual
-                });
-                setCouponCode('');
-                setCouponDetails(null);
-            } else {
-                await createCheckoutSession(priceId, isAnnual);
-            }
-        } catch (error: any) {
-            addToast({
-                type: 'error',
-                message: error.message || 'Erro ao processar solicitação.'
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
 
     // ... [Rest of the component code identical to previous content, just updating the return]
@@ -73,72 +32,63 @@ const Subscription: React.FC<SubscriptionProps> = ({
         {
             id: 'free',
             name: 'Free',
-            headline: 'Indicado para começar e conhecer a plataforma.',
+            headline: 'Para quem quer testar o poder da plataforma.',
             priceMonthly: 0,
             priceAnnual: 0,
-            credits: 50,
-            features: ['50 créditos/mês', 'Visualização básica'],
-            missing: ['WhatsApp click', 'Exportar excel/sheets', 'CRM completo', 'IA avançada'],
+            credits: 60,
+            features: ['60 créditos/mês', 'Busca no Google Maps'],
+            missing: ['Busca no Instagram', 'Exportação CSV/Excel', 'Busca no LinkedIn', 'CRM Completo', 'Enriquecimento de Leads', 'Busca por Chat IA'],
         },
         {
             id: 'start',
             name: 'Start',
-            headline: 'Para quem está começando a prospectar ativamente.',
+            headline: 'Ideal para freelancers e pequenos negócios iniciando outbound.',
             priceMonthly: 57,
             priceAnnual: 547.20,
             credits: 500,
-            features: ['500 créditos/mês', 'WhatsApp click', 'Exportar excel'],
-            missing: ['Exportar sheets', 'CRM completo', 'IA avançada'],
+            features: ['500 créditos/mês', 'Busca no Google Maps', 'Busca no Instagram', 'Exportação CSV/Excel', 'WhatsApp Click'],
+            missing: ['Busca no LinkedIn', 'CRM Completo', 'Indicadores de prospecção', 'Enriquecimento de Leads', 'Busca por Chat IA'],
         },
         {
             id: 'pro',
             name: 'Pro',
-            headline: 'Para quem quer escalar vendas com organização.',
+            headline: 'A escolha das agências e times comerciais estruturados.',
             priceMonthly: 87,
             priceAnnual: 835.20,
             credits: 1100,
-            features: ['1.100 créditos/mês', 'WhatsApp click', 'Exportar excel', 'Exportar sheets', 'CRM completo'],
-            missing: ['IA avançada'],
+            features: ['1.100 créditos/mês', 'Busca no Google Maps e Instagram', 'Busca no LinkedIn', 'CRM Completo', 'Exportação Excel e Sheets', 'Enriquecimento de Leads', 'Busca por Chat IA', 'Indicadores de prospecção', 'Suporte VIP'],
+            missing: [],
             popular: true,
         },
         {
             id: 'elite',
             name: 'Elite',
-            headline: 'Poder máximo para grandes operações.',
+            headline: 'Para operações de vendas em alta escala.',
             priceMonthly: 197,
             priceAnnual: 1891.20,
             credits: 3200,
-            features: ['3.200 créditos/mês', 'WhatsApp click', 'Exportar excel', 'Exportar sheets', 'CRM completo', 'Suporte prioritário'],
+            features: ['3.200 créditos/mês', 'Busca no Google Maps, Instagram e LinkedIn', 'Enriquecimento de Leads', 'Busca por Chat IA', 'Todos os recursos liberados', 'Exportação avançada', 'CRM Multi-pipeline', 'Prioridade total no suporte'],
             missing: [],
         }
     ];
 
+    // Standardize billing cycle to ensure it's either 'monthly' or 'annual'
+    // This addresses the issue where cards might show annual prices if billingCycle is undefined or falsy.
+    const effectiveBillingCycle = billingCycle === 'annual' ? 'annual' : 'monthly';
+
     return (
-        <div className="animate-fade-in-up max-w-6xl mx-auto w-full pb-10 relative">
-            {/* Toasts */}
-            <div className="fixed top-4 right-4 z-[500] flex flex-col gap-2">
-                {toasts.map(toast => (
-                    <Toast key={toast.id} id={toast.id} message={toast.message} type={toast.type} onClose={() => setToasts(prev => prev.filter(t => t.id !== toast.id))} />
-                ))}
-            </div>
+        <div className="animate-fade-in-up max-w-6xl mx-auto w-full pb-10 relative" aria-label="Subscription section">
 
-
-
-            <div className="mb-10">
-                <h2 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2 tracking-tighter">Planos</h2>
-                <p className="text-zinc-500 dark:text-zinc-400 mb-6">Escolha a melhor ferramenta para escalar suas vendas.</p>
+            <div id="plans-selection" className="mb-10 pt-4">
+                <h2 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2 tracking-tighter">Nossos planos</h2>
+                <p className="text-zinc-500 dark:text-zinc-400 mb-6">Selecione o plano ideal para a sua escala de prospecção.</p>
 
                 {/* Toggle Mensal/Anual & Banner - Alinhados em linha com mesmo gap dos planos */}
                 <div className="flex flex-col lg:flex-row items-center justify-center gap-6 mb-12">
                     <div className="bg-white dark:bg-zinc-800 p-1 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex items-center shadow-sm relative group/toggle">
                         <button
-                            onClick={() => {
-                                if (userSettings.plan !== 'free' && userSettings.billingCycle === 'annual') return;
-                                setBillingCycle('monthly');
-                            }}
-                            disabled={userSettings.plan !== 'free' && userSettings.billingCycle === 'annual'}
-                            title={userSettings.plan !== 'free' && userSettings.billingCycle === 'annual' ? "Plano anual em vigência" : ""}
-                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${billingCycle === 'monthly'
+                            onClick={() => setBillingCycle('monthly')}
+                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${effectiveBillingCycle === 'monthly'
                                 ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-md'
                                 : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                                 } ${userSettings.plan !== 'free' && userSettings.billingCycle === 'annual'
@@ -159,7 +109,7 @@ const Subscription: React.FC<SubscriptionProps> = ({
 
                         <button
                             onClick={() => setBillingCycle('annual')}
-                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${billingCycle === 'annual' ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-md' : 'text-zinc-500'}`}
+                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${effectiveBillingCycle === 'annual' ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-md' : 'text-zinc-500'}`}
                         >
                             Anual
                             <span className="bg-success-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-black animate-pulse">
@@ -170,10 +120,10 @@ const Subscription: React.FC<SubscriptionProps> = ({
 
                     <div className="inline-flex items-center gap-3 px-6 py-2.5 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm animate-fade-in">
                         <span className="flex items-center justify-center w-8 h-8 rounded-full bg-success-50 dark:bg-success-900/30 text-success-600 dark:text-success-400 transition-all duration-300">
-                            {billingCycle === 'monthly' ? '🚀' : '✨'}
+                            {effectiveBillingCycle === 'monthly' ? '🚀' : '✨'}
                         </span>
                         <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400 transition-all duration-300">
-                            {billingCycle === 'monthly' ? (
+                            {effectiveBillingCycle === 'monthly' ? (
                                 <>Economize agora e garanta o melhor preço com o <span className="text-zinc-900 dark:text-white font-bold">plano anual</span></>
                             ) : (
                                 <><span className="text-success-600 dark:text-success-400 font-bold">Desconto aplicado</span> com sucesso em todos os planos!</>
@@ -356,10 +306,11 @@ const Subscription: React.FC<SubscriptionProps> = ({
                                 </ul>
 
                                 <button
-                                    onClick={() => !isDisabled && handleCheckout(plan.id as keyof typeof STRIPE_PRICES, billingCycle === 'annual')}
-                                    disabled={isDisabled}
-                                    className={`w-full py-3 rounded-xl font-bold transition-all text-sm ${buttonStyle}`}
+                                    onClick={() => !isDisabled && !upgradingPlanId && handleCheckout(plan.id as 'start' | 'pro' | 'elite', billingCycle === 'annual')}
+                                    disabled={isDisabled || !!upgradingPlanId}
+                                    className={`w-full py-3 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2 ${buttonStyle}`}
                                 >
+                                    {upgradingPlanId === plan.id && <Loader2 className="w-4 h-4 animate-spin" />}
                                     {buttonText}
                                 </button>
                             </div>

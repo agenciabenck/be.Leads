@@ -10,21 +10,40 @@ export interface Lead {
   website: string;
   googleMapsLink?: string;
   instagram?: string;
+  linkedin?: string;
+  providerName?: string;
+  contactName?: string;
+  gatekeeperName?: string;
+  dmName?: string;
+  // Enrichment fields (populated by enrichmentService via BrasilAPI)
+  cnpj?: string;
+  socios?: string[];
+  enrichedAt?: string;
+  email?: string;
+  notes?: string;
 }
 
-export type CRMStatus = 'prospecting' | 'contacted' | 'negotiation' | 'won' | 'lost';
+export type CRMStatus = 'prospecting' | 'contacted' | 'follow_up' | 'negotiation' | 'won' | 'lost';
 export type CRMPriority = 'low' | 'medium' | 'high';
 
 export interface CRMLead extends Lead {
   status: CRMStatus;
   notes?: string;
   email?: string;
+  contactName?: string;
+  gatekeeperName?: string;
+  dmName?: string;
   potentialValue?: number;
   priority: CRMPriority;
   tags: string[];
   addedAt: string;
   updatedAt: string;
   recycleAt?: string;
+  notifyAt?: string;
+  // Enrichment fields (mirrored from Lead for CRM persistence)
+  cnpj?: string;
+  socios?: string[];
+  enrichedAt?: string;
 }
 
 export interface CalendarEvent {
@@ -38,6 +57,7 @@ export interface CalendarEvent {
 
 export interface SearchState {
   isSearching: boolean;
+  progress?: number; // 0 to 100
   error: string | null;
   warning?: string | null;
   hasSearched: boolean;
@@ -45,8 +65,9 @@ export interface SearchState {
 
 export interface SearchFilters {
   maxResults: number;
-  minRating: number;
-  requirePhone: boolean;
+  phoneFilter: 'required' | 'excluded' | 'any';
+  websiteFilter: 'required' | 'excluded' | 'any';
+  ratingFilter: 'any' | 'high' | 'low';
 }
 
 export enum SortField {
@@ -59,6 +80,8 @@ export enum SortOrder {
   ASC = 'asc',
   DESC = 'desc'
 }
+
+export type SearchSource = 'maps' | 'instagram' | 'linkedin';
 
 export type UserPlan = 'free' | 'start' | 'pro' | 'elite';
 
@@ -95,12 +118,32 @@ export interface UserSettings {
   subscriptionStatus: 'active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'unpaid' | null;
 }
 
-export type AppTab = 'home' | 'search' | 'crm' | 'subscription' | 'settings';
+export type AppTab = 'home' | 'search' | 'crm' | 'subscription' | 'settings' | 'affiliates' | 'extras';
 
 export interface SearchHistoryItem {
   id: string;
   lead_name: string | null;
   lead_phone: string | null;
   lead_id: string | null;
+  created_at: string;
+}
+
+export type CRMActivityType =
+  | 'call'
+  | 'whatsapp'
+  | 'instagram'
+  | 'email'
+  | 'gatekeeper_bypassed'
+  | 'dm_connected'
+  | 'meeting_scheduled'
+  | 'generic_touch';
+
+export interface CRMActivity {
+  id: string;
+  user_id?: string;
+  lead_id: string;
+  activity_type: CRMActivityType;
+  notes?: string;
+  metadata?: Record<string, any>;
   created_at: string;
 }

@@ -7,7 +7,7 @@
  * Retorna a chave de storage prefixada com o user.id
  */
 export const getUserStorageKey = (userId: string, key: string): string => {
-    return `beleads_${userId}_${key}`;
+    return `beleadly_${userId}_${key}`;
 };
 
 /**
@@ -36,7 +36,7 @@ export const getUserData = <T>(userId: string, key: string, defaultValue: T): T 
  * Remove todos os dados de um usuário específico
  */
 export const clearUserData = (userId: string): void => {
-    const prefix = `beleads_${userId}_`;
+    const prefix = `beleadly_${userId}_`;
     Object.keys(localStorage).forEach(key => {
         if (key.startsWith(prefix)) {
             localStorage.removeItem(key);

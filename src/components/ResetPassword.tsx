@@ -88,8 +88,8 @@ export const ResetPassword: React.FC = () => {
                 <div className="text-center mb-8 animate-fade-in-up">
                     <div className="inline-flex items-center justify-center p-2 mb-4">
                         <img
-                            src="/logo.png"
-                            alt="be.leads"
+                            src="/beleadly_logo_h1.png"
+                            alt="beleadly"
                             className="h-8 w-auto drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]"
                         />
                     </div>

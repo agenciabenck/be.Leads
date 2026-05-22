@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Button from './ui/Button';
 import { Zap } from 'lucide-react';
 
 const StickyBottomCTA: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -48,13 +50,13 @@ const StickyBottomCTA: React.FC = () => {
               <Zap size={20} className="text-primary fill-primary" />
             </div>
             <div>
-              <p className="text-white font-bold text-sm md:text-base leading-tight">
-                Transforme o Google Maps em dinheiro.
+              <p className="text-white font-bold text-sm md:text-base leading-[1.15]">
+                Prospecção inteligente e CRM em um só lugar.
               </p>
             </div>
           </div>
 
-          <Button size="sm" className="shadow-lg shadow-primary/20 whitespace-nowrap shrink-0">
+          <Button size="sm" className="shadow-lg shadow-primary/20 whitespace-nowrap shrink-0" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>
             Começar grátis
           </Button>
 

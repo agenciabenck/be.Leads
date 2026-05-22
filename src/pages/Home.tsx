@@ -6,7 +6,7 @@ import {
     LayoutList, Trash2, X, Gift, UserPlus, Zap, Edit3, Copy, MessageCircle, Mail, Eye
 } from 'lucide-react';
 import { UserSettings, CalendarEvent, CRMLead, AppTab } from '@/types/types';
-import { PLAN_HIERARCHY } from '@/constants/appConstants';
+import { PLAN_HIERARCHY, MOTIVATIONAL_QUOTES } from '@/constants/appConstants';
 
 interface HomeProps {
     userSettings: UserSettings;
@@ -36,15 +36,6 @@ interface HomeProps {
     showNotification: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-const motivationalQuotes = [
-    "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
-    "Acredite que você pode e você já está no meio do caminho.",
-    "A persistência é o caminho do êxito.",
-    "Não espere por oportunidades, crie-as.",
-    "O seu único limite é a sua mente.",
-    "Grandes jornadas começam com um único passo.",
-    "Foque no progresso, não na perfeição."
-];
 
 const Home: React.FC<HomeProps> = ({
     userSettings,
@@ -89,26 +80,17 @@ const Home: React.FC<HomeProps> = ({
     }, [crmLeads]);
 
     const revenueGoal = userSettings.pipelineGoal || 5000;
-    const revenuePercentage = Math.min((monthlyRevenue / revenueGoal) * 100, 100);
+    const revenuePercentage = React.useMemo(() => Math.min((monthlyRevenue / revenueGoal) * 100, 100), [monthlyRevenue, revenueGoal]);
 
     const [showShareModal, setShowShareModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [selectedTask, setSelectedTask] = useState<CalendarEvent | null>(null);
 
-    // Rotating motivational quotes
-    const quotes = [
-        "Se você pode sonhar, pode fazer. – Walt Disney",
-        "O sucesso é a soma de pequenos esforços repetidos dia após dia. – Robert Collier",
-        "Acredite que você pode, e você já está no meio do caminho. – Theodore Roosevelt",
-        "O futuro pertence àqueles que acreditam na beleza de seus sonhos. – Eleanor Roosevelt",
-        "Não espere por oportunidades, crie-as. – George Bernard Shaw",
-        "O único lugar onde o sucesso vem antes do trabalho é no dicionário. – Vidal Sassoon",
-        "A persistência é o caminho do êxito. – Charles Chaplin"
-    ];
-
     // Simple daily rotation based on day of year
-    const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
-    const dailyQuoteText = quotes[dayOfYear % quotes.length];
+    const dailyQuoteText = React.useMemo(() => {
+        const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
+        return MOTIVATIONAL_QUOTES[dayOfYear % MOTIVATIONAL_QUOTES.length];
+    }, []);
 
     return (
         <div className="font-sans relative">
@@ -116,14 +98,14 @@ const Home: React.FC<HomeProps> = ({
                 {/* Header */}
                 <header className="flex items-start justify-between">
                     <div>
-                        <h2 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2 tracking-tighter">
+                        <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2 tracking-tighter">
                             Olá, {userSettings.name || 'Usuário'}!
                         </h2>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400">
                             {dailyQuoteText}
                         </p>
                     </div>
-                    <div className="flex items-center gap-6 mt-4">
+                    <div className="hidden md:flex items-center gap-6 mt-4">
                         <button
                             onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
                             className="flex items-center gap-3 group"
@@ -391,18 +373,30 @@ const Home: React.FC<HomeProps> = ({
                             ) : (
                                 <div className="w-full space-y-3 overflow-y-auto scrollbar-none pb-4">
                                     {calendarEvents
-                                        .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+                                        .sort((a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''))
                                         .map((evt) => {
                                             const isToday = evt.date === todayStr;
                                             const isTomorrow = evt.date === tomorrowStr;
                                             const [y, m, d] = evt.date.split('-');
 
+                                            // Border and accent color based on proximity
+                                            const borderColor = isToday
+                                                ? 'border-l-primary'
+                                                : isTomorrow
+                                                    ? 'border-l-amber-400'
+                                                    : 'border-l-white/10';
+                                            const circleBg = isToday
+                                                ? 'bg-primary/20 border-primary/30'
+                                                : isTomorrow
+                                                    ? 'bg-amber-400/20 border-amber-400/30'
+                                                    : 'bg-white/10 border-white/10';
+
                                             return (
                                                 <div
                                                     key={evt.id}
-                                                    className="flex items-center gap-4 p-4 rounded-xl transition-all group border border-white/5 bg-white/[0.03] hover:bg-white/[0.08]"
+                                                    className={`flex items-center gap-4 p-4 rounded-xl transition-all group border border-white/5 bg-white/[0.03] hover:bg-white/[0.08] border-l-[3px] ${borderColor}`}
                                                 >
-                                                    <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0 border border-white/10 group-hover:scale-105 transition-transform">
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border group-hover:scale-105 transition-transform ${circleBg}`}>
                                                         <span className="text-white text-[14px] font-bold">{d}</span>
                                                     </div>
                                                     <div className="flex-1 min-w-0">
@@ -481,16 +475,16 @@ const Home: React.FC<HomeProps> = ({
 
                     {/* Share Action */}
                     <button
-                        onClick={() => setShowShareModal(true)}
-                        className="group flex items-center gap-5 p-6 bg-white dark:bg-zinc-900 rounded-3xl text-zinc-900 dark:text-white transition-all hover:scale-[1.02] active:scale-95 shadow-lg border border-zinc-100 dark:border-zinc-800"
+                        onClick={() => setActiveTab('affiliates')}
+                        className="group flex items-center gap-5 p-6 bg-sidebar rounded-3xl text-white transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-sidebar/20"
                     >
-                        <div className="w-14 h-14 bg-zinc-50 dark:bg-zinc-800 rounded-xl flex items-center justify-center shrink-0 border border-zinc-200 dark:border-zinc-700 group-hover:bg-primary/5 group-hover:border-primary/20 transition-all">
-                            <Share2 className="w-7 h-7 dark:text-zinc-100" />
+                        <div className="w-14 h-14 bg-white/10 rounded-xl flex items-center justify-center shrink-0 border border-white/20 group-hover:bg-white/20 transition-all">
+                            <Share2 className="w-7 h-7 text-white" />
                         </div>
                         <div className="text-left">
-                            <h4 className="text-[18px] font-bold mb-1 dark:text-white">Compartilhe com amigos</h4>
-                            <p className="text-[11px] text-text-secondary dark:text-zinc-500 font-medium leading-normal">
-                                Ajude outros empreendedores a descobrir essa ferramenta e facilite a busca por novos clientes.
+                            <h4 className="text-[18px] font-bold mb-1">Programa de parceiros</h4>
+                            <p className="text-[11px] text-white/60 font-medium leading-normal">
+                                Ganhe 20% de comissão recorrente por cada novo cliente indicado.
                             </p>
                         </div>
                     </button>
@@ -518,13 +512,13 @@ const Home: React.FC<HomeProps> = ({
                             </div>
                             <h3 className="text-[28px] font-bold text-zinc-900 dark:text-white mb-2">Compartilhe essa ferramenta!</h3>
                             <p className="text-zinc-500 dark:text-zinc-400 font-medium mb-8 max-w-md">
-                                Ajude outros empreendedores a encontrar clientes de forma mais eficiente. Compartilhe o be.Leads com seus amigos e colegas!
+                                Ajude outros empreendedores a encontrar clientes de forma mais eficiente. Compartilhe o beleadly com seus amigos e colegas!
                             </p>
 
                             <div className="w-full space-y-3 mb-8">
                                 <button
                                     onClick={() => {
-                                        const text = '🚀 Descobri o be.Leads - uma ferramenta incrível para encontrar leads qualificados! Confira: https://beleads.com.br';
+                                        const text = '🚀 Descobri o beleadly - uma ferramenta incrível para encontrar leads qualificados! Confira: https://beleadly.com';
                                         navigator.clipboard.writeText(text);
                                         showNotification('Mensagem copiada para a área de transferência!', 'success');
                                     }}
@@ -537,7 +531,7 @@ const Home: React.FC<HomeProps> = ({
                                 <div className="grid grid-cols-2 gap-3">
                                     <button
                                         onClick={() => {
-                                            const text = encodeURIComponent('🚀 Descobri o be.Leads - uma ferramenta incrível para encontrar leads qualificados! Confira: https://beleads.com.br');
+                                            const text = encodeURIComponent('🚀 Descobri o beleadly - uma ferramenta incrível para encontrar leads qualificados! Confira: https://beleadly.com');
                                             window.open(`https://wa.me/?text=${text}`, '_blank');
                                         }}
                                         className="py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
@@ -549,7 +543,7 @@ const Home: React.FC<HomeProps> = ({
                                     <button
                                         onClick={() => {
                                             const subject = encodeURIComponent('Ferramenta incrível para encontrar leads');
-                                            const body = encodeURIComponent('Olá!\n\nDescobrí o be.Leads, uma ferramenta que ajuda a encontrar leads qualificados de forma rápida e eficiente.\n\nConfira: https://beleads.com.br\n\nAcho que pode ser útil para você!');
+                                            const body = encodeURIComponent('Olá!\n\nDescobrí o beleadly, uma ferramenta que ajuda a encontrar leads qualificados de forma rápida e eficiente.\n\nConfira: https://beleadly.com\n\nAcho que pode ser útil para você!');
                                             window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
                                         }}
                                         className="py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"

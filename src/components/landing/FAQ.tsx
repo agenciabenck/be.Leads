@@ -4,20 +4,32 @@ import { FAQItem } from '@/types/landing';
 
 const faqs: FAQItem[] = [
   {
-    question: "O Google pode bloquear meu IP?",
-    answer: "Não. Utilizamos uma rede de proxies residenciais rotativos que simulam comportamento humano, garantindo 100% de segurança para sua conexão."
+    question: "Como funcionam os créditos de prospecção?",
+    answer: "Cada extração bem-sucedida de um lead (com os dados encontrados) consome um saldo da sua conta. Você ganha 60 créditos todos os meses no plano Gratuito para testar. Se precisar escalar, nossos planos premium oferecem até 3.200 créditos renovados mensalmente."
   },
   {
-    question: "Os dados são atualizados?",
-    answer: "Sim! A extração é feita em tempo real direto da base do Google Maps. Você recebe os dados que estão lá naquele exato momento."
+    question: "O BeLeadly substitui o meu CRM atual (Pipedrive, RD, Salesforce)?",
+    answer: "Ele pode substituir perfeitamente para a fase de Outbound (Prospecção), graças ao nosso CRM Kanban visual e nativo. No entanto, se você já possui um CRM consolidado, pode exportar todos os leads enriquecidos para CSV ou Google Sheets em apenas um clique e integrá-los à sua ferramenta."
   },
   {
-    question: "Posso cancelar quando quiser?",
-    answer: "Com certeza. Sem contratos de fidelidade. Você pode cancelar sua assinatura mensal a qualquer momento direto no painel."
+    question: "Quais canais de busca a plataforma utiliza?",
+    answer: "Não nos limitamos a uma fonte. Nossa tecnologia extrai dados públicos e qualificados do Google Maps (foco em negócios locais), LinkedIn (foco em cargos e decisores corporativos) e Instagram (foco em nichos e engajamento)."
   },
   {
-    question: "Serve para qualquer país?",
-    answer: "Sim, o Be.Leads funciona globalmente. Você pode extrair leads de qualquer cidade do mundo onde o Google Maps funcione."
+    question: "Existe algum contrato de fidelidade ou multa de cancelamento?",
+    answer: "Não. O BeLeadly funciona no modelo de assinatura mensal. Você tem total liberdade para fazer upgrade, downgrade ou cancelar a sua assinatura a qualquer momento diretamente pelo seu painel, sem burocracia."
+  },
+  {
+    question: "Minhas contas do Google, LinkedIn ou Instagram correm risco de bloqueio?",
+    answer: "Zero risco. Você não precisa conectar suas contas pessoais ou empresariais na nossa plataforma para realizar as buscas. Nosso sistema opera na nuvem utilizando uma rede própria de proxies rotativos seguros para extrair os dados."
+  },
+  {
+    question: "Os leads ficam visíveis para outros usuários da plataforma?",
+    answer: "De forma alguma. A privacidade é nosso pilar. O BeLeadly possui uma arquitetura estrita de Isolamento de Dados (Data Isolation). Tudo o que você busca, os contatos que descobre e o seu funil no CRM são 100% privados e restritos apenas ao seu usuário."
+  },
+  {
+    question: "Os dados fornecidos são legais e estão de acordo com a LGPD?",
+    answer: "Sim, totalmente em conformidade. Nossa inteligência artificial pesquisa e organiza apenas dados corporativos (B2B) que já são públicos e estão disponíveis abertamente na internet. Não trabalhamos com compra de listas ocultas ou dados sensíveis."
   }
 ];
 
@@ -26,18 +38,18 @@ const FAQ: React.FC = () => {
 
   return (
     // DARK SESSION: Reverted to Dark Glassmorphism
-    <section className="py-12 md:py-20 px-6 bg-[#050508] border-t border-white/5 relative">
+    <section id="faq" className="py-12 md:py-20 px-4 md:px-12 bg-[#050508] border-t border-white/5 relative">
       {/* Ambient Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none"></div>
 
       <div className="container mx-auto max-w-3xl relative z-10">
-        <div className="text-center mb-12">
+        <div className="text-left md:text-center mb-12">
           <div className="inline-flex items-center justify-center p-3 bg-white/5 rounded-xl mb-6">
             <HelpCircle className="w-6 h-6 text-primary" />
           </div>
           {/* Standardized Title Typography */}
-          <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
-            Perguntas <span className="text-gradient-primary">frequentes</span>
+          <h2 className="text-3xl sm:text-4xl lg:text-[50px] lg:leading-[1.15] font-bold text-white tracking-tight text-balance">
+            Perguntas frequentes
           </h2>
         </div>
 

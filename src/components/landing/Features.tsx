@@ -1,26 +1,16 @@
 import React, { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Search, Trello, FileDown, Zap, CheckCircle2, ArrowRight, MapPin, Sheet, FileSpreadsheet } from 'lucide-react';
+import { Search, Trello, FileDown, Zap, CheckCircle2, ArrowRight, MapPin, Sheet, FileSpreadsheet, Users } from 'lucide-react';
 import Button from './ui/Button';
-
-gsap.registerPlugin(ScrollTrigger);
 
 const Features: React.FC = () => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const ctx = gsap.context(() => {
-
-            const details = gsap.utils.toArray<HTMLElement>('.feature-detail');
-            // Only select desktop visuals for the sticky animation
-            const desktopVisuals = gsap.utils.toArray<HTMLElement>('.desktop-feature-visual');
-
-            // Init desktop visuals: hide all except first
-            gsap.set(desktopVisuals, { autoAlpha: 0, scale: 0.95, position: 'absolute', inset: 0 });
-            gsap.set(desktopVisuals[0], { autoAlpha: 1, scale: 1 });
-
-            // Radar Animation (Looping) - affects both mobile and desktop instances
+            // Radar Animation (Looping)
             gsap.to(".radar-ring", {
                 scale: 1.5,
                 opacity: 0,
@@ -37,157 +27,169 @@ const Features: React.FC = () => {
                 repeat: -1,
                 ease: "linear"
             });
-
-            details.forEach((detail, index) => {
-                ScrollTrigger.create({
-                    trigger: detail,
-                    start: "top center", // Trigger when the text section hits the middle of viewport
-                    end: "bottom center",
-                    onEnter: () => switchVisual(index),
-                    onEnterBack: () => switchVisual(index),
-                });
-            });
-
-            function switchVisual(index: number) {
-                // Animate all out
-                desktopVisuals.forEach((v, i) => {
-                    if (i !== index) {
-                        gsap.to(v, { autoAlpha: 0, scale: 0.95, duration: 0.5, overwrite: true });
-                    }
-                });
-                // Animate active in
-                gsap.to(desktopVisuals[index], { autoAlpha: 1, scale: 1, duration: 0.5, overwrite: true });
-            }
-
         }, containerRef);
+
         return () => ctx.revert();
     }, []);
 
     return (
         <section id="features" ref={containerRef} className="relative py-12 md:py-20">
-            <div className="container mx-auto max-w-7xl px-6">
+            <div className="container mx-auto max-w-7xl px-4 md:px-12 relative z-10">
 
                 {/* HEADER */}
-                <div className="text-center max-w-4xl mx-auto mb-2">
-                    <div className="inline-flex items-center gap-2 mb-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-xs font-medium tracking-widest uppercase shadow-sm">
+                <div className="text-left md:text-center max-w-4xl mx-auto mb-16">
+                    <div className="inline-flex items-center gap-2 mb-6 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-xs font-bold tracking-wide uppercase shadow-sm">
                         <Zap size={14} className="fill-blue-600" />
-                        Automático e rápido
+                        AUTOMATIZE SEU OUTBOUND
                     </div>
 
-                    <h2 className="text-3xl md:text-5xl font-bold mb-2 text-slate-900 tracking-tight leading-[1.1]">
-                        Poder de uma <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">agência inteira</span> <br className="hidden md:block" /> em um clique.
+                    <h2 className="text-3xl sm:text-4xl lg:text-[50px] lg:leading-[1.15] font-bold mb-4 text-slate-900 tracking-tight leading-[1.15]">
+                        Seu processo de vendas, <br className="hidden md:block" /> finalmente no <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0066ff] to-blue-500">automático.</span>
                     </h2>
-                    <p className="text-slate-500 text-lg font-normal leading-relaxed max-w-2xl mx-auto">
-                        Uma interface limpa e poderosa que transforma dados brutos em oportunidades de venda reais.
+                    <p className="text-slate-600 text-lg font-normal leading-relaxed max-w-2xl mx-auto">
+                        Uma interface limpa e poderosa que transforma dados brutos em oportunidades de venda reais, sem o trabalho braçal.
                     </p>
                 </div>
 
-                {/* SIDE BY SIDE LAYOUT */}
-                <div className="flex flex-col lg:flex-row items-start lg:gap-20">
+                {/* Section 1 - Extração Massiva */}
+                <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16 mb-32">
+                    {/* Content */}
+                    <div className="w-full lg:w-1/2 space-y-8">
+                        <div className="w-14 h-14 bg-blue-600/10 rounded-2xl flex items-center justify-center text-blue-600 border border-blue-500/20 shadow-lg shadow-blue-500/5">
+                            <Search size={28} />
+                        </div>
 
-                    {/* LEFT COLUMN (SCROLLING TEXT) */}
-                    <div className="w-full lg:w-1/2 relative z-10 pb-16">
+                        <div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-4 block">
+                                PROSPECÇÃO MULTICANAL
+                            </span>
+                            <h3 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight leading-[1.15]">Prospecção cirúrgica <br /> e qualificada</h3>
+                        </div>
 
-                        {/* Section 1 */}
-                        <div className="feature-detail min-h-screen flex flex-col justify-center py-10 group">
-                            <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-6 shadow-xl shadow-blue-600/20 group-hover:scale-110 transition-transform duration-500">
-                                <Search size={28} />
-                            </div>
-                            <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-4">Extração Massiva</h3>
-                            <p className="text-slate-400 text-base leading-relaxed mb-6 font-normal">
-                                Nossa IA varre cada esquina do Google Maps. Encontre milhares de empresas por nicho e cidade. Extraímos telefones, e-mails validados, website e endereço.
-                            </p>
-                            <ul className="space-y-3 mb-8">
-                                <li className="flex items-center gap-3 text-slate-600 font-medium bg-white p-3 rounded-xl shadow-sm border border-slate-100 w-fit text-sm">
-                                    <CheckCircle2 size={18} className="text-blue-600" /> Validação de e-mails em tempo real
-                                </li>
-                                <li className="flex items-center gap-3 text-slate-600 font-medium bg-white p-3 rounded-xl shadow-sm border border-slate-100 w-fit text-sm">
-                                    <CheckCircle2 size={18} className="text-blue-600" /> Filtro por avaliações e reputação
-                                </li>
-                            </ul>
-                            <Button variant="primary" className="w-fit">
-                                Ver extração na prática <ArrowRight size={18} />
-                            </Button>
+                        <p className="text-slate-600 text-lg leading-relaxed font-normal opacity-80">
+                            Utilize nossa inteligência artificial para mapear seu mercado ideal. Encontre milhares de empresas por nicho ou região e extraia telefones, e-mails validados e dados estratégicos em segundos.
+                        </p>
 
-                            {/* MOBILE VISUAL 1 */}
-                            <div className="lg:hidden mt-12 w-full aspect-square max-w-[400px] mx-auto bg-white rounded-[2rem] shadow-2xl shadow-slate-200 border border-slate-100 overflow-hidden ring-1 ring-slate-100">
+                        <div className="space-y-3">
+                            {[
+                                "Filtros inteligentes (nicho, região e cidade)",
+                                "Extração multicanal (Maps, LinkedIn e Insta)",
+                                "Categorização automática por Inteligência Artificial"
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-4 text-slate-700 font-semibold bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-slate-200/60 shadow-sm w-fit text-sm hover:border-blue-500/30 transition-all group/item">
+                                    <CheckCircle2 size={18} className="text-blue-600 group-hover/item:scale-110 transition-transform" />
+                                    <span>{item}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <Button variant="primary" size="lg" className="w-fit" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>
+                            Ver prospecção na prática <ArrowRight size={20} />
+                        </Button>
+                    </div>
+
+                    {/* Illustration */}
+                    <div className="w-full lg:w-1/2 flex items-center justify-center">
+                        <div className="w-full aspect-square max-w-[520px] bg-white/50 backdrop-blur-md rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.03)] border border-slate-200/60 p-1">
+                            <div className="w-full h-full rounded-[2.3rem] overflow-hidden">
                                 <RadarVisual />
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        {/* Section 2 */}
-                        <div className="feature-detail min-h-screen flex flex-col justify-center py-10 group">
-                            <div className="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center text-white mb-6 shadow-xl shadow-purple-600/20 group-hover:scale-110 transition-transform duration-500">
-                                <Trello size={28} />
-                            </div>
-                            <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-4">CRM Kanban Visual</h3>
-                            <p className="text-slate-400 text-base leading-relaxed mb-6 font-normal">
-                                Não perca leads em planilhas confusas. Organize sua prospecção em colunas visuais. Arraste cards de "Novo Lead" para "Negociação" e "Fechado" com um clique.
-                            </p>
-                            <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg w-full sm:w-1/2 group-hover:-translate-y-1 transition-transform">
-                                    <div className="text-3xl font-bold text-purple-600 mb-1">2.4x</div>
-                                    <div className="text-xs text-slate-400 uppercase tracking-wider font-medium">Mais conversão</div>
-                                </div>
-                                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg w-full sm:w-1/2 group-hover:-translate-y-1 transition-transform delay-75">
-                                    <div className="text-3xl font-bold text-purple-600 mb-1">-4h</div>
-                                    <div className="text-xs text-slate-400 uppercase tracking-wider font-medium">Tempo gasto</div>
-                                </div>
-                            </div>
-                            <Button variant="primary" className="w-fit">
-                                Explorar CRM <ArrowRight size={18} />
-                            </Button>
+                {/* Section 2 - CRM Kanban (Blue Variant) */}
+                <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-16 mb-32">
+                    {/* Content */}
+                    <div className="w-full lg:w-1/2 space-y-8">
+                        <div className="w-14 h-14 bg-blue-600/10 rounded-2xl flex items-center justify-center text-blue-600 border border-blue-500/20 shadow-lg shadow-blue-500/5">
+                            <Trello size={28} />
+                        </div>
 
-                            {/* MOBILE VISUAL 2 */}
-                            <div className="lg:hidden mt-12 w-full aspect-square max-w-[400px] mx-auto bg-white rounded-[2rem] shadow-2xl shadow-slate-200 border border-slate-100 overflow-hidden ring-1 ring-slate-100">
+                        <div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-4 block">
+                                GESTÃO DE PIPELINE
+                            </span>
+                            <h3 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight leading-[1.15]">CRM Kanban nativo <br /> e integrado</h3>
+                        </div>
+
+                        <p className="text-slate-600 text-lg leading-relaxed font-normal opacity-80">
+                            Dê adeus às planilhas bagunçadas. Cada lead encontrado entra automaticamente no seu funil de vendas. Arraste as oportunidades pelas etapas, mapeie decisores e feche mais negócios.
+                        </p>
+
+                        <div className="space-y-3">
+                            {[
+                                "Pipeline visual intuitivo (arraste e solte)",
+                                "Mapeamento de decisores e gatekeepers",
+                                "Histórico centralizado de interações e follow-ups"
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-4 text-slate-700 font-semibold bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-slate-200/60 shadow-sm w-fit text-sm hover:border-blue-500/30 transition-all group/item">
+                                    <CheckCircle2 size={18} className="text-blue-600 group-hover/item:scale-110 transition-transform" />
+                                    <span>{item}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <Button variant="primary" size="lg" className="w-fit bg-blue-600 hover:bg-blue-700" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>
+                            Explorar meu pipeline <ArrowRight size={20} />
+                        </Button>
+                    </div>
+
+                    {/* Illustration */}
+                    <div className="w-full lg:w-1/2 flex items-center justify-center">
+                        <div className="w-full aspect-square max-w-[520px] bg-white/50 backdrop-blur-md rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.03)] border border-slate-200/60 p-1">
+                            <div className="w-full h-full rounded-[2.3rem] overflow-hidden">
                                 <KanbanVisual />
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        {/* Section 3 */}
-                        <div className="feature-detail min-h-screen flex flex-col justify-center py-10 group">
-                            <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center text-white mb-6 shadow-xl shadow-emerald-500/20 group-hover:scale-110 transition-transform duration-500">
-                                <FileDown size={28} />
-                            </div>
-                            <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-4">Exportação Instantânea</h3>
-                            <p className="text-slate-400 text-base leading-relaxed mb-6 font-normal">
-                                Baixe listas completas em <strong>CSV/Excel</strong> ou exporte direto para o <strong>Google Sheets</strong> em tempo real. Compatível com seu CRM favorito.
-                            </p>
-                            <Button variant="primary" className="w-fit shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 border-emerald-500/20">
-                                Começar a exportar <ArrowRight size={18} />
-                            </Button>
+                {/* Section 3 - Exportação (Blue Variant) */}
+                <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+                    {/* Content */}
+                    <div className="w-full lg:w-1/2 space-y-8">
+                        <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-600 border border-blue-500/20 shadow-lg shadow-blue-500/5">
+                            <FileDown size={28} />
+                        </div>
 
-                            {/* MOBILE VISUAL 3 */}
-                            <div className="lg:hidden mt-12 w-full aspect-square max-w-[400px] mx-auto bg-white rounded-[2rem] shadow-2xl shadow-slate-200 border border-slate-100 overflow-hidden ring-1 ring-slate-100">
+                        <div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-4 block">
+                                FLUXO DE TRABALHO
+                            </span>
+                            <h3 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight leading-[1.15]">Integração total com <br /> a sua operação</h3>
+                        </div>
+
+                        <p className="text-slate-600 text-lg leading-relaxed font-normal opacity-80">
+                            Seus dados nunca ficam presos. Sincronize suas listas de prospecção diretamente com o Google Sheets em um clique, ou baixe relatórios completos para usar no seu CRM favorito.
+                        </p>
+
+                        <div className="space-y-3">
+                            {[
+                                "Integração nativa com Google Sheets",
+                                "Exportação rápida em formato CSV / Excel",
+                                "Dados estruturados prontos para qualquer sistema"
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-4 text-slate-700 font-semibold bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-slate-200/60 shadow-sm w-fit text-sm hover:border-blue-500/30 transition-all group/item">
+                                    <CheckCircle2 size={18} className="text-blue-600 group-hover/item:scale-110 transition-transform" />
+                                    <span>{item}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <Button variant="primary" size="lg" className="w-fit bg-blue-600 hover:bg-blue-700" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>
+                            Começar integração <ArrowRight size={20} />
+                        </Button>
+                    </div>
+
+                    {/* Illustration */}
+                    <div className="w-full lg:w-1/2 flex items-center justify-center">
+                        <div className="w-full aspect-square max-w-[520px] bg-white/50 backdrop-blur-md rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.03)] border border-slate-200/60 p-1">
+                            <div className="w-full h-full rounded-[2.3rem] overflow-hidden">
                                 <SheetVisual />
                             </div>
                         </div>
                     </div>
-
-                    {/* RIGHT COLUMN (STICKY VISUALS - DESKTOP ONLY) */}
-                    <div className="w-full lg:w-1/2 hidden lg:block sticky top-0 h-screen">
-                        <div className="w-full h-full flex items-center justify-center px-6">
-                            <div className="relative w-full aspect-square max-h-[600px] bg-white rounded-[3rem] shadow-2xl shadow-slate-200 border border-slate-100 overflow-hidden ring-1 ring-slate-100">
-
-                                {/* VISUAL 1 */}
-                                <div className="desktop-feature-visual w-full h-full absolute inset-0">
-                                    <RadarVisual />
-                                </div>
-
-                                {/* VISUAL 2 */}
-                                <div className="desktop-feature-visual w-full h-full absolute inset-0">
-                                    <KanbanVisual />
-                                </div>
-
-                                {/* VISUAL 3 */}
-                                <div className="desktop-feature-visual w-full h-full absolute inset-0">
-                                    <SheetVisual />
-                                </div>
-
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
         </section>
@@ -197,11 +199,11 @@ const Features: React.FC = () => {
 // --- Extracted Components for Reusability ---
 
 const RadarVisual = () => (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 relative overflow-hidden">
+    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 relative overflow-hidden py-12 md:py-0">
         {/* Grid Background */}
         <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'linear-gradient(#cbd5e1 1px, transparent 1px), linear-gradient(90deg, #cbd5e1 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
 
-        <div className="relative z-10 scale-125">
+        <div className="relative z-10 scale-90 md:scale-125">
             {/* Center Dot */}
             <div className="w-4 h-4 bg-blue-600 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.8)] relative z-30"></div>
 
@@ -216,27 +218,39 @@ const RadarVisual = () => (
             </div>
         </div>
 
-        {/* Floating Pins */}
-        <div className="absolute top-24 left-10 md:left-16 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-[0_10px_30px_-5px_rgba(0,0,0,0.1)] border border-slate-100 flex items-center gap-3 animate-float z-30">
-            <div className="bg-orange-100 p-1.5 rounded-lg"><MapPin size={16} className="text-orange-600" /></div>
+        {/* Floating Pins - Updated with real context */}
+        <div className="absolute top-12 md:top-16 left-4 md:left-12 bg-white/95 backdrop-blur-md px-4 py-2 rounded-xl shadow-[0_10px_30px_-5px_rgba(0,0,0,0.12)] border border-white flex items-center gap-3 animate-float z-30 scale-90 origin-left md:scale-100">
+            <div className="bg-blue-50 p-1.5 rounded-lg"><MapPin size={16} className="text-blue-600" /></div>
             <div>
-                <div className="text-xs font-bold text-slate-800">Padaria Real</div>
-                <div className="flex gap-1 mt-0.5"><div className="w-1 h-1 rounded-full bg-green-500"></div><span className="text-[9px] text-slate-500 uppercase tracking-wide">Aberto</span></div>
+                <div className="text-xs font-bold text-slate-800">Imobiliária Meu Lar</div>
+                <div className="flex gap-1 mt-0.5"><div className="w-1 h-1 rounded-full bg-blue-500"></div><span className="text-[9px] text-blue-500 font-bold uppercase tracking-wide">Google Maps</span></div>
             </div>
         </div>
-        <div className="absolute bottom-32 right-10 md:right-16 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-[0_10px_30px_-5px_rgba(0,0,0,0.1)] border border-slate-100 flex items-center gap-3 animate-float z-30" style={{ animationDelay: '1.5s' }}>
-            <div className="bg-blue-100 p-1.5 rounded-lg"><MapPin size={16} className="text-blue-600" /></div>
+
+        {/* Instagram/LinkedIn Tags */}
+        <div className="absolute top-28 md:top-32 right-2 md:right-12 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] border border-pink-100 flex items-center gap-2 animate-float z-30 scale-90 origin-right md:scale-100" style={{ animationDelay: '0.8s' }}>
+            <div className="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></div>
+            <span className="text-[10px] font-bold text-pink-600 uppercase tracking-tighter">@Instagram Encontrado</span>
+        </div>
+
+        <div className="absolute bottom-20 md:bottom-24 left-6 md:left-20 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] border border-blue-100 flex items-center gap-2 animate-float z-30 scale-90 origin-left md:scale-100" style={{ animationDelay: '1.4s' }}>
+            <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
+            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">LinkedIn Enriquecido</span>
+        </div>
+
+        <div className="absolute bottom-28 md:bottom-32 right-2 md:right-20 bg-white/95 backdrop-blur-md px-4 py-2 rounded-xl shadow-[0_10px_30px_-5px_rgba(0,0,0,0.12)] border border-white flex items-center gap-3 animate-float z-30 scale-90 origin-right md:scale-100" style={{ animationDelay: '1.2s' }}>
+            <div className="bg-emerald-50 p-1.5 rounded-lg"><MapPin size={16} className="text-emerald-600" /></div>
             <div>
-                <div className="text-xs font-bold text-slate-800">Tech Solutions</div>
-                <div className="flex gap-1 mt-0.5"><div className="w-1 h-1 rounded-full bg-green-500"></div><span className="text-[9px] text-slate-500 uppercase tracking-wide">Verificado</span></div>
+                <div className="text-xs font-bold text-slate-800">Construtora Alpha</div>
+                <div className="flex gap-1 mt-0.5"><div className="w-1 h-1 rounded-full bg-emerald-500"></div><span className="text-[9px] text-emerald-600 font-bold uppercase tracking-wide">Painel CRM</span></div>
             </div>
         </div>
     </div>
 );
 
 const KanbanVisual = () => (
-    <div className="w-full h-full flex flex-col bg-slate-50 relative p-6 md:p-8 overflow-hidden">
-        {/* CSS for Drag Animation */}
+    <div className="w-full h-full flex flex-col bg-slate-50 relative p-4 md:p-8 overflow-hidden scale-90 origin-top md:scale-100">
+        {/* CSS for Drag Animation - Improved for smoother feel */}
         <style>{`
             @keyframes kanban-move {
                 0% { transform: translate(0, 0) scale(1) rotate(0deg); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
@@ -250,60 +264,102 @@ const KanbanVisual = () => (
             }
         `}</style>
 
-        {/* Abstract Header */}
-        <div className="flex items-center justify-between mb-6">
+        {/* Abstract Header - Better contrast */}
+        <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center"><Trello size={20} className="text-purple-500" /></div>
-                <div className="h-2 w-32 bg-slate-200 rounded-full"></div>
+                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20"><Trello size={20} className="text-white" /></div>
+                <div className="space-y-1.5">
+                    <div className="h-2 w-32 bg-slate-300 rounded-full"></div>
+                    <div className="h-1.5 w-20 bg-slate-200 rounded-full"></div>
+                </div>
             </div>
-            <div className="flex -space-x-2 opacity-50">
-                <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white"></div>
-                <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white"></div>
+            <div className="flex -space-x-2">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white shadow-sm"></div>
+                ))}
             </div>
         </div>
 
-        {/* Abstract Columns - Now filling height */}
-        <div className="flex gap-4 h-full items-start overflow-hidden relative pb-6">
-
-            {/* Column 1 (Novos) */}
-            <div className="flex-1 flex flex-col gap-3 min-w-[100px] bg-slate-100/50 p-2 rounded-xl h-full">
-                <div className="h-1.5 w-12 bg-slate-300 rounded-full mb-1 ml-1"></div>
-
-                {/* Static Card */}
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm h-20 opacity-60"></div>
-
-                {/* MOVING CARD - Starts here */}
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm h-24 flex flex-col justify-between animate-kanban-move relative">
-                    <div className="flex gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-orange-100"></div>
-                        <div className="h-2 w-12 bg-slate-100 rounded-full mt-1"></div>
-                    </div>
-                    <div className="h-1.5 w-full bg-slate-50 rounded-full"></div>
+        {/* Abstract Columns - Darker BG for definition */}
+        <div className="flex gap-4 h-full items-start overflow-hidden relative pb-10">
+            {/* Column 1 (Prospecção) */}
+            <div className="flex-1 flex flex-col gap-3 min-w-[120px] bg-slate-200/40 p-2.5 rounded-2xl h-full border border-slate-200/50">
+                <div className="flex items-center justify-between mb-1 px-1">
+                    <div className="h-2 w-14 bg-slate-400 rounded-full"></div>
+                    <div className="w-4 h-4 rounded-full bg-slate-300"></div>
                 </div>
 
-                {/* Filler Card to use vertical space */}
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm h-16 opacity-30"></div>
+                {/* Static Card 1 */}
+                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
+                    <div className="flex justify-between items-start">
+                        <div className="w-7 h-7 bg-blue-50 rounded-lg"></div>
+                        <div className="h-3 w-10 bg-emerald-50 text-[8px] font-bold text-emerald-600 rounded flex items-center justify-center">R$ 1.5k</div>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-100 rounded-full"></div>
+                </div>
+
+                {/* MOVING CARD */}
+                <div className="bg-white p-3 rounded-xl border border-blue-200 shadow-md flex flex-col justify-between animate-kanban-move relative h-28">
+                    <div className="flex justify-between items-start mb-2">
+                        <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center"><Zap size={14} className="text-white" /></div>
+                        <div className="bg-blue-600 text-white text-[7px] px-1.5 py-0.5 rounded font-black tracking-tighter shadow-sm whitespace-nowrap">QUALIFICADO</div>
+                    </div>
+                    <div className="space-y-1.5">
+                        <div className="h-2 w-3/4 bg-slate-200 rounded-full"></div>
+                        <div className="h-1 w-full bg-slate-100 rounded-full"></div>
+                    </div>
+                    <div className="mt-2 flex justify-between items-center border-t border-slate-100 pt-2">
+                        <div className="h-1.5 w-8 bg-slate-100 rounded-full"></div>
+                        <div className="w-4 h-4 rounded-full bg-slate-200"></div>
+                    </div>
+                </div>
+
+                {/* Filler Card 1 */}
+                <div className="bg-white/80 p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2 opacity-60">
+                    <div className="h-2 w-16 bg-slate-200 rounded-full"></div>
+                    <div className="h-1.5 w-full bg-slate-100 rounded-full"></div>
+                </div>
             </div>
 
-            {/* Column 2 (Em Negociação) */}
-            <div className="flex-1 flex flex-col gap-3 min-w-[100px] bg-slate-100/50 p-2 rounded-xl h-full">
-                <div className="h-1.5 w-16 bg-purple-400 rounded-full mb-1 ml-1"></div>
-                {/* Static Card in Col 2 */}
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm h-24 flex flex-col justify-between opacity-50">
-                    <div className="flex gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-blue-100"></div>
-                        <div className="h-2 w-12 bg-slate-100 rounded-full mt-1"></div>
-                    </div>
+            {/* Column 2 (Em Negociação) - Primary Color Accent */}
+            <div className="flex-1 flex flex-col gap-3 min-w-[120px] bg-blue-50/30 p-2.5 rounded-2xl h-full border border-blue-100/50 ring-1 ring-blue-500/5">
+                <div className="flex items-center justify-between mb-1 px-1">
+                    <div className="h-2 w-20 bg-blue-500/40 rounded-full"></div>
+                    <div className="w-4 h-4 rounded-full bg-blue-400 opacity-20"></div>
                 </div>
-                {/* Filler Card */}
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm h-20 opacity-30"></div>
+
+                {/* Static Card in Col 2 */}
+                <div className="bg-white p-3 rounded-xl border border-blue-200 shadow-[0_4px_12px_rgba(37,99,235,0.08)] flex flex-col gap-3">
+                    <div className="flex justify-between">
+                        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center"><Users size={16} className="text-white" /></div>
+                        <div className="flex flex-col items-end">
+                            <div className="text-[10px] font-black text-blue-700">R$ 12.450</div>
+                            <div className="h-1 w-8 bg-blue-100 rounded-full mt-1"></div>
+                        </div>
+                    </div>
+                    <div className="h-2 w-full bg-slate-100 rounded-full"></div>
+                </div>
+
+                {/* Space Filler Card at bottom */}
+                <div className="bg-white/60 p-3 rounded-xl border border-dashed border-slate-200 flex flex-col gap-2 mt-auto">
+                    <div className="h-1.5 w-full bg-slate-100 rounded-full"></div>
+                </div>
             </div>
 
             {/* Column 3 (Fechado) */}
-            <div className="flex-1 flex flex-col gap-3 opacity-40 min-w-[100px] bg-slate-100/50 p-2 rounded-xl h-full">
-                <div className="h-1.5 w-10 bg-green-500 rounded-full mb-1 ml-1"></div>
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm h-28"></div>
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm h-16 opacity-50"></div>
+            <div className="flex-1 flex flex-col gap-3 min-w-[120px] bg-emerald-50/20 p-2.5 rounded-2xl h-full border border-emerald-100/50">
+                <div className="flex items-center justify-between mb-1 px-1">
+                    <div className="h-2 w-14 bg-emerald-500/40 rounded-full"></div>
+                    <div className="w-4 h-4 rounded-full bg-emerald-400 opacity-20"></div>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-emerald-100 shadow-sm flex flex-col gap-2">
+                    <div className="w-6 h-6 rounded bg-emerald-500/20 flex items-center justify-center text-emerald-600"><CheckCircle2 size={12} /></div>
+                    <div className="h-2 w-full bg-slate-100 rounded-full"></div>
+                </div>
+
+                {/* Filler Card 3 */}
+                <div className="bg-white/40 p-3 rounded-xl border border-slate-200 h-24 mt-auto"></div>
             </div>
         </div>
     </div>
@@ -335,7 +391,7 @@ const SheetVisual = () => (
         {/* Background - Removed Grid, just clean slate-50 */}
         <div className="absolute inset-0 bg-slate-50"></div>
 
-        <div className="relative z-10 w-80 scale-110">
+        <div className="relative z-10 w-80 scale-75 sm:scale-110">
             {/* Main Sheet Container */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden mb-4">
                 {/* Header */}

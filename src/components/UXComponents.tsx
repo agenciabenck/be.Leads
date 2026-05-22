@@ -87,7 +87,7 @@ export const Toast: React.FC<ToastProps> = ({ message, type, id, onClose }) => {
     const Icon = icons[type];
 
     React.useEffect(() => {
-        const timer = setTimeout(() => onClose(id), 5000);
+        const timer = setTimeout(() => onClose(id), 3000);
         return () => clearTimeout(timer);
     }, [id, onClose]);
 

@@ -7,27 +7,27 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: React.ReactNode;
 }
 
-const Button: React.FC<ButtonProps> = ({ 
-  variant = 'primary', 
-  size = 'md', 
-  children, 
-  className = '', 
+const Button: React.FC<ButtonProps> = ({
+  variant = 'primary',
+  size = 'md',
+  children,
+  className = '',
   icon,
-  ...props 
+  ...props
 }) => {
   // Base Styles: Standardized to font-bold and tracking-wide
   const baseStyles = "relative overflow-hidden font-bold transition-all duration-200 rounded-2xl flex items-center justify-center gap-2 group tracking-wide select-none active:scale-95 disabled:opacity-50 disabled:pointer-events-none";
-  
+
   const variants = {
     // Primary: Strong Blue, Colored Shadow Glow
-    primary: "bg-[#0068ff] text-white hover:bg-[#0055d4] shadow-[0_4px_14px_0_rgba(0,104,255,0.39)] hover:shadow-[0_6px_20px_rgba(0,104,255,0.23)] hover:-translate-y-0.5 border border-white/10",
-    
+    primary: "bg-[#0066ff] text-white hover:bg-[#0052cc] shadow-[0_4px_14px_0_rgba(0,102,255,0.39)] hover:shadow-[0_6px_20px_rgba(0,102,255,0.23)] hover:-translate-y-0.5 border border-white/10",
+
     // Secondary: Glass feel for Dark Mode, clean for light
     secondary: "bg-white/5 backdrop-blur-md text-white border border-white/10 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)]",
-    
+
     // Outline: Blue border
     outline: "bg-transparent border-2 border-[#0068ff] text-[#0068ff] hover:bg-[#0068ff]/5",
-    
+
     // Ghost: Simple text
     ghost: "bg-transparent text-slate-400 hover:text-white hover:bg-white/5",
   };
@@ -48,7 +48,7 @@ const Button: React.FC<ButtonProps> = ({
   ) : null;
 
   return (
-    <button 
+    <button
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >

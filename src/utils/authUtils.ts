@@ -21,13 +21,24 @@ export const translateAuthError = (errorMessage: string): string => {
     };
 
     // 1. Direct match
-    if (errorTranslations[errorMessage]) return errorTranslations[errorMessage];
+    if (errorMessage in errorTranslations) return errorTranslations[errorMessage];
 
-    // 2. Partial match (case insensitive)
-    for (const [key, value] of Object.entries(errorTranslations)) {
-        if (errorMessage.toLowerCase().includes(key.toLowerCase())) return value;
+    // 2. Dynamic translations (Regex)
+    if (errorMessage.includes('security purposes, you can only request this after')) {
+        const seconds = errorMessage.match(/\d+/)?.[0] || 'alguns';
+        return `Por segurança, aguarde ${seconds} segundos antes de tentar novamente.`;
     }
 
-    // 3. Fallback
-    return errorMessage || 'Erro ao processar sua solicitação.';
+    if (errorMessage.includes('rate limit exceeded')) {
+        return 'Muitas tentativas. Aguarde um momento.';
+    }
+
+    // 3. Partial match (case insensitive check against keys)
+    for (const key of Object.keys(errorTranslations)) {
+        if (errorMessage.toLowerCase().includes(key.toLowerCase())) {
+            return errorTranslations[key];
+        }
+    }
+
+    return errorMessage; // Retorna original se não encontrar tradução
 };

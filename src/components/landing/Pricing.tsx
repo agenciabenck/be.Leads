@@ -1,5 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, X, Sparkles, Info } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { createCheckoutSession } from '@/services/payment';
+import { STRIPE_PRICES, STRIPE_PRICES_ANNUAL } from '@/constants/appConstants';
+import { Check, X, Sparkles, Info, Loader2 } from 'lucide-react';
 import Button from './ui/Button';
 import gsap from 'gsap';
 import { PricingTier } from '@/types/landing';
@@ -9,8 +13,8 @@ const tiers: PricingTier[] = [
     name: "Free",
     priceMonthly: 0,
     priceAnnual: 0,
-    description: "Indicado para começar e conhecer a plataforma.",
-    features: ["50 créditos/mês", "Visualização básica", "!WhatsApp click", "!Exportar excel/sheets", "!CRM completo"],
+    description: "Para quem quer testar o poder da plataforma.",
+    features: ["60 créditos/mês", "Acesso ao Maps", "Busca Insta", "!CSV", "!LinkedIn", "!CRM Completo", "!Enriquecimento de Leads", "!Busca por Chat IA"],
     stripeIdMonthly: "",
     stripeIdAnnual: "",
     buttonText: "Começar grátis"
@@ -19,8 +23,8 @@ const tiers: PricingTier[] = [
     name: "Start",
     priceMonthly: 57.00,
     priceAnnual: 45.60,
-    description: "Para quem está começando a prospectar ativamente.",
-    features: ["500 créditos/mês", "WhatsApp click", "Exportar excel", "!Exportar sheets", "!CRM completo"],
+    description: "Ideal para freelancers e pequenos negócios iniciando outbound.",
+    features: ["500 créditos/mês", "Acesso ao Maps", "Busca Insta", "Exportação CSV", "!LinkedIn", "!CRM Completo", "!Enriquecimento de Leads", "!Busca por Chat IA"],
     stripeIdMonthly: "price_1SzdGU3fc3cZuklGVPzlU4Fi",
     stripeIdAnnual: "price_1SzdGu3fc3cZuklGDHAMMsBR",
   },
@@ -28,8 +32,8 @@ const tiers: PricingTier[] = [
     name: "Pro",
     priceMonthly: 87.00,
     priceAnnual: 69.60,
-    description: "Para quem quer escalar vendas com organização.",
-    features: ["1.100 créditos/mês", "WhatsApp click", "Exportar excel", "Exportar sheets", "CRM completo"],
+    description: "A escolha das agências e times comerciais estruturados.",
+    features: ["1100 créditos/mês", "Acesso Maps e Insta", "Busca LinkedIn", "CRM Completo", "Exportação Excel e Sheets", "Enriquecimento de Leads", "Busca por Chat IA", "Suporte VIP"],
     stripeIdMonthly: "price_1SzdHi3fc3cZuklG5rtVblVa",
     stripeIdAnnual: "price_1SzdI83fc3cZuklGDBe9TJVy",
     highlight: true,
@@ -38,16 +42,19 @@ const tiers: PricingTier[] = [
     name: "Elite",
     priceMonthly: 197.00,
     priceAnnual: 157.60,
-    description: "Poder máximo para grandes operações.",
-    features: ["3.200 créditos/mês", "WhatsApp click", "Exportar excel", "Exportar sheets", "CRM completo", "Suporte prioritário"],
+    description: "Para operações de vendas em alta escala.",
+    features: ["3200 créditos/mês", "Acesso Maps, Insta e LinkedIn", "CRM Multi-pipeline", "Exportação avançada", "Enriquecimento de Leads", "Busca por Chat IA", "Todos os recursos liberados", "Prioridade total no suporte"],
     stripeIdMonthly: "price_1SzdJQ3fc3cZuklGzmncl1Oh",
     stripeIdAnnual: "price_1SzdJi3fc3cZuklGhjinw5av",
   }
 ];
 
 const Pricing: React.FC = () => {
+  const { user } = useAuth(); // Import from hooks
   const [isAnnual, setIsAnnual] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   // Animation when toggling
   useEffect(() => {
@@ -70,26 +77,44 @@ const Pricing: React.FC = () => {
     return () => ctx.revert();
   }, [isAnnual]);
 
-  const handleCheckout = (tier: PricingTier) => {
+  const handleCheckout = async (tier: PricingTier) => {
     if (tier.priceMonthly === 0) {
-      window.location.href = '/app?plan=free';
+      if (user) navigate('/app');
+      else navigate('/login?mode=signup');
       return;
     }
-    const planId = tier.name.toLowerCase();
-    window.location.href = `/app?subscribe=${planId}&annual=${isAnnual}`;
+
+    const priceToUse = isAnnual ? tier.stripeIdAnnual : tier.stripeIdMonthly;
+
+    if (!priceToUse) {
+      alert(`ID do plano "${tier.name}" não configurado.`);
+      return;
+    }
+
+    setCheckoutLoading(tier.name);
+
+    // Inicia checkout diretamente (Anônimo ou Autenticado)
+    try {
+      await createCheckoutSession(priceToUse, isAnnual, tier.name);
+    } catch (error: any) {
+      console.error('Erro ao iniciar checkout:', error);
+      alert(`Erro ao iniciar pagamento: ${error.message || 'Tente novamente em instantes.'}`);
+    } finally {
+      setCheckoutLoading(null);
+    }
   };
 
   const formatPrice = (value: number) => value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
-    <section id="pricing" ref={containerRef} className="py-12 md:py-20 px-6 relative border-t border-white/5 bg-[#050508] overflow-hidden">
+    <section id="pricing" ref={containerRef} className="py-12 md:py-20 px-4 md:px-12 relative border-t border-white/10 bg-[#0a0a0f] overflow-hidden" aria-label="Pricing section">
 
       {/* Background FX */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-gradient-radial from-blue-900/20 to-transparent opacity-50 pointer-events-none"></div>
 
       <div className="container mx-auto max-w-7xl relative z-10">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">Investimento que se <br /><span className="text-gradient-primary">paga na 1ª venda</span></h2>
+        <div className="text-left md:text-center mb-16">
+          <h2 className="text-3xl sm:text-4xl lg:text-[50px] lg:leading-[1.15] font-bold mb-6 tracking-tight">Investimento que se <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0066ff] to-blue-400">paga na 1ª venda</span></h2>
 
           {/* Custom Toggle Switch */}
           <div className="flex justify-center mt-10">
@@ -108,7 +133,7 @@ const Pricing: React.FC = () => {
               {/* Annual Option */}
               <div className={`flex-1 flex items-center justify-center gap-2 relative z-10 text-sm font-bold transition-colors duration-300 ${isAnnual ? 'text-white' : 'text-slate-400'}`}>
                 Anual
-                <span className="bg-[#10b981] text-white text-[10px] px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.4)]">
+                <span className="bg-emerald-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.4)]">
                   -20%
                 </span>
               </div>
@@ -116,144 +141,177 @@ const Pricing: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
-          {tiers.map((tier, idx) => (
-            <div
-              key={idx}
-              className={`pricing-card relative p-6 rounded-[2rem] flex flex-col transition-all duration-300 group
+        <div className={`flex flex-col items-center md:grid gap-14 xl:gap-6 md:justify-center mx-auto ${isAnnual ? 'md:grid-cols-3 max-w-5xl' : 'md:grid-cols-2 xl:grid-cols-4 max-w-7xl'}`}>
+          {tiers
+            .filter(tier => !isAnnual || tier.name !== "Free")
+            .map((tier, idx) => (
+              <div
+                key={tier.name}
+                className={`pricing-card relative p-6 rounded-[2rem] flex flex-col transition-all duration-300 group w-full max-w-[340px]
                 ${tier.highlight
-                  ? 'bg-transparent border border-white/10 shadow-[0_0_80px_-10px_rgba(0,104,255,0.4)] scale-105 z-20'
-                  : 'glass-card border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20'
-                }`}
-            >
-              {tier.highlight && (
-                <>
-                  {/* Animated Neon Border - SVG Spotlight */}
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ filter: 'drop-shadow(0 0 2px #3b82f6)' }}>
-                    <rect
-                      x="1"
-                      y="1"
-                      width="calc(100% - 2px)"
-                      height="calc(100% - 2px)"
-                      rx="31"
-                      fill="none"
-                      stroke="#3b82f6"
-                      strokeWidth="2"
-                      pathLength="100"
-                      className="opacity-100"
-                      style={{ strokeDasharray: '30 70', strokeDashoffset: '0', animation: 'dash 4s linear infinite' }}
-                    />
-                  </svg>
-                  <style>{`
+                    ? 'bg-transparent border border-white/15 shadow-[0_0_80px_-10px_rgba(0,104,255,0.4)] scale-105 z-20'
+                    : 'glass-card border border-white/15 bg-white/[0.05] hover:bg-white/[0.08] hover:border-white/25'
+                  }`}
+              >
+                {tier.highlight && (
+                  <>
+                    {/* Animated Neon Border - SVG Spotlight */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ filter: 'drop-shadow(0 0 2px #3b82f6)' }}>
+                      <rect
+                        x="1"
+                        y="1"
+                        width="calc(100% - 2px)"
+                        height="calc(100% - 2px)"
+                        rx="31"
+                        fill="none"
+                        stroke="#3b82f6"
+                        strokeWidth="2"
+                        pathLength="100"
+                        className="opacity-100"
+                        style={{ strokeDasharray: '30 70', strokeDashoffset: '0', animation: 'dash 4s linear infinite' }}
+                      />
+                    </svg>
+                    <style>{`
                     @keyframes dash {
-                      to { stroke-dashoffset: -100; }
+              to { stroke-dashoffset: -100; }
                     }
                   `}</style>
 
-                  {/* Card Background (Inset to reveal border) */}
-                  <div className="absolute inset-[2px] rounded-[calc(2rem-2px)] bg-[#0a0a0f] pointer-events-none z-10" />
+                    {/* Card Background (Inset to reveal border) */}
+                    <div className="absolute inset-[2px] rounded-[calc(2rem-2px)] bg-[#0a0a0f] pointer-events-none z-10" />
 
-                  {/* Premium Inner Glow */}
-                  <div className="absolute inset-[2px] rounded-[calc(2rem-2px)] bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
+                    {/* Premium Inner Glow */}
+                    <div className="absolute inset-[2px] rounded-[calc(2rem-2px)] bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
 
-                  {/* Mais Popular Badge (Floating well above border) */}
-                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[11px] font-bold px-4 py-1.5 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.6)] flex items-center gap-2 tracking-wider uppercase z-50 w-max border border-blue-400/30">
-                    <Sparkles className="w-3.5 h-3.5 fill-blue-100 animate-pulse" />
-                    <span>Mais Popular</span>
-                  </div>
-                </>
-              )}
-
-              <div className="mb-4 relative z-10 pt-2">
-                <h3 className={`text-2xl font-bold flex items-center gap-2 ${tier.highlight ? 'text-white' : 'text-slate-200'}`}>
-                  {tier.name}
-                </h3>
-                <p className="text-sm text-slate-400 mt-2 min-h-[40px] font-normal leading-normal">{tier.description}</p>
-              </div>
-
-              <div className="mb-4 relative z-10 border-b border-white/5 pb-2">
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-sm text-slate-400 font-medium">R$</span>
-
-                  {/* Dynamic Price Display */}
-                  <div className="relative flex flex-col items-start min-w-[100px]">
-                    <span className="text-5xl font-bold text-white price-number tracking-tighter">
-                      {formatPrice(isAnnual ? tier.priceAnnual : tier.priceMonthly)}
-                    </span>
-                  </div>
-
-                  <span className="text-slate-500 font-normal">/mês</span>
-                </div>
-
-                {/* Savings Info - Using Fixed Height Container to align all cards */}
-                <div className="min-h-[40px] flex flex-col justify-start">
-                  {isAnnual && tier.priceMonthly > 0 && (
-                    <div className="space-y-1">
-                      <div className="savings-badge text-[10px] font-bold text-emerald-400 tracking-wide uppercase">
-                        Economia de 20% no anual
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-normal">
-                        Pagamento único de R$ {formatPrice(tier.priceAnnual * 12)}/ano
-                      </div>
+                    {/* Mais Popular Badge (Floating well above border) */}
+                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#0066ff] to-blue-500 text-white text-[11px] font-bold px-4 py-1.5 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.6)] flex items-center gap-2 tracking-wider uppercase z-50 w-max border border-blue-400/30">
+                      <Sparkles className="w-3.5 h-3.5 fill-blue-100 animate-pulse" />
+                      <span>Mais Popular</span>
                     </div>
-                  )}
+                  </>
+                )}
+
+                <div className="mb-4 relative z-10 pt-2">
+                  <h3 className={`text-2xl font-bold flex items-center gap-2 ${tier.highlight ? 'text-white' : 'text-slate-200'}`}>
+                    {tier.name}
+                  </h3>
+                  <p className="text-sm text-slate-400 mt-2 min-h-[40px] font-normal leading-normal">{tier.description}</p>
                 </div>
-              </div>
 
-              <div className="space-y-3 mb-6 flex-grow relative z-10">
-                {tier.features.map((feat, fIdx) => {
-                  const isExcluded = feat.startsWith('!');
-                  const cleanFeat = isExcluded ? feat.substring(1) : feat;
+                <div className="mb-4 relative z-10 border-b border-white/5 pb-2">
+                  <div className="flex items-baseline gap-1 mb-1">
+                    <span className="text-sm text-slate-400 font-medium">R$</span>
 
-                  return (
-                    <div key={fIdx} className={`flex items-start gap-3 text-sm transition-colors ${isExcluded ? 'text-slate-500' : 'text-slate-300 group-hover:text-slate-200'}`}>
-                      <div className={`p-0.5 rounded-full mt-0.5 shrink-0 transition-all duration-300 ${isExcluded
-                        ? 'bg-transparent text-slate-600'
-                        : (tier.highlight ? 'bg-primary text-white shadow-lg shadow-blue-500/30' : 'bg-white/10 text-slate-400 group-hover:bg-white/20 group-hover:text-white')
-                        }`}>
-                        {isExcluded ? <X className="w-3 h-3" strokeWidth={3} /> : <Check className="w-3 h-3" strokeWidth={3} />}
-                      </div>
-                      <span className={`font-normal ${isExcluded ? '' : ''} flex items-center`}>
-                        {cleanFeat}
-                        {cleanFeat.toLowerCase().includes('créditos') && (
-                          <div className="group/tooltip relative ml-1.5 flex items-center cursor-help">
-                            <Info className="w-3.5 h-3.5 text-slate-500 hover:text-blue-400 transition-colors" />
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-3 bg-[#1e1e24] border border-white/10 rounded-xl shadow-2xl text-[11px] leading-relaxed text-slate-300 text-center opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50 backdrop-blur-md">
-                              Cada crédito libera um lead com contato validado. O consumo ocorre apenas na entrega dos dados.
-                              {/* Arrow */}
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1e1e24]" />
-                            </div>
-                          </div>
-                        )}
+                    {/* Dynamic Price Display */}
+                    <div className="relative flex flex-col items-start min-w-[100px]">
+                      <span className="text-5xl font-bold text-white price-number tracking-tighter">
+                        {formatPrice(isAnnual ? tier.priceAnnual : tier.priceMonthly)}
                       </span>
                     </div>
-                  );
-                })}
-              </div>
 
-              {tier.highlight ? (
-                <button
-                  className="w-full relative z-20 overflow-hidden font-bold transition-all duration-200 rounded-2xl flex items-center justify-center gap-2 group tracking-wide select-none active:scale-95 bg-[#0068ff] text-white hover:bg-[#0054cc] shadow-[0_0_30px_rgba(0,104,255,0.5)] h-12 px-8"
-                  onClick={() => handleCheckout(tier)}
-                >
-                  <span className="relative z-10 flex items-center gap-2">
-                    {tier.buttonText || (tier.priceMonthly === 0 ? "Começar grátis" : "Selecionar plano")}
-                  </span>
-                </button>
-              ) : (
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => handleCheckout(tier)}
-                >
-                  {tier.buttonText || (tier.priceMonthly === 0 ? "Começar grátis" : "Selecionar plano")}
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
+                    <span className="text-slate-500 font-normal">/mês</span>
+                  </div>
+
+                  {/* Savings Info - Using Fixed Height Container to align all cards */}
+                  <div className="min-h-[40px] flex flex-col justify-start">
+                    {isAnnual && tier.priceMonthly > 0 && (
+                      <div className="space-y-1">
+                        <div className="savings-badge text-[10px] font-bold text-emerald-400 tracking-wide uppercase">
+                          Economia de 20% no anual
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-normal">
+                          Pagamento único de R$ {formatPrice(tier.priceAnnual * 12)}/ano
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* CTA Button back to original position */}
+                <div className="mb-8 relative z-20">
+                  {tier.highlight ? (
+                    <button
+                      type="button"
+                      className={`w-full relative overflow-hidden font-bold transition-all duration-200 rounded-2xl flex items-center justify-center gap-2 group tracking-wide select-none active:scale-95 bg-[#0066ff] text-white hover:bg-[#0052cc] shadow-[0_0_30px_rgba(0,104,255,0.5)] h-12 px-8 ${checkoutLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!checkoutLoading) handleCheckout(tier);
+                      }}
+                      disabled={!!checkoutLoading}
+                    >
+                      <span className="relative z-10 flex items-center gap-2">
+                        {checkoutLoading === tier.name ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                            Aguarde...
+                          </>
+                        ) : (
+                          tier.buttonText || (tier.priceMonthly === 0 ? "Começar grátis" : "Selecionar plano")
+                        )}
+                      </span>
+                    </button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full h-12 px-8"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!checkoutLoading) handleCheckout(tier);
+                      }}
+                      disabled={!!checkoutLoading}
+                    >
+                      {checkoutLoading === tier.name ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                          Aguarde...
+                        </>
+                      ) : (
+                        tier.buttonText || (tier.priceMonthly === 0 ? "Começar grátis" : "Selecionar plano")
+                      )}
+                    </Button>
+                  )}
+                </div>
+
+                {/* Features list below the button */}
+                <div className="space-y-3 flex-grow relative z-10">
+                  {tier.features.map((feat, fIdx) => {
+                    const isExcluded = feat.startsWith('!');
+                    const cleanFeat = isExcluded ? feat.substring(1) : feat;
+
+                    return (
+                      <div key={fIdx} className={`flex items-start gap-3 text-sm transition-colors ${isExcluded ? 'text-slate-500' : 'text-slate-300 group-hover:text-slate-200'}`}>
+                        <div className={`p-0.5 rounded-full mt-0.5 shrink-0 transition-all duration-300 ${isExcluded
+                          ? 'bg-transparent text-slate-600'
+                          : (tier.highlight ? 'bg-primary text-white shadow-lg shadow-blue-500/30' : 'bg-white/10 text-slate-400 group-hover:bg-white/20 group-hover:text-white')
+                          }`}>
+                          {isExcluded ? <X className="w-3 h-3" strokeWidth={3} /> : <Check className="w-3 h-3" strokeWidth={3} />}
+                        </div>
+                        <span className={`font-normal flex items-center`}>
+                          {cleanFeat}
+                          {cleanFeat.toLowerCase().includes('créditos') && (
+                            <div className="group/tooltip relative ml-1.5 flex items-center cursor-help">
+                              <Info className="w-3.5 h-3.5 text-slate-500 hover:text-blue-400 transition-colors" />
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 p-3 bg-[#1e1e24] border border-white/10 rounded-xl shadow-2xl text-[11px] leading-relaxed text-slate-300 text-center opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] backdrop-blur-md">
+                                Cada crédito libera um lead com contato validado. O consumo ocorre apenas na entrega dos dados.
+                                {/* Arrow pointing UP */}
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-[#1e1e24]" />
+                              </div>
+                            </div>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          }
+        </div >
+      </div >
+    </section >
   );
 };
 

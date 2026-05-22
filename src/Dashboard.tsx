@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
-    RotateCcw, Loader2, CalendarIcon, X, Plus, Copy, ExternalLink, Clock, FileSpreadsheet, Sparkles, Phone, PlusCircle, MessageCircle, BadgeCheck
+    RotateCcw, Loader2, CalendarIcon, X, Plus, Copy, ExternalLink, Clock, FileSpreadsheet, Sparkles, Phone, PlusCircle, MessageCircle, BadgeCheck, Lock, UserCheck
 } from 'lucide-react';
 import { supabase } from '@/services/supabase';
 import { createCheckoutSession, createPortalSession, updateSubscription, validateCoupon } from '@/services/payment';
@@ -12,6 +12,7 @@ import { LeadTable } from '@/components/LeadTable';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import Sidebar from '@/components/Sidebar';
 import MobileHeader from '@/components/MobileHeader';
+import MobileNavBar from '@/components/MobileNavBar';
 import { getUserData, setUserData } from '@/utils/storageUtils';
 import { formatCurrency, formatPhone } from '@/utils/formatUtils';
 import { Toast, ToastContainer } from '@/components/UXComponents';
@@ -28,37 +29,73 @@ import LeadExtractor from '@/pages/LeadExtractor';
 import CRM from '@/pages/CRM';
 import Subscription from '@/pages/Subscription';
 import Settings from '@/pages/Settings';
+import AffiliateDashboard from '@/pages/AffiliateDashboard';
+import SalesScripts from '@/pages/SalesScripts';
 
 // Types & Constants
 import { googleMapsService } from '@/services/googleMapsService';
 import { Lead, CRMLead, CRMStatus, CalendarEvent, SearchState, SearchFilters, SortField, SortOrder, UserSettings, UserPlan, AppTab } from '@/types/types';
 import {
     COMMON_NICHES, BRAZIL_STATES, TIME_OPTIONS, AVATAR_EMOJIS,
-    LOADING_MESSAGES, STRIPE_PRICES, STRIPE_PRICES_ANNUAL, PLAN_HIERARCHY, DEMO_LEADS, PLAN_CREDITS
+    LOADING_MESSAGES, STRIPE_PRICES, STRIPE_PRICES_ANNUAL, PLAN_HIERARCHY, DEMO_LEADS, PLAN_CREDITS, PLAN_FEATURES
 } from '@/constants/appConstants';
 
 const Dashboard: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     // --- Custom Hooks ---
-    const { user, authLoading, userSettings, setUserSettings, passwordRecoveryMode } = useAuth();
+    const { user, authLoading, userSettings, setUserSettings, passwordRecoveryMode, setLeadsUsed } = useAuth();
+
+    const onCreditsUsed = useCallback((newTotal: number) => {
+        // Use direct setter — avoids triggering auth side-effects (Supabase write, USER_UPDATED event)
+        // which could race against the Realtime update and cause credits to flicker
+        setLeadsUsed(newTotal, user?.id);
+    }, [setLeadsUsed, user?.id]);
 
     const {
         crmLeads, setCrmLeads, crmSearchQuery, setCrmSearchQuery,
-        globalHistory, setGlobalHistory, addToCRM, updateLeadStatus, updateLead, deleteLead,
-        filteredLeads: filteredCrmLeads, monthlyRevenue
-    } = useCRM(user?.id);
+        globalHistory, setGlobalHistory, addToCRM, addCrmLead, updateLeadStatus, updateLead, deleteLead, resetAllLeads,
+        enrichCrmLead, enrichingCrmLeadIds,
+        filteredLeads: filteredCrmLeads, monthlyRevenue,
+        failedEnrichmentAttempts, setFailedEnrichmentAttempts
+    } = useCRM(user?.id, onCreditsUsed);
     const {
         query, setQuery, leads, setLeads, state, setState, filters, setFilters, searchMode, setSearchMode,
-        loadingMessageIndex, selectedNiche, setSelectedNiche, selectedState, setSelectedState,
+        searchSource, setSearchSource,
+        loadingMessageIndex, selectedCountry, setSelectedCountry, selectedNiche, setSelectedNiche, selectedState, setSelectedState,
         selectedCity, setSelectedCity, excludedCity, setExcludedCity,
+        selectedCities, setSelectedCities, excludedCities, setExcludedCities,
         cityList, isLoadingCities, handleSearch, handleLoadMore, isLoadingMore,
         searchHistory, loadSearchHistory, clearSearchHistory,
-        showHistoryModal, setShowHistoryModal
-    } = useSearch(globalHistory, (newTotal) => {
-        setUserSettings(prev => ({ ...prev, leadsUsed: newTotal }));
-    });
+        showHistoryModal, setShowHistoryModal,
+        isParsingPrompt, parsingStatus, aiPrompt, setAiPrompt, handleAISearch, handleConfirmAISearch,
+        conversationalFeedback, setConversationalFeedback, chatContext, setChatContext,
+        resetChat, chatMessages, setChatMessages
+    } = useSearch(user, globalHistory, onCreditsUsed);
     const { calendarEvents, setCalendarEvents, upcomingEvents, addEvent, clearAllEvents } = useCalendar(user?.id);
+
+    // --- CRITICAL: Clear ALL client state when user changes (prevents data leak between accounts) ---
+    const prevUserIdRef = React.useRef<string | null>(null);
+    useEffect(() => {
+        const currentId = user?.id || null;
+        if (prevUserIdRef.current !== null && prevUserIdRef.current !== currentId) {
+            // User changed — clear everything
+            setLeads([]);
+            setQuery('');
+            setSelectedNiche('');
+            setSelectedState('');
+            setSelectedCity('');
+            setExcludedCity('');
+            setState({ isSearching: false, error: null, hasSearched: false });
+            setActiveTab('home');
+            // Clear session caches that could leak between accounts
+            try {
+                sessionStorage.removeItem('affiliate_data');
+                sessionStorage.removeItem('affiliate_stats');
+            } catch { /* ignore */ }
+        }
+        prevUserIdRef.current = currentId;
+    }, [user?.id]);
 
     // --- UI Local State ---
     const [activeTab, setActiveTab] = useState<AppTab>('home');
@@ -67,10 +104,13 @@ const Dashboard: React.FC = () => {
     const [locationPermission, setLocationPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(userSettings?.billingCycle || 'monthly');
 
-    // Sync billingCycle with userSettings when it changes
+    // Sync billingCycle with userSettings only when it explicitly changes from the DB
     useEffect(() => {
-        if (userSettings?.billingCycle && userSettings.billingCycle !== billingCycle) {
-            setBillingCycle(userSettings.billingCycle);
+        if (userSettings?.billingCycle) {
+            const cycle = String(userSettings.billingCycle).toLowerCase() as 'monthly' | 'annual';
+            if (cycle === 'monthly' || cycle === 'annual') {
+                setBillingCycle(cycle);
+            }
         }
     }, [userSettings?.billingCycle]);
 
@@ -98,10 +138,33 @@ const Dashboard: React.FC = () => {
     const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
     // State for History Confirmation
     const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
-    const [isUpgrading, setIsUpgrading] = useState(false);
+    const [upgradingPlanId, setUpgradingPlanId] = useState<string | null>(null);
 
     // Refs
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // --- Redirect if on /login and authenticated ---
+    useEffect(() => {
+        if (user && window.location.pathname === '/login') {
+            const checkoutId = searchParams.get('checkout');
+            const isAnnual = searchParams.get('annual') === 'true';
+
+            if (checkoutId) {
+                const triggerCheckout = async () => {
+                    try {
+                        const { createCheckoutSession } = await import('@/services/payment');
+                        await createCheckoutSession(checkoutId, isAnnual);
+                    } catch (e) {
+                        console.error('Checkout intercept error:', e);
+                        navigate('/app');
+                    }
+                };
+                triggerCheckout();
+            } else {
+                navigate('/app');
+            }
+        }
+    }, [user, navigate, searchParams]);
 
     // --- Side Effects ---
     useEffect(() => {
@@ -114,34 +177,20 @@ const Dashboard: React.FC = () => {
 
         if (sessionId) {
             showNotification('Pagamento confirmado! Sincronizando seu novo plano...', 'info');
+            // Reset loading state if session sync is detected
+            setUpgradingPlanId(null);
             // Cleanup URL
             window.history.replaceState({}, document.title, window.location.pathname);
         } else if (canceled) {
             showNotification('O checkout foi cancelado.', 'info');
+            setUpgradingPlanId(null);
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     }, [theme]);
 
-    // --- Auto Checkout Handler ---
-    useEffect(() => {
-        if (!user) return; // Wait for auth
+    // Auto-checkout hook removed because Pricing.tsx handles authenticated checkouts directly,
+    // and Auth.tsx handles checkouts immediately after authentication.
 
-        const subscribeToPlan = searchParams.get('subscribe');
-        const isAnnual = searchParams.get('annual') === 'true';
-
-        if (subscribeToPlan) {
-            // Remove params to prevent loop
-            const newParams = new URLSearchParams(searchParams);
-            newParams.delete('subscribe');
-            newParams.delete('annual');
-            setSearchParams(newParams);
-
-            // Trigger checkout
-            // We need to map 'pro', 'elite' to keys of STRIPE_PRICES if they differ
-            // Assuming they are the same keys (lowercase)
-            handleCheckout(subscribeToPlan as any, isAnnual);
-        }
-    }, [user, searchParams]);
 
     // --- Derived State ---
     const MAX_CREDITS = PLAN_CREDITS[userSettings.plan];
@@ -149,9 +198,13 @@ const Dashboard: React.FC = () => {
     const PLAN_PERCENTAGE = Math.min((USED_CREDITS / MAX_CREDITS) * 100, 100);
     const PLAN = { name: userSettings.plan };
 
-    const hasCRMAccess = PLAN_HIERARCHY[userSettings.plan] >= PLAN_HIERARCHY.pro;
-    const hasExportAccess = PLAN_HIERARCHY[userSettings.plan] >= PLAN_HIERARCHY.start;
-    const hasWhatsAppAccess = PLAN_HIERARCHY[userSettings.plan] >= PLAN_HIERARCHY.start;
+    const planFeatures = PLAN_FEATURES[userSettings.plan as keyof typeof PLAN_FEATURES] || PLAN_FEATURES.free;
+    const hasCRMAccess = planFeatures.crm;
+    const hasDashboardAccess = planFeatures.dashboard;
+    const hasExportAccess = planFeatures.export_excel;
+    const hasExportSheetsAccess = planFeatures.export_sheets;
+    const hasWhatsAppAccess = planFeatures.whatsapp_click;
+    const hasExtrasAccess = planFeatures.extras;
 
     const todayStr = new Date().toISOString().split('T')[0];
     const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
@@ -165,12 +218,6 @@ const Dashboard: React.FC = () => {
 
     const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
-    // --- Sync Billing Cycle with User Settings ---
-    useEffect(() => {
-        if (userSettings.billingCycle === 'annual') {
-            setBillingCycle('annual');
-        }
-    }, [userSettings.billingCycle]);
     const sortedLeads = useMemo(() => {
         return [...leads].sort((a, b) => {
             let valA: any = a[sortField as keyof Lead] || '';
@@ -194,17 +241,48 @@ const Dashboard: React.FC = () => {
     };
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
-        // useAuth will handle the session state change
-        setLeads([]);
+        // Clean ALL client state before navigating away
+        const performCleanup = () => {
+            setLeads([]);
+            setQuery('');
+            setSelectedNiche('');
+            setSelectedState('');
+            setSelectedCity('');
+            setExcludedCity('');
+            setState({ isSearching: false, error: null, hasSearched: false });
+            // Clear session caches
+            try {
+                sessionStorage.removeItem('affiliate_data');
+                sessionStorage.removeItem('affiliate_stats');
+            } catch { /* ignore */ }
+            navigate('/');
+        };
+
+        try {
+            await Promise.race([
+                supabase.auth.signOut(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('SignOut timeout')), 2000))
+            ]);
+        } catch (err) {
+            console.error('Logout error (handled):', err);
+        } finally {
+            performCleanup();
+        }
     };
 
-    const handleAddToCRM = (lead: Lead) => {
+    const handleAddToCRM = async (lead: Lead) => {
         if (!hasCRMAccess) {
             setActiveTab('subscription');
             return;
         }
-        addToCRM(lead);
+        try {
+            await addToCRM(lead);
+            showNotification(`${lead.name} adicionado ao CRM!`, 'success');
+        } catch (err) {
+            // Error already handled inside addToCRM with a toast, 
+            // but we stop the success notification here.
+            console.error('[Dashboard] Erro ao adicionar ao CRM:', err);
+        }
     };
 
     const handleManualAddLead = (e: React.FormEvent<HTMLFormElement>) => {
@@ -219,6 +297,10 @@ const Dashboard: React.FC = () => {
         const newLead: CRMLead = {
             id: `manual-${Date.now()}`,
             name,
+            contactName: formData.get('contactName') as string || '',
+            gatekeeperName: formData.get('gatekeeperName') as string || '',
+            dmName: formData.get('dmName') as string || '',
+            providerName: formData.get('providerName') as string || '',
             category: newLeadNiche || 'Manual',
             address: newLeadCity ? `${newLeadCity}, ${newLeadUF || 'BR'}` : 'Manual',
             phone: newLeadPhone,
@@ -235,7 +317,7 @@ const Dashboard: React.FC = () => {
             googleMapsLink: ''
         };
 
-        setCrmLeads(prev => [newLead, ...prev]);
+        addCrmLead(newLead);
         setShowNewLeadModal(false);
         setNewLeadValue('');
         setNewLeadPhone('');
@@ -261,8 +343,9 @@ const Dashboard: React.FC = () => {
     };
 
     const handleCheckout = async (planId: keyof typeof STRIPE_PRICES, isAnnual: boolean) => {
-        if (!user) return;
+        if (!user || upgradingPlanId) return;
 
+        setUpgradingPlanId(planId as string);
         try {
             // Calculate Price ID first
             const priceId = isAnnual
@@ -288,6 +371,8 @@ const Dashboard: React.FC = () => {
         } catch (err: any) {
             console.error('[Plano] Erro ao iniciar checkout:', err);
             showNotification(err.message || 'Erro ao iniciar pagamento.', 'error');
+        } finally {
+            setUpgradingPlanId(null);
         }
     };
 
@@ -309,18 +394,42 @@ const Dashboard: React.FC = () => {
             return str;
         };
 
-        const headers = ['Nome', 'Categoria', 'Telefone', 'Endereço', 'Rating', 'Reviews', 'Website', 'Instagram', 'Google Maps'];
-        const rows = leads.map(l => [
-            escapeCSVField(l.name),
-            escapeCSVField(l.category),
-            escapeCSVField(l.phone),
-            escapeCSVField(l.address),
-            escapeCSVField(l.rating),
-            escapeCSVField(l.reviews),
-            escapeCSVField(l.website),
-            escapeCSVField(l.instagram),
-            escapeCSVField(l.googleMapsLink)
-        ]);
+        const headers = [
+            'Nome', 'Categoria', 'Telefone', 'CNPJ', 'E-mail Oficial', 'Website', 'Instagram',
+            'Contato', 'Gatekeeper', 'Decisor', 'Prestador', 'Sócios', 'Endereço', 'Avaliação', 'Google Maps'
+        ];
+        const rows = leads.map(l => {
+            const formatPartners = (partners?: string[]): string => {
+                if (!partners || partners.length === 0) return '';
+                return partners.map(p => p.trim()).filter(Boolean).join(', ');
+            };
+            const formatRating = (rating: any, reviews: any): string => {
+                if (rating === undefined || rating === null || rating === 'N/A' || rating === '') return '';
+                const ratingNum = Number(rating);
+                if (isNaN(ratingNum)) return String(rating);
+                const reviewsNum = Number(reviews);
+                if (isNaN(reviewsNum) || !reviewsNum) return `${ratingNum}`;
+                return `${ratingNum} (${reviewsNum} avaliações)`;
+            };
+
+            return [
+                escapeCSVField(l.name),
+                escapeCSVField(l.category),
+                escapeCSVField(l.phone),
+                escapeCSVField(l.cnpj),
+                escapeCSVField(l.email),
+                escapeCSVField(l.website),
+                escapeCSVField(l.instagram),
+                escapeCSVField(l.contactName),
+                escapeCSVField(l.gatekeeperName),
+                escapeCSVField(l.dmName),
+                escapeCSVField(l.providerName),
+                escapeCSVField(formatPartners(l.socios)),
+                escapeCSVField(l.address),
+                escapeCSVField(formatRating(l.rating, l.reviews)),
+                escapeCSVField(l.googleMapsLink)
+            ];
+        });
 
         const csvContent = [headers, ...rows].map(row => row.join(';')).join('\n');
         const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -328,7 +437,7 @@ const Dashboard: React.FC = () => {
         const url = URL.createObjectURL(blob);
 
         link.setAttribute('href', url);
-        link.setAttribute('download', `beleads_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', `beleadly_export_${new Date().toISOString().split('T')[0]}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -339,13 +448,29 @@ const Dashboard: React.FC = () => {
     };
 
     const handleExportGoogleSheets = () => {
-        if (!hasExportAccess) {
+        if (!hasExportSheetsAccess) {
             setActiveTab('subscription');
             return;
         }
-        // Adicionando cabeçalho e formatando telefone para evitar erro de fórmula com '
-        const header = "Empresa\tNicho\tTelefone\tEndereço\tAvaliação\tGoogle Maps";
-        const text = leads.map(l => `${l.name}\t${l.category}\t'${l.phone}\t${l.address}\t${l.rating}\t${l.googleMapsLink}`).join('\n');
+        
+        const header = "Empresa\tNicho\tTelefone\tCNPJ\tE-mail Oficial\tSócios\tEndereço\tAvaliação\tGoogle Maps";
+        const text = leads.map(l => {
+            const formatPartners = (partners?: string[]): string => {
+                if (!partners || partners.length === 0) return '';
+                return partners.map(p => p.trim()).filter(Boolean).join(', ');
+            };
+            const formatRating = (rating: any, reviews: any): string => {
+                if (rating === undefined || rating === null || rating === 'N/A' || rating === '') return '';
+                const ratingNum = Number(rating);
+                if (isNaN(ratingNum)) return String(rating);
+                const reviewsNum = Number(reviews);
+                if (isNaN(reviewsNum) || !reviewsNum) return `${ratingNum}`;
+                return `${ratingNum} (${reviewsNum} avaliações)`;
+            };
+
+            return `${l.name}\t${l.category}\t'${l.phone}\t${l.cnpj || ''}\t${l.email || ''}\t${formatPartners(l.socios)}\t${l.address}\t${formatRating(l.rating, l.reviews)}\t${l.googleMapsLink || ''}`;
+        }).join('\n');
+        
         navigator.clipboard.writeText(header + '\n' + text);
         if (userSettings.hideSheetsModal) {
             window.open('https://sheets.new', '_blank');
@@ -404,7 +529,7 @@ const Dashboard: React.FC = () => {
 
     const confirmUpgrade = async () => {
         if (!upgradeModal) return;
-        setIsUpgrading(true);
+        setUpgradingPlanId(upgradeModal.planId);
         try {
             const finalCoupon = couponDetails?.valid ? couponDetails.couponId : couponCode.trim();
             await updateSubscription(upgradeModal.priceId, finalCoupon);
@@ -415,7 +540,7 @@ const Dashboard: React.FC = () => {
             console.error('[App] Erro no upgrade:', err);
             showNotification(err.message || 'Erro ao realizar upgrade.', 'error');
         } finally {
-            setIsUpgrading(false);
+            setUpgradingPlanId(null);
         }
     };
 
@@ -462,6 +587,29 @@ const Dashboard: React.FC = () => {
         return <ResetPassword />;
     }
 
+    if (authLoading) {
+        return (
+            <div className="h-screen w-full bg-app-light dark:bg-app-dark flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                    <p className="text-zinc-500 dark:text-zinc-400 font-bold animate-pulse tracking-tight text-lg">Sincronizando conta...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // --- Seamless Checkout Redirect Interception ---
+    if (user && window.location.pathname === '/login' && searchParams.get('checkout')) {
+        return (
+            <div className="min-h-screen w-full bg-[#030712] flex items-center justify-center">
+                <div className="text-center animate-fade-in-up">
+                    <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+                    <p className="text-zinc-400 font-medium tracking-wide">Redirecionando para o pagamento seguro...</p>
+                </div>
+            </div>
+        );
+    }
+
     if (!user || !user.email) {
         return <Auth onAuthSuccess={() => { }} />;
     }
@@ -485,10 +633,16 @@ const Dashboard: React.FC = () => {
             />
 
             {/* Main Content Area */}
-            <main className="flex-1 h-full overflow-y-auto relative flex flex-col p-4 md:px-4 md:py-8 pt-12 md:pt-20 scrollbar-thin">
+            <main className={`flex-1 h-full overflow-y-auto relative flex flex-col p-4 md:px-4 md:py-8 pt-28 md:pt-20 pb-24 md:pb-8 no-scrollbar ${activeTab !== 'crm' ? 'overflow-x-hidden' : ''}`}>
 
                 {/* Mobile Header */}
-                <MobileHeader setIsSidebarOpen={setIsSidebarOpen} isSidebarOpen={isSidebarOpen} />
+                <MobileHeader
+                    userSettings={userSettings}
+                    renderAvatar={renderAvatar}
+                    setActiveTab={setActiveTab}
+                    theme={theme}
+                    setTheme={setTheme}
+                />
 
                 {/* Tab Rendering */}
                 {activeTab === 'home' && (
@@ -552,18 +706,26 @@ const Dashboard: React.FC = () => {
                         setLocationPermission={setLocationPermission}
                         searchMode={searchMode}
                         setSearchMode={setSearchMode}
+                        searchSource={searchSource}
+                        setSearchSource={setSearchSource}
                         query={query}
                         setQuery={setQuery}
+                        selectedCountry={selectedCountry}
+                        setSelectedCountry={setSelectedCountry}
                         selectedNiche={selectedNiche}
                         setSelectedNiche={setSelectedNiche}
                         selectedState={selectedState}
                         setSelectedState={setSelectedState}
                         selectedCity={selectedCity}
                         setSelectedCity={setSelectedCity}
+                        selectedCities={selectedCities}
+                        setSelectedCities={setSelectedCities}
                         isLoadingCities={isLoadingCities}
                         cityList={cityList}
                         excludedCity={excludedCity}
                         setExcludedCity={setExcludedCity}
+                        excludedCities={excludedCities}
+                        setExcludedCities={setExcludedCities}
                         globalHistory={globalHistory}
                         setGlobalHistory={setGlobalHistory}
                         sortedLeads={sortedLeads}
@@ -573,12 +735,14 @@ const Dashboard: React.FC = () => {
                         handleExportCSV={handleExportCSV}
                         handleExportGoogleSheets={handleExportGoogleSheets}
                         hasExportAccess={hasExportAccess}
+                        hasExportSheetsAccess={hasExportSheetsAccess}
                         handleAddToCRM={handleAddToCRM}
                         crmLeads={crmLeads}
                         hasCRMAccess={hasCRMAccess}
                         hasWhatsAppAccess={hasWhatsAppAccess}
                         loadMoreQuantity={loadMoreQuantity}
                         setLoadMoreQuantity={setLoadMoreQuantity}
+                        plan={userSettings.plan}
                         handleLoadMore={handleLoadMore}
                         isLoadingMore={isLoadingMore}
                         searchHistory={searchHistory}
@@ -586,12 +750,33 @@ const Dashboard: React.FC = () => {
                         clearSearchHistory={clearSearchHistory}
                         showHistoryModal={showHistoryModal}
                         setShowHistoryModal={setShowHistoryModal}
+                        isParsingPrompt={isParsingPrompt}
+                        parsingStatus={parsingStatus}
+                        aiPrompt={aiPrompt}
+                        setAiPrompt={setAiPrompt}
+                        handleAISearch={handleAISearch}
+                        handleConfirmAISearch={handleConfirmAISearch}
+                        conversationalFeedback={conversationalFeedback}
+                        setConversationalFeedback={setConversationalFeedback}
+                        chatContext={chatContext}
+                        setChatContext={setChatContext}
+                        resetChat={resetChat}
+                        chatMessages={chatMessages}
+                        setChatMessages={setChatMessages}
+                        onCreditsUsed={onCreditsUsed}
+                        failedEnrichmentAttempts={failedEnrichmentAttempts}
+                        setFailedEnrichmentAttempts={setFailedEnrichmentAttempts}
+                        setActiveTab={setActiveTab}
                     />
+
                 )}
 
                 {activeTab === 'crm' && (
                     <CRM
                         hasCRMAccess={hasCRMAccess}
+                        hasDashboardAccess={hasDashboardAccess}
+                        hasExportExcelAccess={hasExportAccess}
+                        hasExportSheetsAccess={hasExportSheetsAccess}
                         setActiveTab={setActiveTab}
                         crmSearchQuery={crmSearchQuery}
                         setCrmSearchQuery={setCrmSearchQuery}
@@ -602,13 +787,28 @@ const Dashboard: React.FC = () => {
                         handleUpdateLead={updateLead}
                         handleDuplicateLead={(lead) => {
                             const duplicate = { ...lead, id: `copy-${Date.now()}`, name: `${lead.name} (Cópia)`, addedAt: new Date().toISOString() };
-                            setCrmLeads(prev => [duplicate, ...prev]);
+                            addCrmLead(duplicate);
                         }}
                         pipelineGoal={userSettings.pipelineGoal}
                         setPipelineGoal={(g) => setUserSettings(prev => ({ ...prev, pipelineGoal: g }))}
                         pipelineResetDay={userSettings.pipelineResetDay}
-                        setCrmLeads={setCrmLeads}
+                        handleDeleteLead={deleteLead}
+                        onEnrichLead={(leadId) => {
+                            const hasProAccess = PLAN_HIERARCHY[userSettings.plan] >= PLAN_HIERARCHY.pro;
+                            if (!hasProAccess) {
+                                showNotification(
+                                    'O Enriquecimento de Leads é exclusivo para os planos Pro e Elite. Faça o upgrade para liberar!',
+                                    'info'
+                                );
+                                setActiveTab('subscription');
+                                return;
+                            }
+                            enrichCrmLead(leadId);
+                        }}
+                        enrichingLeadIds={enrichingCrmLeadIds}
+                        plan={userSettings.plan}
                     />
+
                 )}
 
                 {activeTab === 'subscription' && (
@@ -617,13 +817,14 @@ const Dashboard: React.FC = () => {
                         setBillingCycle={setBillingCycle}
                         userSettings={userSettings}
                         handleCheckout={handleCheckout}
+                        upgradingPlanId={upgradingPlanId}
                         setUpgradeModal={setUpgradeModal}
                         setCouponCode={setCouponCode}
                         setCouponDetails={setCouponDetails}
                     />
                 )}
 
-                {activeTab === 'settings' && (
+        {activeTab === 'settings' && (
                     <Settings
                         userSettings={userSettings}
                         setUserSettings={setUserSettings}
@@ -634,10 +835,40 @@ const Dashboard: React.FC = () => {
                         settingsCityList={cityList}
                         globalHistory={globalHistory}
                         setGlobalHistory={setGlobalHistory}
+                        clearSearchHistory={clearSearchHistory}
                         crmLeads={crmLeads}
                         setCrmLeads={setCrmLeads}
+                        resetAllLeads={resetAllLeads}
                         showNotification={showNotification}
                     />
+                )}
+                {activeTab === 'affiliates' && (
+                    <AffiliateDashboard user={user} />
+                )}
+                {activeTab === 'extras' && (
+                    <div className="animate-fade-in-up flex flex-col relative h-full min-h-0">
+                        {!hasExtrasAccess && (
+                            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-4 font-sans">
+                                <div className="flex flex-col items-center gap-4 bg-white/90 dark:bg-black/80 backdrop-blur-md p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl text-center max-w-md animate-in zoom-in-95 duration-300">
+                                    <div className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-full shadow-inner">
+                                        <Lock className="w-10 h-10 text-zinc-500" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">Recurso bloqueado</h2>
+                                        <p className="text-zinc-600 dark:text-zinc-300 font-medium mb-6">
+                                            Acesse nossos materiais de apoio, scripts de vendas e bônus exclusivos. Disponível a partir do plano Pro.
+                                        </p>
+                                        <button onClick={() => setActiveTab('subscription')} className="w-full bg-success-600 hover:bg-success-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-transform hover:scale-105 active:scale-95">
+                                            Liberar acesso agora
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        <div className={`flex-1 transition-all duration-500 overflow-y-auto custom-scrollbar ${!hasExtrasAccess ? 'blur-sm select-none pointer-events-none opacity-60 grayscale-[0.3]' : ''}`}>
+                            <SalesScripts />
+                        </div>
+                    </div>
                 )}
             </main>
 
@@ -722,7 +953,7 @@ const Dashboard: React.FC = () => {
                                                 </a>
                                             )}
                                             <button
-                                                onClick={() => {
+                                                onClick={async () => {
                                                     // Buscamos os dados completos do lead via placeId se necessário, 
                                                     // ou apenas adicionamos os dados básicos que temos.
                                                     // Para simplicidade e rapidez, adicionamos o que temos.
@@ -736,8 +967,12 @@ const Dashboard: React.FC = () => {
                                                         reviews: 0,
                                                         website: 'N/A'
                                                     };
-                                                    addToCRM(basicLead);
-                                                    showNotification('Lead adicionado ao CRM com sucesso!', 'success');
+                                                    try {
+                                                        await addToCRM(basicLead);
+                                                        showNotification('Lead adicionado ao CRM com sucesso!', 'success');
+                                                    } catch (err) {
+                                                        console.error('[Histórico] Erro ao adicionar ao CRM:', err);
+                                                    }
                                                 }}
                                                 className="p-2.5 bg-primary-500/10 text-primary-600 dark:text-primary-400 rounded-xl hover:bg-primary-500/20 transition-all active:scale-90 shadow-sm"
                                                 title="Adicionar ao CRM"
@@ -914,6 +1149,46 @@ const Dashboard: React.FC = () => {
                                 />
                             </div>
 
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">CONTATO DA EMPRESA</label>
+                                    <input
+                                        name="contactName"
+                                        className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-sm font-medium"
+                                        placeholder="Primeiro contato"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">PRESTADOR</label>
+                                    <input
+                                        name="providerName"
+                                        className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-sm font-medium"
+                                        placeholder="Quem vai prestar o serviço"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-zinc-900 dark:text-primary-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                                    <UserCheck className="w-3 h-3" />
+                                    NOME DO DECISOR
+                                </label>
+                                <input
+                                    name="dmName"
+                                    className="w-full p-2.5 bg-primary-50/50 dark:bg-primary-900/10 rounded-xl border border-primary-200 dark:border-primary-800 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-sm font-bold shadow-sm"
+                                    placeholder="Responsável pela empresa"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">GATEKEEPER / FILTRO</label>
+                                <input
+                                    name="gatekeeperName"
+                                    className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white text-sm font-medium"
+                                    placeholder="Ex: Secretária/Recepcionista"
+                                />
+                            </div>
+
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">NICHO / CATEGORIA</label>
                                 <select
@@ -1005,7 +1280,6 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
             )}
-
             {/* Modal Export Sheets */}
             {showExportModal && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-md animate-in fade-in duration-300 overflow-hidden">
@@ -1122,7 +1396,7 @@ const Dashboard: React.FC = () => {
                 <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
                     <div
                         className="absolute inset-0 bg-zinc-950/40 backdrop-blur-md transition-opacity animate-in fade-in duration-300"
-                        onClick={() => !isUpgrading && setUpgradeModal(null)}
+                        onClick={() => !upgradingPlanId && setUpgradeModal(null)}
                     />
                     <div className="relative bg-white dark:bg-zinc-900 w-full max-w-md rounded-[32px] border border-zinc-200 dark:border-zinc-800 shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
                         {/* Modal Header - Novo Padrão */}
@@ -1136,7 +1410,7 @@ const Dashboard: React.FC = () => {
                                     <p className="text-[11px] text-zinc-400 font-medium tracking-tight">Mudança para o plano {upgradeModal.planName} {upgradeModal.isAnnual ? '(Anual)' : '(Mensal)'}</p>
                                 </div>
                             </div>
-                            <button onClick={() => !isUpgrading && setUpgradeModal(null)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-400 hover:text-zinc-600">
+                            <button onClick={() => !upgradingPlanId && setUpgradeModal(null)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-400 hover:text-zinc-600">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -1168,7 +1442,7 @@ const Dashboard: React.FC = () => {
                                     />
                                     <button
                                         onClick={handleValidateCoupon}
-                                        disabled={isValidatingCoupon || !couponCode.trim() || isUpgrading}
+                                        disabled={isValidatingCoupon || !couponCode.trim() || !!upgradingPlanId}
                                         className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50 min-w-[80px]"
                                     >
                                         {isValidatingCoupon ? '...' : 'Validar'}
@@ -1184,17 +1458,17 @@ const Dashboard: React.FC = () => {
                             <div className="flex gap-3 pt-2">
                                 <button
                                     onClick={() => setUpgradeModal(null)}
-                                    disabled={isUpgrading}
+                                    disabled={!!upgradingPlanId}
                                     className="flex-1 py-3.5 rounded-xl font-bold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-all text-sm"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={confirmUpgrade}
-                                    disabled={isUpgrading}
+                                    disabled={!!upgradingPlanId}
                                     className="flex-[2] py-3.5 bg-success-600 text-white rounded-xl font-bold hover:bg-success-700 shadow-lg shadow-success-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
                                 >
-                                    {isUpgrading ? (
+                                    {upgradingPlanId ? (
                                         <>
                                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                             Processando...
@@ -1208,6 +1482,24 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
             )}
+            <MobileNavBar
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                handleLogout={handleLogout}
+            />
+
+            {/* Sistema de Notificações */}
+            <ToastContainer>
+                {toasts.map(toast => (
+                    <Toast
+                        key={toast.id}
+                        id={toast.id}
+                        message={toast.message}
+                        type={toast.type}
+                        onClose={removeToast}
+                    />
+                ))}
+            </ToastContainer>
         </div>
     );
 };
