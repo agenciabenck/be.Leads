@@ -13,6 +13,7 @@ import { KanbanBoard } from '@/components/KanbanBoard';
 import Sidebar from '@/components/Sidebar';
 import MobileHeader from '@/components/MobileHeader';
 import MobileNavBar from '@/components/MobileNavBar';
+import { UpgradeModal } from '@/components/UpgradeModal';
 import { getUserData, setUserData } from '@/utils/storageUtils';
 import { formatCurrency, formatPhone } from '@/utils/formatUtils';
 import { Toast, ToastContainer } from '@/components/UXComponents';
@@ -37,7 +38,7 @@ import { googleMapsService } from '@/services/googleMapsService';
 import { Lead, CRMLead, CRMStatus, CalendarEvent, SearchState, SearchFilters, SortField, SortOrder, UserSettings, UserPlan, AppTab } from '@/types/types';
 import {
     COMMON_NICHES, BRAZIL_STATES, TIME_OPTIONS, AVATAR_EMOJIS,
-    LOADING_MESSAGES, STRIPE_PRICES, STRIPE_PRICES_ANNUAL, PLAN_HIERARCHY, DEMO_LEADS, PLAN_CREDITS, PLAN_FEATURES
+    LOADING_MESSAGES, PLAN_HIERARCHY, DEMO_LEADS, PLAN_CREDITS, PLAN_FEATURES
 } from '@/constants/appConstants';
 
 const Dashboard: React.FC = () => {
@@ -54,12 +55,12 @@ const Dashboard: React.FC = () => {
 
     const {
         crmLeads, setCrmLeads, crmSearchQuery, setCrmSearchQuery,
-        globalHistory, setGlobalHistory, addToCRM, addCrmLead, updateLeadStatus, updateLead, deleteLead, resetAllLeads,
+        globalHistory, setGlobalHistory, addToCRM, addCrmLead, updateLeadStatus, updateLead, updateLeadOrder, deleteLead, resetAllLeads,
         enrichCrmLead, enrichingCrmLeadIds,
         filteredLeads: filteredCrmLeads, monthlyRevenue,
         failedEnrichmentAttempts, setFailedEnrichmentAttempts,
-        leadsWithMeetings
-    } = useCRM(user?.id, onCreditsUsed);
+        leadsWithMeetings, isLoading: isCrmLoading
+    } = useCRM(user?.id, onCreditsUsed, userSettings.pipelineRecycleDays, authLoading);
     const {
         query, setQuery, leads, setLeads, state, setState, filters, setFilters, searchMode, setSearchMode,
         searchSource, setSearchSource,
@@ -99,7 +100,20 @@ const Dashboard: React.FC = () => {
     }, [user?.id]);
 
     // --- UI Local State ---
-    const [activeTab, setActiveTab] = useState<AppTab>('home');
+    const [activeTab, setActiveTab] = useState<AppTab>(() => {
+        try {
+            const saved = localStorage.getItem('beleadly_active_tab');
+            if (saved) return saved as AppTab;
+        } catch {}
+        return 'home';
+    });
+
+    useEffect(() => {
+        if (activeTab) {
+            localStorage.setItem('beleadly_active_tab', activeTab);
+        }
+    }, [activeTab]);
+
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [locationPermission, setLocationPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
@@ -116,7 +130,7 @@ const Dashboard: React.FC = () => {
     }, [userSettings?.billingCycle]);
 
     // Modals
-    const [showNewLeadModal, setShowNewLeadModal] = useState(false);
+    const [showNewLeadModal, setShowNewLeadModal] = useState<boolean | string>(false);
     const [newLeadValue, setNewLeadValue] = useState('');
     const [newLeadPhone, setNewLeadPhone] = useState('');
     const [newLeadNiche, setNewLeadNiche] = useState('');
@@ -140,6 +154,29 @@ const Dashboard: React.FC = () => {
     // State for History Confirmation
     const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
     const [upgradingPlanId, setUpgradingPlanId] = useState<string | null>(null);
+
+    // Custom PLG Upgrade Modal State
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+    const [upgradeContext, setUpgradeContext] = useState<'crm' | 'export' | 'linkedin' | 'enrichment' | 'aichat' | 'credits' | 'default'>('default');
+
+    const triggerUpgradeModal = useCallback((context: 'crm' | 'export' | 'linkedin' | 'enrichment' | 'aichat' | 'credits' | 'default') => {
+        setUpgradeContext(context);
+        setIsUpgradeModalOpen(true);
+    }, []);
+
+    const handleTabChange = useCallback((tab: AppTab) => {
+        const planFeatures = PLAN_FEATURES[userSettings.plan as keyof typeof PLAN_FEATURES] || PLAN_FEATURES.free;
+        if (tab === 'crm' && !planFeatures.crm) {
+            setActiveTab('crm');
+            triggerUpgradeModal('crm');
+            return;
+        }
+        if (tab === 'extras' && !planFeatures.extras) {
+            triggerUpgradeModal('default');
+            return;
+        }
+        setActiveTab(tab);
+    }, [userSettings.plan, triggerUpgradeModal, setActiveTab]);
 
     // Refs
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -238,7 +275,43 @@ const Dashboard: React.FC = () => {
     // --- Handlers ---
     const showNotification = (msg: string, type: "success" | "error" | "info" = "success") => {
         const id = Math.random().toString(36).substring(2, 9);
-        setToasts(prev => [...prev, { id, message: msg, type }]);
+        
+        setToasts(prev => {
+            // Se a nova mensagem é sobre adicionar ao CRM
+            const isAddCrmMsg = msg.includes('adicionado ao CRM') || msg.includes('adicionada ao CRM');
+            
+            if (isAddCrmMsg) {
+                // Procura se já existe algum toast recente sobre adicionar ao CRM
+                const existingIndex = prev.findIndex(t => 
+                    t.message.includes('adicionado ao CRM') || 
+                    t.message.includes('adicionada ao CRM') || 
+                    t.message.includes('leads adicionados')
+                );
+                
+                if (existingIndex !== -1) {
+                    // Já existe! Consolida os avisos em um único toast acumulado
+                    const existingToast = prev[existingIndex];
+                    let count = 2;
+                    
+                    // Se o anterior já era um acumulador (ex: "3 leads adicionados ao CRM!"), extrai o número
+                    const match = existingToast.message.match(/(\d+)\s+leads/);
+                    if (match) {
+                        count = parseInt(match[1], 10) + 1;
+                    }
+                    
+                    const updated = [...prev];
+                    updated[existingIndex] = {
+                        ...existingToast,
+                        message: `${count} leads adicionados ao CRM!`,
+                        type: 'success'
+                    };
+                    return updated;
+                }
+            }
+            
+            // Caso contrário, adiciona normalmente
+            return [...prev, { id, message: msg, type }];
+        });
     };
 
     const handleLogout = async () => {
@@ -251,12 +324,20 @@ const Dashboard: React.FC = () => {
             setSelectedCity('');
             setExcludedCity('');
             setState({ isSearching: false, error: null, hasSearched: false });
-            // Clear session caches
+            setActiveTab('home');
+            // Clear session and local caches to prevent automatic re-login
             try {
                 sessionStorage.removeItem('affiliate_data');
                 sessionStorage.removeItem('affiliate_stats');
+                localStorage.removeItem('beleadly_auth_token');
+                localStorage.removeItem('supabase.auth.token');
+                localStorage.removeItem('beleadly_active_tab');
+                const projectId = import.meta.env.VITE_SUPABASE_URL ? new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0] : '';
+                if (projectId) {
+                    localStorage.removeItem(`sb-${projectId}-auth-token`);
+                }
             } catch { /* ignore */ }
-            navigate('/');
+            navigate('/login');
         };
 
         try {
@@ -271,33 +352,34 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    const handleAddToCRM = async (lead: Lead) => {
+    const handleAddToCRM = async (lead: Lead): Promise<boolean> => {
         if (!hasCRMAccess) {
             setActiveTab('subscription');
-            return;
+            return false;
         }
         try {
             await addToCRM(lead);
             showNotification(`${lead.name} adicionado ao CRM!`, 'success');
-        } catch (err) {
-            // Error already handled inside addToCRM with a toast, 
-            // but we stop the success notification here.
+            return true;
+        } catch (err: any) {
             console.error('[Dashboard] Erro ao adicionar ao CRM:', err);
+            showNotification(`Erro ao adicionar ao CRM: ${err?.message || 'Tente novamente'}`, 'error');
+            return false;
         }
     };
 
-    const handleManualAddLead = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleManualAddLead = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
         const name = formData.get('name') as string;
-        if (!name) return;
+        if (!name?.trim()) return;
 
         const valClean = newLeadValue.replace(/\D/g, '');
         const valNum = (parseInt(valClean) || 0) / 100;
 
         const newLead: CRMLead = {
             id: `manual-${Date.now()}`,
-            name,
+            name: name.trim(),
             contactName: formData.get('contactName') as string || '',
             gatekeeperName: formData.get('gatekeeperName') as string || '',
             dmName: formData.get('dmName') as string || '',
@@ -308,24 +390,31 @@ const Dashboard: React.FC = () => {
             website: '',
             rating: 0,
             reviews: 0,
-            status: 'prospecting',
+            status: typeof showNewLeadModal === 'string' ? (showNewLeadModal as any) : 'prospecting',
             priority: 'medium',
             tags: ['Manual'],
             addedAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             potentialValue: valNum,
-            notes: formData.get('notes') as string,
+            notes: formData.get('notes') as string || '',
             googleMapsLink: ''
         };
 
-        addCrmLead(newLead);
-        setShowNewLeadModal(false);
-        setNewLeadValue('');
-        setNewLeadPhone('');
-        setNewLeadNiche('');
-        setNewLeadCity('');
-        setNewLeadUF('');
+        try {
+            await addCrmLead(newLead);
+            setShowNewLeadModal(false);
+            setNewLeadValue('');
+            setNewLeadPhone('');
+            setNewLeadNiche('');
+            setNewLeadCity('');
+            setNewLeadUF('');
+        } catch (err) {
+            // Erro já tratado pelo onError da mutation (toast de erro)
+            // Modal permanece aberto para o usuário não perder os dados
+            console.error('[handleManualAddLead] Erro ao salvar lead:', err);
+        }
     };
+
 
     const handleAddEvent = (e: React.FormEvent) => {
         e.preventDefault();
@@ -343,38 +432,9 @@ const Dashboard: React.FC = () => {
         setNewEventData({ title: '', description: '', time: '09:00' });
     };
 
-    const handleCheckout = async (planId: keyof typeof STRIPE_PRICES, isAnnual: boolean) => {
-        if (!user || upgradingPlanId) return;
-
-        setUpgradingPlanId(planId as string);
-        try {
-            // Calculate Price ID first
-            const priceId = isAnnual
-                ? STRIPE_PRICES_ANNUAL[planId]
-                : STRIPE_PRICES[planId];
-
-            // Check if user needs to go to portal (Upgrade/Downgrade/Cross-grade)
-            const isFree = userSettings.plan === 'free';
-            const isActive = userSettings.subscriptionStatus === 'active' || userSettings.subscriptionStatus === 'trialing';
-
-            if (isActive && !isFree) {
-                showNotification('Redirecionando para atualização de plano...', 'info');
-                // Pass targetPriceId to pre-select it in the portal update flow
-                await createPortalSession('subscription_update', priceId);
-                return;
-            }
-
-            // Create Checkout Session for new subscriptions
-            showNotification('Iniciando checkout seguro...', 'info');
-
-            await createCheckoutSession(priceId, isAnnual);
-
-        } catch (err: any) {
-            console.error('[Plano] Erro ao iniciar checkout:', err);
-            showNotification(err.message || 'Erro ao iniciar pagamento.', 'error');
-        } finally {
-            setUpgradingPlanId(null);
-        }
+    const handleCheckout = async (planId: string, isAnnual: boolean) => {
+        if (!user) return;
+        navigate(`/checkout?plan=${planId}&annual=${isAnnual}`);
     };
 
     const handleExportCSV = () => {
@@ -621,7 +681,7 @@ const Dashboard: React.FC = () => {
             <Sidebar
                 isSidebarOpen={isSidebarOpen}
                 activeTab={activeTab}
-                setActiveTab={setActiveTab}
+                setActiveTab={handleTabChange}
                 PLAN={PLAN}
                 USED_CREDITS={USED_CREDITS}
                 MAX_CREDITS={MAX_CREDITS}
@@ -640,10 +700,33 @@ const Dashboard: React.FC = () => {
                 <MobileHeader
                     userSettings={userSettings}
                     renderAvatar={renderAvatar}
-                    setActiveTab={setActiveTab}
+                    setActiveTab={handleTabChange}
                     theme={theme}
                     setTheme={setTheme}
                 />
+
+                {/* PLG Banner de Intenção salva */}
+                {userSettings.plan === 'free' && localStorage.getItem('beleadly_plan_intention') && (
+                    <div className="mb-6 mx-auto w-full max-w-6xl bg-gradient-to-r from-blue-600/10 via-primary/20 to-blue-500/10 border border-primary/20 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl backdrop-blur-sm animate-fade-in-up">
+                        <div className="flex items-center gap-3">
+                            <span className="text-xl">✨</span>
+                            <div className="text-left">
+                                <p className="text-sm font-bold text-zinc-900 dark:text-white leading-snug">Você começou no plano gratuito.</p>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400">Para liberar os recursos do plano {String(localStorage.getItem('beleadly_plan_intention')).toUpperCase()} que escolheu, finalize sua assinatura agora.</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => {
+                                const plan = localStorage.getItem('beleadly_plan_intention');
+                                const cycle = localStorage.getItem('beleadly_plan_cycle') || 'monthly';
+                                navigate(`/checkout?plan=${plan}&annual=${cycle === 'annual'}`);
+                            }}
+                            className="px-5 py-2 bg-[#0066ff] hover:bg-[#0052cc] text-white text-xs font-bold rounded-xl transition-all shadow-lg active:scale-95 whitespace-nowrap"
+                        >
+                            Finalizar Assinatura
+                        </button>
+                    </div>
+                )}
 
                 {/* Tab Rendering */}
                 {activeTab === 'home' && (
@@ -768,6 +851,7 @@ const Dashboard: React.FC = () => {
                         failedEnrichmentAttempts={failedEnrichmentAttempts}
                         setFailedEnrichmentAttempts={setFailedEnrichmentAttempts}
                         setActiveTab={setActiveTab}
+                        onTriggerUpgrade={triggerUpgradeModal}
                     />
 
                 )}
@@ -778,6 +862,7 @@ const Dashboard: React.FC = () => {
                         hasDashboardAccess={hasDashboardAccess}
                         hasExportExcelAccess={hasExportAccess}
                         hasExportSheetsAccess={hasExportSheetsAccess}
+                        isLoading={isCrmLoading || authLoading}
                         setActiveTab={setActiveTab}
                         crmSearchQuery={crmSearchQuery}
                         setCrmSearchQuery={setCrmSearchQuery}
@@ -786,6 +871,7 @@ const Dashboard: React.FC = () => {
                         filteredCrmLeads={filteredCrmLeads}
                         handleCRMStatusChange={updateLeadStatus}
                         handleUpdateLead={updateLead}
+                        handleUpdateLeadOrder={updateLeadOrder}
                         handleDuplicateLead={(lead) => {
                             const duplicate = { ...lead, id: `copy-${Date.now()}`, name: `${lead.name} (Cópia)`, addedAt: new Date().toISOString() };
                             addCrmLead(duplicate);
@@ -797,11 +883,7 @@ const Dashboard: React.FC = () => {
                         onEnrichLead={(leadId) => {
                             const hasProAccess = PLAN_HIERARCHY[userSettings.plan] >= PLAN_HIERARCHY.pro;
                             if (!hasProAccess) {
-                                showNotification(
-                                    'O Enriquecimento de Leads é exclusivo para os planos Pro e Elite. Faça o upgrade para liberar!',
-                                    'info'
-                                );
-                                setActiveTab('subscription');
+                                triggerUpgradeModal('enrichment');
                                 return;
                             }
                             enrichCrmLead(leadId);
@@ -810,6 +892,7 @@ const Dashboard: React.FC = () => {
                         failedEnrichmentAttempts={failedEnrichmentAttempts}
                         leadsWithMeetings={leadsWithMeetings}
                         plan={userSettings.plan}
+                        onTriggerUpgrade={triggerUpgradeModal}
                     />
 
                 )}
@@ -1485,9 +1568,16 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
             )}
+            <UpgradeModal
+                isOpen={isUpgradeModalOpen}
+                onClose={() => setIsUpgradeModalOpen(false)}
+                context={upgradeContext}
+                setActiveTab={handleTabChange}
+            />
+
             <MobileNavBar
                 activeTab={activeTab}
-                setActiveTab={setActiveTab}
+                setActiveTab={handleTabChange}
                 handleLogout={handleLogout}
             />
 
