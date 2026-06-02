@@ -35,7 +35,7 @@ const PRICES_ANNUAL = {
 const Checkout: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, authLoading } = useAuth();
     
     const planParam = searchParams.get('plan') || '';
     const isAnnualParam = searchParams.get('annual') === 'true';
@@ -45,6 +45,15 @@ const Checkout: React.FC = () => {
     const activePlan = user ? selectedPlan : '';
 
     const planName = activePlan ? activePlan.charAt(0).toUpperCase() + activePlan.slice(1) : '';
+
+    if (authLoading) {
+        return (
+            <div className="min-h-screen w-full bg-[#F4F7FB] flex flex-col items-center justify-center p-4">
+                <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                <p className="text-slate-400 text-sm font-medium tracking-wide">Carregando...</p>
+            </div>
+        );
+    }
     const originalPrice = activePlan && isAnnualParam
         ? PRICES_ANNUAL[activePlan as keyof typeof PRICES_ANNUAL]
         : activePlan
@@ -98,14 +107,17 @@ const Checkout: React.FC = () => {
     });
 
     useEffect(() => {
-        if (user) {
+        if (!authLoading && !user) {
+            // Se não estiver logado, redireciona diretamente para criar conta gratuita
+            navigate('/login?mode=signup');
+        } else if (user) {
             setFormData(prev => ({
                 ...prev,
                 name: prev.name || user.user_metadata?.full_name || '',
                 email: prev.email || user.email || ''
             }));
         }
-    }, [user]);
+    }, [user, authLoading, navigate]);
 
     // Listen for payment confirmation when Pix QR Code is displayed (Realtime + Polling Local DB)
     useEffect(() => {
