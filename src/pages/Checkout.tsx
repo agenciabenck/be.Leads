@@ -46,14 +46,6 @@ const Checkout: React.FC = () => {
 
     const planName = activePlan ? activePlan.charAt(0).toUpperCase() + activePlan.slice(1) : '';
 
-    if (authLoading) {
-        return (
-            <div className="min-h-screen w-full bg-[#F4F7FB] flex flex-col items-center justify-center p-4">
-                <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
-                <p className="text-slate-400 text-sm font-medium tracking-wide">Carregando...</p>
-            </div>
-        );
-    }
     const originalPrice = activePlan && isAnnualParam
         ? PRICES_ANNUAL[activePlan as keyof typeof PRICES_ANNUAL]
         : activePlan
@@ -484,6 +476,15 @@ const Checkout: React.FC = () => {
                 ];
         }
     };
+
+    if (authLoading) {
+        return (
+            <div className="min-h-screen w-full bg-[#F4F7FB] flex flex-col items-center justify-center p-4">
+                <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                <p className="text-slate-400 text-sm font-medium tracking-wide">Carregando...</p>
+            </div>
+        );
+    }
 
     if (success) {
         localStorage.removeItem('beleadly_plan_intention');
