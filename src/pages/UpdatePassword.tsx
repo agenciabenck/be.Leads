@@ -21,9 +21,29 @@ const UpdatePassword: React.FC = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
 
+    // Hash handoff states
+    const [confirmHandoffUrl, setConfirmHandoffUrl] = useState<string | null>(null);
+    const [confirmInviteToken, setConfirmInviteToken] = useState<string | null>(null);
+    const [redirectingHandoff, setRedirectingHandoff] = useState(false);
+
     // Type of operation
     const type = searchParams.get('type') || 'recovery';
     const isInvite = type === 'invite';
+
+    const handleHandoffRedirect = () => {
+        if (!confirmHandoffUrl) return;
+        setRedirectingHandoff(true);
+        window.location.href = confirmHandoffUrl;
+    };
+
+    const handleInviteHandoff = () => {
+        if (!confirmInviteToken) return;
+        setRedirectingHandoff(true);
+        // Build direct verification URL for Supabase invite token
+        const projectId = 'tuysyojdayewvpuvunlu';
+        const redirectUrl = encodeURIComponent(`${window.location.origin}/update-password`);
+        window.location.href = `https://${projectId}.supabase.co/auth/v1/verify?token=${confirmInviteToken}&type=invite&redirect_to=${redirectUrl}`;
+    };
 
     useEffect(() => {
         let mounted = true;
@@ -32,6 +52,27 @@ const UpdatePassword: React.FC = () => {
             // 1. Check for URL errors immediately (e.g. Supabase "Token expired" redirect)
             const hashStr = window.location.hash.replace(/^#\/?/, '');
             const hashParams = new URLSearchParams(hashStr);
+
+            // Check for Hash Handoff first
+            const confirmUrl = hashParams.get('confirm');
+            const inviteToken = hashParams.get('confirm-invite');
+
+            if (confirmUrl) {
+                if (mounted) {
+                    setConfirmHandoffUrl(confirmUrl);
+                    setVerifying(false);
+                }
+                return;
+            }
+
+            if (inviteToken) {
+                if (mounted) {
+                    setConfirmInviteToken(inviteToken);
+                    setVerifying(false);
+                }
+                return;
+            }
+
             const urlError = searchParams.get('error_description') || hashParams.get('error_description');
 
             if (urlError) {
@@ -182,6 +223,98 @@ const UpdatePassword: React.FC = () => {
     const uiTitle = isInvite ? 'Finalizar Cadastro' : 'Redefinir Senha';
     const uiSubtitle = isInvite ? 'Crie uma senha de acesso para sua conta' : 'Escolha uma nova senha para sua conta';
     const uiButton = isInvite ? 'ENTRAR NA PLATAFORMA' : 'SALVAR E ENTRAR';
+
+    if (confirmHandoffUrl) {
+        return (
+            <div className="min-h-screen w-full bg-[#030712] flex flex-col items-center justify-center p-4 relative py-12">
+                <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+                    <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/20 blur-[120px] rounded-full opacity-60"></div>
+                    <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-600/10 blur-[120px] rounded-full opacity-60"></div>
+                </div>
+
+                <div className="relative z-10 w-full max-w-[440px]">
+                    <div className="text-center mb-8 animate-fade-in-up">
+                        <img
+                            src="/beleadly_logo_h1.png"
+                            alt="beleadly"
+                            className="h-10 md:h-12 w-auto mx-auto object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                        />
+                    </div>
+
+                    <div className="bg-white border border-white/20 rounded-[32px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] w-full animate-fade-in-up overflow-hidden p-8 text-center">
+                        <div className="inline-flex items-center justify-center p-4 mb-6 bg-blue-500/10 rounded-full border border-blue-500/20">
+                            <Lock className="w-10 h-10 text-blue-500" />
+                        </div>
+                        <h2 className="text-2xl font-black text-zinc-900 tracking-tight mb-3">Acesso Seguro</h2>
+                        <p className="text-zinc-500 text-sm font-medium mb-8 leading-relaxed">
+                            Para proteger sua conta contra robôs de antivírus, clique no botão abaixo para confirmar seu acesso e redefinir sua senha.
+                        </p>
+                        
+                        <button
+                            onClick={handleHandoffRedirect}
+                            disabled={redirectingHandoff}
+                            className="w-full py-4 px-6 bg-blue-600 text-white font-extrabold text-sm tracking-widest rounded-2xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                        >
+                            {redirectingHandoff ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                <>
+                                    <span>CONFIRMAR ACESSO</span>
+                                    <ArrowRight className="w-4 h-4" />
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (confirmInviteToken) {
+        return (
+            <div className="min-h-screen w-full bg-[#030712] flex flex-col items-center justify-center p-4 relative py-12">
+                <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+                    <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/20 blur-[120px] rounded-full opacity-60"></div>
+                    <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-600/10 blur-[120px] rounded-full opacity-60"></div>
+                </div>
+
+                <div className="relative z-10 w-full max-w-[440px]">
+                    <div className="text-center mb-8 animate-fade-in-up">
+                        <img
+                            src="/beleadly_logo_h1.png"
+                            alt="beleadly"
+                            className="h-10 md:h-12 w-auto mx-auto object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                        />
+                    </div>
+
+                    <div className="bg-white border border-white/20 rounded-[32px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] w-full animate-fade-in-up overflow-hidden p-8 text-center">
+                        <div className="inline-flex items-center justify-center p-4 mb-6 bg-blue-500/10 rounded-full border border-blue-500/20">
+                            <CheckCircle className="w-10 h-10 text-blue-500" />
+                        </div>
+                        <h2 className="text-2xl font-black text-zinc-900 tracking-tight mb-3">Ativar sua Conta</h2>
+                        <p className="text-zinc-500 text-sm font-medium mb-8 leading-relaxed">
+                            Sua conta foi criada com sucesso! Clique no botão abaixo para confirmar seu cadastro e criar sua senha de acesso.
+                        </p>
+                        
+                        <button
+                            onClick={handleInviteHandoff}
+                            disabled={redirectingHandoff}
+                            className="w-full py-4 px-6 bg-blue-600 text-white font-extrabold text-sm tracking-widest rounded-2xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                        >
+                            {redirectingHandoff ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                <>
+                                    <span>CONFIRMAR CADASTRO</span>
+                                    <ArrowRight className="w-4 h-4" />
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     // If there is an error initially (link expired), show just the error state, no password form
     if (error && !password && !confirmPassword) {
